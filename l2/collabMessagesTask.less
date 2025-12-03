@@ -1,0 +1,180 @@
+/// <mls shortName="collabMessagesTask" project="102025" enhancement="enhancementStyle" folder="" />
+
+collab-messages-task-102025 {
+
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    overflow: hidden;
+    cursor: pointer;
+    background-color: #fff;
+    color: #000000;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+
+    .card.no-details {
+        display: block;
+    }
+
+    .card {
+        display: block;
+        padding: @space-16;
+        width: 100%;
+        position: relative;
+
+
+
+        .task-icon {
+
+            .icon-wrapper {
+                position: relative;
+                display: inline-block;
+                font-size: 20px;
+            }
+
+            .notification-badge {
+                position: absolute;
+                top: -1px;
+                right: -3px;
+                background: red;
+                color: white;
+                border-radius: 50%;
+                padding: 0.1em 0.1em;
+                font-size: 0.49em;
+                font-weight: bold;
+                line-height: 1;
+                min-width: 1em;
+                text-align: center;
+            }
+
+            &.failed {
+                fill: @error-color;
+                color: @error-color;
+            }
+
+            &.done {
+                fill: @success-color;
+                color: @success-color;
+            }
+
+            &.waitingforuser {
+                fill: @warning-color;
+                color: @warning-color;
+            }
+
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+
+            .card-user {
+                color: #be069c;
+            }
+
+            .card-title {
+                font-size: @font-size-12;
+                font-weight: bold;
+                max-width: 130px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .card-time {
+                font-size: 0.75rem;
+                color: gray;
+                text-align: right;
+                transition: color 0.3s ease;
+            }
+
+            .card-time.over-minute {
+                color: red;
+                animation: pulse 1s infinite alternate;
+            }
+
+            @keyframes pulse {
+                0% {
+                    transform: scale(1);
+                }
+
+                100% {
+                    transform: scale(1.2);
+                }
+            }
+
+            .card-price {
+                display: flex;
+                align-items: center;
+                gap: .2rem;
+                font-size: @font-size-12;
+
+                svg {
+                    width: 12px;
+                    height: 12px;
+                }
+            }
+
+            .card-actions {
+                display: flex;
+                gap: .4rem;
+                align-items: center;
+
+                i {
+                    cursor: pointer;
+
+                    &:hover {
+                        transform: scale(1.1);
+                    }
+                }
+
+                svg {
+                    width: 12px;
+                    height: 12px;
+                }
+            }
+
+            .card-status {
+                text-transform: uppercase;
+                font-size: @font-size-12;
+                border: 1px solid;
+                padding: 0 .3rem;
+                border-radius: 4px;
+                white-space: nowrap;
+
+                &.todo {
+                    color: @grey-color-darker;
+                }
+
+                &.done {
+                    color: @success-color;
+                }
+
+                &.in-progress {
+                    color: @active-color;
+                }
+
+                &.waitingforuser {
+                    color: @warning-color;
+                }
+
+                &.paused {
+                    color: @info-color-disabled;
+                }
+            }
+        }
+
+        .card-body {
+            margin-top: @space-16;
+
+            .card-message {
+                font-size: @font-size-16;
+            }
+        }
+
+    }
+}
+
+
