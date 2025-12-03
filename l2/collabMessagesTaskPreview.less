@@ -1,0 +1,104 @@
+/// <mls shortName="collabMessagesTaskPreview" project="102025" enhancement="enhancementStyle" folder="" />
+
+collab-messages-task-preview-102025 {
+
+    display: block;
+    border: 1px solid @grey-color;
+    padding: 1rem;
+    border-radius: 8px;
+    background: @bg-secondary-color-lighter;
+    font-family: var(--font-family-primary);
+    height: calc(100% - 50px);
+    position: relative;
+
+    .tabAction {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: .3rem;
+        gap: 3rem;
+
+        span {
+            font-weight: 500;
+            font-size: 1.1rem;
+            color: @text-primary-color;
+        }
+
+        button {
+            padding: 0.2rem 1.2rem;
+            border: none;
+            border-radius: 2px;
+            background-color: @text-primary-color-darker;
+            color: @bg-primary-color;
+            font-size: 0.95rem;
+            cursor: pointer;
+
+            &:hover:not(:disabled) {
+                opacity: .7;
+            }
+
+            &:disabled {
+                background-color: @bg-secondary-color;
+                cursor: not-allowed;
+            }
+        }
+    }
+
+    .breadcrumb {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        overflow: hidden;
+        flex-shrink: 0;
+        height: 20px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        span {
+            display: inline-block;
+            color: @link-color;
+            padding: 0 0.75rem;
+            position: relative;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: color 0.2s;
+            font-size: 10px;
+
+            &:hover {
+                color: @link-color-hover;
+            }
+
+            &::after {
+                content: '>';
+                position: absolute;
+                right: -0.5rem;
+                color: @grey-color-dark;
+                pointer-events: none;
+            }
+
+            &:last-of-type {
+                font-weight: bold;
+                color: @text-primary-color;
+
+                &::after {
+                    content: none;
+                }
+            }
+        }
+    }
+
+    .container {
+        background: @bg-primary-color;
+        border-radius: 5px;
+        border: 1px solid @grey-color;
+        height: calc(100% - 70px);
+        overflow-y: auto;
+    }
+
+}
+
+
