@@ -1,0 +1,135 @@
+/// <mls shortName="collabMessagesChangeAvatar" project="102025" enhancement="enhancementStyle" folder="" />
+
+collab-messages-change-avatar-102025 {
+
+    display: block;
+
+    .panel {
+        border: 1px solid #ddd;
+        padding: 12px;
+        border-radius: 6px;
+        margin: 8px 0;
+    }
+
+    .preview img,
+    .preview svg {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid #ccc;
+        fill: currentColor;
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 60px;
+    }
+
+    .avatar-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .actions-avatar {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .actions-ia {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    input,
+    select,
+    textarea {
+        width: 100%;
+        display: block;
+        font-size: 1rem;
+        line-height: 1.5;
+        height: 33px;
+        color: #000000;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        outline: none;
+
+        &[disabled] {
+            background-color: @grey-color-light;
+        }
+    }
+
+    button {
+        background-color: @info-color;
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0px 1px 3px 0px @grey-color;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        gap: .2rem;
+        font-weight: 700;
+        align-items: center;
+        height: 40px;
+        transition: height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+        padding: 0.5rem;
+        color: #ffffff;
+        cursor: pointer;
+        max-width: 200px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        &:hover {
+            background-color: @info-color-hover;
+        }
+    }
+
+    .loader {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ccc;
+        border-top: 2px solid #000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    .upload-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    .upload-btn {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s ease;
+    }
+
+    .upload-btn:hover {
+        background-color: #0056b3;
+    }
+
+    .hidden-file-input {
+        display: none;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+}
+
+
