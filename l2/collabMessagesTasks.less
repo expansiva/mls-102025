@@ -1,0 +1,121 @@
+/// <mls shortName="collabMessagesTasks" project="102025" enhancement="enhancementStyle" folder="" />
+
+collab-messages-tasks-102025 {
+
+    .task-details {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .back-btn {
+        background: none;
+        border: none;
+        color: @grey-color-darker;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .back-btn:hover {
+        text-decoration: underline;
+    }
+
+
+    .task-list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        padding: 1rem;
+    }
+
+    .task-stage {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .task-stage-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: @font-size-12;
+        font-weight: bold;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stage-name {
+        text-transform: uppercase;
+    }
+
+    .stage-count {
+        color: @grey-color-darker;
+    }
+
+    .stage-add {
+        margin-left: auto;
+        font-weight: normal;
+        color: @grey-color-darker;
+        cursor: pointer;
+    }
+
+    .stage-add:hover {
+        text-decoration: underline;
+    }
+
+    .task-items {
+        list-style: none;
+        margin: 0;
+        padding: 0.25rem 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .task-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: @font-size-12;
+        padding: 0.5rem 0.25rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .task-row:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .task-title {
+        flex: 1;
+    }
+
+    .task-check {
+        font-size: 12px;
+        opacity: 0.7;
+    }
+
+    .task-meta {
+        font-size: 11px;
+        opacity: 0.6;
+    }
+
+    .task-tag {
+        font-size: 10px;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        text-transform: uppercase;
+    }
+
+    .task-tag.bug {
+        background: #d32f2f;
+        color: white;
+    }
+
+
+}
+
+
