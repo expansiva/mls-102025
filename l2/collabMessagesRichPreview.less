@@ -1,0 +1,197 @@
+/// <mls shortName="collabMessagesRichPreview" project="102025" enhancement="enhancementStyle" folder="" />
+
+collab-messages-rich-preview-102025 {
+
+    .collab-md-message {
+        font-family: inherit;
+        font-size: inherit;
+        color: inherit;
+        line-height: inherit;
+        background: inherit;
+        padding: inherit;
+        border-radius: @space-8;
+    }
+
+    .collab-md-message strong {
+        font-weight: @font-weight-bold;
+        color: @text-primary-color-darker;
+    }
+
+    .collab-md-message em {
+        font-style: italic;
+        color: @text-primary-color-lighter;
+    }
+
+    .collab-md-message code {
+        font-family: monospace;
+    }
+
+    .collab-md-message pre {
+        white-space: pre-wrap;
+        padding: @space-8;
+        border-radius: 0.3em;
+        font-family: monospace;
+        font-size: @font-size-16;
+        color: @text-primary-color-darker;
+    }
+
+    .collab-md-message blockquote {
+        border-left: 4px solid @text-secondary-color;
+        padding-left: @space-16;
+        color: @text-primary-color-lighter;
+        margin: @space-16 0;
+    }
+
+    .collab-md-message ul {
+        margin: @space-16 0 @space-16 @space-24;
+        padding: 0;
+    }
+
+    .collab-md-message li {
+        margin-bottom: @space-8;
+    }
+
+    .collab-md-message a {
+        color: @link-color;
+        text-decoration: underline;
+        transition: color @transition-normal;
+
+        &:hover {
+            color: @link-color-hover;
+        }
+    }
+
+    .collab-md-message .mention {
+        color: #1565c0; // Slack-like blue
+        background: #e3f0fd; // subtle blue background
+        padding: 0 @space-8;
+        border-radius: 0.3em;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background @transition-normal, color @transition-normal;
+
+        &:hover {
+            background: #bbdefb;
+            color: #0d47a1;
+        }
+    }
+
+    .collab-md-message .mention-agent {
+        color: var(--active-color);
+        background-color: transparent;
+        padding: 0 @space-8;
+        border-radius: @space-8;
+        font-weight: @font-weight-bold;
+        cursor: pointer;
+        transition: background @transition-normal;
+
+        &:hover {
+            color: var(--active-color-hover);
+        }
+    }
+
+    .collab-md-message .channel-ref {
+        color: #1976d2; // Slack-like blue for channels
+        background: #e3f0fd;
+        padding: 0 @space-8;
+        border-radius: @space-8;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background @transition-normal, color @transition-normal;
+
+        &:hover {
+            background: #bbdefb;
+            color: #0d47a1;
+        }
+    }
+
+    .collab-md-message .object-ref {
+        color: #c01343;
+        display: block;
+    }
+
+    .collab-md-message .help-ref {
+        color: @success-color;
+        background: @bg-secondary-color-lighter;
+        padding: 0 @space-8;
+        border-radius: 0.2em;
+    }
+
+    .collab-md-message .command {
+        color: @active-color;
+        background: @bg-secondary-color-lighter;
+        padding: 0 @space-8;
+        border-radius: @space-8;
+        font-family: monospace;
+    }
+
+
+    .collab-md-inlinecode-card,
+    .collab-md-codeblock-card {
+        display: block;
+        background: #f6f8fa;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        color: #24292f;
+        overflow: hidden;
+
+        .collab-md-inlinecode-header,
+        .collab-md-codeblock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #eaeef2;
+            border-bottom: 1px solid #d0d7de;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #57606a;
+
+            .collab-md-inlinecode-lang,
+            .collab-md-codeblock-lang {
+                font-size: 11px;
+                background: #d0d7de;
+                border-radius: 3px;
+                padding: 1px 4px;
+                color: #24292f;
+            }
+
+            .collab-md-inlinecode-copy,
+            .collab-md-codeblock-copy {
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-size: 14px;
+                color: #57606a;
+                padding: 2px 4px;
+
+                &:hover {
+                    color: #1f2328;
+                }
+            }
+        }
+
+        .collab-md-inlinecode-pre {
+            display: block;
+            padding: 8px 12px;
+            white-space: pre;
+            overflow-x: auto;
+        }
+    }
+
+    collab-messages-rich-preview-102025 {
+        pre {
+            padding: 0 !important;
+            border: 0px !important;
+            display: flex;
+            flex-direction: column;
+        }
+    }
+
+}
+
+
