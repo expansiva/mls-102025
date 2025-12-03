@@ -1,0 +1,222 @@
+/// <mls shortName="collabMessagesAdd" project="102025" enhancement="enhancementStyle" folder="" />
+
+collab-messages-add-102025 {
+
+    font-family: @font-family-primary;
+    display: block;
+
+    .form-group {
+        margin: @space-8 0;
+
+        small {
+            font-size: @font-size-12;
+            font-style: italic;
+        }
+
+        label {
+            display: block;
+            margin-bottom: .2rem;
+            font-size: 14px;
+            color: @text-primary-color;
+        }
+
+        input,
+        select {
+            height: 33px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            display: block;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #000000;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            outline: none;
+        }
+
+        input:invalid {
+            border-color: @error-color;
+        }
+
+        input:invalid+.field-thread-name-error {
+            display: block;
+            color: @error-color;
+            font-size: 0.9em;
+        }
+
+        .field-thread-name-error {
+            display: none;
+        }
+
+        collab-messages-input-tag-102025 .collab-tag-input {
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+    }
+
+
+
+    button {
+        background-color: @info-color;
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0px 1px 3px 0px @grey-color;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        gap: .2rem;
+        font-weight: 700;
+        align-items: center;
+        height: 40px;
+        transition: height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+        padding: 0.5rem;
+        color: #ffffff;
+        cursor: pointer;
+        min-width: 100px;
+
+        &:hover {
+            background-color: @info-color-hover;
+        }
+    }
+
+    .section-add-thread {
+        padding: 1rem;
+
+        .section-thread-details {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        details>summary {
+            cursor: pointer;
+            font-size: @font-size-16;
+        }
+
+        details>div {
+            padding: .5rem;
+            margin-left: 1rem;
+        }
+    }
+
+    .actions {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .loader {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ccc;
+        border-top: 2px solid #333;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    .saving-ok {
+        color: @success-color;
+        font-size: @font-size-12;
+    }
+
+    .saving-error {
+        color: @error-color;
+        font-size: @font-size-12;
+    }
+
+    .selector-container {
+        display: flex;
+        flex-direction: column;
+
+        /* Grid para os botões */
+        .radio-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* Estilo do "Card" (Label) */
+        .radio-label {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #fff;
+            transition: all 0.2s ease;
+            color: #6b7280;
+        }
+
+        .radio-label:hover {
+            border-color: #d1d5db;
+            background-color: #f9fafb;
+        }
+
+        /* Input radio oculto mas acessível */
+        .radio-input {
+            opacity: 0;
+            position: absolute;
+            width: 0;
+            height: 0;
+        }
+
+        .radio-label.selected {
+            border-color: @active-color;
+            background-color: #eff6ff;
+            color: @active-color;
+        }
+
+        svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .radio-input:focus-visible+.content-wrapper {
+            outline: 2px solid @active-color;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        .content-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-direction: column;
+            text-align: center;
+
+            .option-title {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: @font-size-16;
+            }
+
+            .option-desc {
+                font-style: italic;
+                font-size: @font-size-12;
+
+            }
+        }
+
+
+
+    }
+
+}
+
+
