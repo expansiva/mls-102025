@@ -1,0 +1,76 @@
+/// <mls shortName="collabMessagesFilter" project="102025" enhancement="enhancementStyle" folder="" />
+
+collab-messages-filter-102025 {
+
+    .container {
+        display: flex;
+        align-items: center;
+        background: @bg-secondary-color-lighter;
+        border-radius: 2rem;
+        padding: 0.25rem 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: all @transition-normal ease;
+        width: 2.5rem;
+        overflow: hidden;
+        cursor: pointer;
+
+        &.expanded {
+            width: 100%;
+            cursor: text;
+            background: @bg-primary-color;
+        }
+    }
+
+    .icon {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: @font-size-16;
+        color: @text-primary-color-lighter;
+        transition: color @transition-normal ease;
+
+        >span {
+            margin: 0;
+            display: flex;
+        }
+
+        &:hover {
+            color: @text-primary-color;
+        }
+
+        &:focus {
+            outline: none;
+            color: @text-primary-color-focus;
+        }
+    }
+
+    .container.expanded {
+        input {
+            opacity: 1;
+        }
+    }
+
+    input {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-family: @font-family-primary;
+        font-size: @font-size-16;
+        background: transparent;
+        color: @text-primary-color;
+        margin-left: @space-8;
+        width: 100%;
+        opacity: 0;
+        transition: opacity @transition-normal ease;
+
+        &::placeholder {
+            color: @text-primary-color-lighter;
+        }
+    }
+
+}
+
+
