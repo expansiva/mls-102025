@@ -3,8 +3,8 @@
 
 import { html, unsafeHTML } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import '/_102025_/collabMessagesTextCode.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import '/_102025_/l2/collabMessagesTextCode.js';
 
 @customElement('collab-messages-rich-preview-102025')
 export class WidgetText2CollabMessagesMD extends StateLitElement {
