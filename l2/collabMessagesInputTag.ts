@@ -3,7 +3,7 @@
 
 import { html, ifDefined } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
 
 @customElement('collab-messages-input-tag-102025')
 export class CollabMessagesInputTag extends StateLitElement {
