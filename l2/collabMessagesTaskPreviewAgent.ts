@@ -2,9 +2,8 @@
 
 import { html, repeat, unsafeHTML } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { CollabLitElement } from '/_100554_/collabLitElement.js';
-import { IAgent } from '/_100554_/aiAgentBase.js';
-import { getTemporaryContext, getAgentInstanceByName } from '/_100554_/aiAgentHelper.js';
+import { CollabLitElement } from '/_100554_/l2/collabLitElement.js';
+import { getTemporaryContext, getAgentInstanceByName } from '/_100554_/l2/aiAgentHelper.js';
 
 @customElement('collab-messages-task-preview-agent-102025')
 export class CollabMessageTaskPreviewAgent extends CollabLitElement {
