@@ -2,29 +2,30 @@
 
 import { html} from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { addCoachMark, ICoachMarks } from '/_100554_coachMarks';
-import { listThreads, addThread, listUsers, updateUsers, getThread, cleanupThreads, getTask } from '/_102025_collabMessagesIndexedDB';
+import { addCoachMark, ICoachMarks } from '/_100554_/l2/coachMarks';
+import { listThreads, addThread, listUsers, updateUsers, getThread, cleanupThreads, getTask } from '/_102025_/l2/collabMessagesIndexedDB';
 import {
     saveLastTab,
     loadLastTab,
     saveUserId,
     saveLastAlertTime,
     loadLastAlertTime
-} from "./_102025_collabMessagesHelper";
+} from "/_102025_/l2/collabMessagesHelper";
 
-import { openService } from "/_100554_libCommom";
-import { checkIfNotificationUnread } from '/_102025_collabMessagesSyncNotifications';
+import { openService } from "/_100554_/l2/libCommom";
+import { checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications';
 
-import { ServiceBase, IService, IToolbarContent, IServiceMenu } from '/_100554_serviceBase';
-import { ICollabMessageEvent } from '/_102025_collabMessagesHelper';
-import { setFavicon } from '/_100554_collabInit';
-import { collab_bell_slash, collab_xmark } from '/_102025_collabMessagesIcons';
+import { ServiceBase, IService, IToolbarContent, IServiceMenu } from '/_100554_/l2/serviceBase';
+import { ICollabMessageEvent } from '/_102025_/l2/collabMessagesHelper';
+import { setFavicon } from '/_100554_/l2/collabInit';
+import { collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons';
 
-import '/_102025_collabMessagesAdd';
-import '/_102025_collabMessagesChat';
-import '/_102025_collabMessagesTasks';
-import '/_102025_collabMessagesSettings';
-import '/_102025_collabMessagesFindtask';
+import '/_102025_/l2/collabMessagesAdd';
+import '/_102025_/l2/collabMessagesChat';
+import '/_102025_/l2/collabMessagesTasks';
+import '/_102025_/l2/collabMessagesSettings';
+import '/_102025_/l2/collabMessagesFindtask';
+
 
 /// **collab_i18n_start** 
 const message_pt = {
@@ -54,7 +55,6 @@ const messages: { [key: string]: MessageType } = {
     'pt': message_pt
 }
 /// **collab_i18n_end**
-
 
 @customElement('service-collab-messages-102025')
 export class ServiceCollabMessages extends ServiceBase {
