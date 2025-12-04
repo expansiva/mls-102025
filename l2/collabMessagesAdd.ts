@@ -98,6 +98,7 @@ const message_en = {
     channelDesc: 'Create a space to discuss topics with multiple people.'
 }
 
+
 type MessageType = typeof message_en;
 const messages: { [key: string]: MessageType } = { en: message_en, pt: message_pt };
 /// **collab_i18n_end**
