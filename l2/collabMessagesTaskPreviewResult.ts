@@ -2,7 +2,7 @@
 
 import { html, repeat } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { CollabLitElement } from '/_100554_/collabLitElement.js';  
+import { CollabLitElement } from '/_100554_/l2/collabLitElement.js';  
   
 @customElement('collab-messages-task-preview-result-102025')
 export class CollabMessageTaskPreviewResult extends CollabLitElement {
