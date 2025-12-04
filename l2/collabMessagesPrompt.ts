@@ -2,14 +2,14 @@
 
 import { html, ifDefined } from 'lit';
 import { customElement, property, state, query, } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import { IAgent } from '/_100554_/aiAgentBase.js'
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { IAgent } from '/_100554_/l2/aiAgentBase.js'
 
-import { collab_arrow_up_long } from '/_102025_/collabMessagesIcons.js';
-import { getThread, listUsers } from '/_102025_/collabMessagesIndexedDB.js';
-import { emojiList } from '/_102025_/collabMessagesEmojis.js'
+import { collab_arrow_up_long } from '/_102025_/l2/collabMessagesIcons.js';
+import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
 
-import '/_102025_/collabMessagesAvatar.js';
+import '/_102025_/l2/collabMessagesAvatar.js';
 
 @customElement('collab-messages-prompt-102025')
 export class CollabMessagesPrompt extends StateLitElement {
