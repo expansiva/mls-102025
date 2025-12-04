@@ -3,15 +3,15 @@
 import { html, repeat, ifDefined } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 
-import { updateThread, getUser, deleteAllMessagesFromThread } from '/_102025_/collabMessagesIndexedDB.js';
-import { collab_triangle_exclamation } from '/_102025_/collabMessagesIcons.js';
-import { notifyThreadChange } from '/_100554_/aiAgentHelper.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import { addMessage } from "/_102025_/collabMessagesHelper.js";
+import { updateThread, getUser, deleteAllMessagesFromThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { collab_triangle_exclamation } from '/_102025_/l2/collabMessagesIcons.js';
+import { notifyThreadChange } from '/_100554_/l2/aiAgentHelper.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { addMessage } from "/_102025_/l2/collabMessagesHelper.js";
 
-import '/_102025_/collabMessagesInputTag.js';
-import '/_102025_collabMessagesAddParticipant.js';
-import '/_102025_/collabMessagesChangeAvatar.js';
+import '/_102025_/l2/collabMessagesInputTag.js';
+import '/_102025_/l2/collabMessagesAddParticipant.js';
+import '/_102025_/l2/collabMessagesChangeAvatar.js';
 
 /// **collab_i18n_start** 
 const message_pt = {
