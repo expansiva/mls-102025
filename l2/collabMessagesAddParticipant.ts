@@ -2,9 +2,9 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import { updateThread, updateUsers } from '/_102025_/collabMessagesIndexedDB.js';
-import { notifyThreadChange } from '/_100554_/aiAgentHelper.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { updateThread, updateUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { notifyThreadChange } from '/_100554_/l2/aiAgentHelper.js';
 
 /// **collab_i18n_start** 
 const message_pt = {
