@@ -2,17 +2,17 @@
 
 import { html, LitElement, unsafeHTML } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { collab_chevron_left, collab_gear, collab_translate, collab_circle_exclamation, collab_plus, collab_folder_tree } from '/_102025_/collabMessagesIcons.js';
-import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/collabMessagesSyncNotifications.js';
-import { openElementInServiceDetails, clearServiceDetails } from '/_100554_/libCommom.js';
-import { setFavicon } from '/_100554_/collabInit.js';
+import { collab_chevron_left, collab_gear, collab_translate, collab_circle_exclamation, collab_plus, collab_folder_tree } from '/_102025_/l2/collabMessagesIcons.js';
+import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { openElementInServiceDetails, clearServiceDetails } from '/_100554_/l2/libCommom.js';
+import { setFavicon } from '/_100554_/l2/collabInit.js';
 
 import {
     getTemporaryContext,
     formatTimestamp,
     getAgentInstanceByName,
     notifyThreadChange
-} from '/_100554_/aiAgentHelper.js';
+} from '/_100554_/l2/aiAgentHelper.js';
 
 import {
     addOrUpdateTask,
@@ -24,7 +24,7 @@ import {
     getMessagesByThreadId,
     deleteAllMessagesFromThread,
     listUsers
-} from '/_102025_/collabMessagesIndexedDB.js';
+} from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 import {
     loadChatPreferences,
@@ -33,25 +33,25 @@ import {
     loadNotificationPreferences,
     loadNotificationDeviceId,
     defaultThreadImage
-} from '/_102025_/collabMessagesHelper.js';
+} from '/_102025_/l2/collabMessagesHelper.js';
 
 
-import '/_102025_/collabMessagesTaskInfo.js';
-import '/_102025_/collabMessagesTask.js';
-import '/_102025_/collabMessagesTopics.js';
-import '/_102025_/collabMessagesPrompt.js';
-import '/_102025_/collabMessagesAvatar.js';
-import '/_102025_/collabMessagesThreadDetails.js';
-import '/_102025_/collabMessagesRichPreview.js';
-import '/_102025_/collabMessagesUserModal.js';
-import '/_102025_/collabMessagesThreadModal.js';
-import '/_102025_/collabMessagesFilter.js';
-import '/_102025_/collabMessagesAdd.js';
+import '/_102025_/l2/collabMessagesTaskInfo.js';
+import '/_102025_/l2/collabMessagesTask.js';
+import '/_102025_/l2/collabMessagesTopics.js';
+import '/_102025_/l2/collabMessagesPrompt.js';
+import '/_102025_/l2/collabMessagesAvatar.js';
+import '/_102025_/l2/collabMessagesThreadDetails.js';
+import '/_102025_/l2/collabMessagesRichPreview.js';
+import '/_102025_/l2/collabMessagesUserModal.js';
+import '/_102025_/l2/collabMessagesThreadModal.js';
+import '/_102025_/l2/collabMessagesFilter.js';
+import '/_102025_/l2/collabMessagesAdd.js';
 
-import { IChatPreferences, AGENTDEFAULT } from '/_102025_/collabMessagesHelper.js';
-import { CollabMessagesPrompt } from '/_102025_/collabMessagesPrompt.js';
-import { IAgent } from '/_100554_/aiAgentBase.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
+import { IChatPreferences, AGENTDEFAULT } from '/_102025_/l2/collabMessagesHelper.js';
+import { CollabMessagesPrompt } from '/_102025_/l2/collabMessagesPrompt.js';
+import { IAgent } from '/_100554_/l2/aiAgentBase.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
 
 
 /// **collab_i18n_start**

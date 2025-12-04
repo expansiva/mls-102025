@@ -2,7 +2,7 @@
 
 import { html, css } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
 
 @customElement('collab-messages-text-code-102025')
 export class CollabMessagesTextCode extends StateLitElement {

@@ -2,15 +2,14 @@
 
 import { html, css } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import { notifyThreadChange, notifyThreadCreate, getTemporaryContext } from '/_100554_/aiAgentHelper.js';
-import { IAgent } from '/_100554_/aiAgentBase.js'
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { notifyThreadChange, notifyThreadCreate, getTemporaryContext, getAgentInstanceByName } from '/_100554_/l2/aiAgentHelper.js';
+import { IAgent } from '/_100554_/l2/aiAgentBase.js'
+import { addThread, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { getUserId, getDmThreadByUsers, addMessage, createThreadDM } from '/_102025_/l2/collabMessagesHelper.js';
 
-import { addThread, updateThread } from '/_102025_/collabMessagesIndexedDB.js';
-import { getUserId, getDmThreadByUsers, addMessage, createThreadDM } from '/_102025_/collabMessagesHelper.js';
-
-import { CollabMessagesInputTag } from '/_102025_/collabMessagesInputTag.js';
-import '/_102025_/collabMessagesInputTag.js';
+import { CollabMessagesInputTag } from '/_102025_/l2/collabMessagesInputTag.js';
+import '/_102025_/l2/collabMessagesInputTag.js';
 
 /// **collab_i18n_start** 
 const message_pt = {
@@ -105,7 +104,7 @@ const messages: { [key: string]: MessageType } = { en: message_en, pt: message_p
 
 type ThreadType = 'dm' | 'channel';
 
-const agentName = '_102025_agentGenerateAvatarSvg';
+const agentName = 'agentGenerateAvatarSvg';
 
 @customElement('collab-messages-add-102025')
 export class CollabMessagesAdd extends StateLitElement {
@@ -183,7 +182,7 @@ export class CollabMessagesAdd extends StateLitElement {
         for await (const k of keys) {
             if (k.indexOf('agent') < 0) continue;
             const storFile = mls.stor.files[k];
-            const path = storFile.folder ? `./_${storFile.project}_${storFile.folder}/${storFile.shortName}` : `./_${storFile.project}_${storFile.shortName}`;
+            const path = storFile.folder ? `/_${storFile.project}_/l2/${storFile.folder}/${storFile.shortName}` : `/_${storFile.project}_/l2/${storFile.shortName}`;
             if (storFile.extension !== '.ts' || !storFile.shortName.startsWith('agent')) continue;
             try {
                 const mdl = await import(path);
@@ -570,12 +569,10 @@ export class CollabMessagesAdd extends StateLitElement {
 
     private async generateAvatar(threadId: string, userId: string) {
         try {
-            const moduleAgent = await import(`/${agentName}`);
-            if (!moduleAgent?.createAgent || typeof moduleAgent.createAgent !== 'function') {
-                throw new Error('Invalid agent');
-            }
-
-            const agent: IAgent = moduleAgent.createAgent();
+        
+            const agent = await getAgentInstanceByName(agentName);
+            if (!agent) throw new Error('Invalid agent');
+            
             const context = getTemporaryContext(threadId, userId, this._promptToAvatar);
             await agent.beforePrompt(context);
 

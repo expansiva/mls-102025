@@ -2,10 +2,10 @@
 
 import { html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import { getNextPendentStep, getTotalCost } from '/_100554_/aiAgentHelper.js';
-import { executeNextStep } from "/_100554_/aiAgentOrchestration.js";
-import { getTask, getMessage } from '/_102025_/collabMessagesIndexedDB.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { getNextPendentStep, getTotalCost } from '/_100554_/l2/aiAgentHelper.js';
+import { executeNextStep } from "/_100554_/l2/aiAgentOrchestration.js";
+import { getTask, getMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 import {
     collab_money,
@@ -16,7 +16,7 @@ import {
     collab_check,
     collab_bug,
     collab_play
-} from '/_102025_/collabMessagesIcons.js';
+} from '/_102025_/l2/collabMessagesIcons.js';
 
 /// **collab_i18n_start** 
 const message_pt = {

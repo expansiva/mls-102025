@@ -2,8 +2,8 @@
 
 import { html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import { collab_spinner_clock } from '/_102025_/collabMessagesIcons.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { collab_spinner_clock } from '/_102025_/l2/collabMessagesIcons.js';
 
 @customElement('collab-messages-tasks-102025')
 export class CollabMessagesTasks extends StateLitElement {

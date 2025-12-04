@@ -3,8 +3,8 @@
 
 import { html, unsafeHTML } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { CollabLitElement } from '/_100554_/collabLitElement.js'; 
-import {getStepById, getTemporaryContext, getAgentInstanceByName} from "/_100554_/aiAgentHelper.js";
+import { CollabLitElement } from '/_100554_/l2/collabLitElement.js'; 
+import {getStepById, getTemporaryContext, getAgentInstanceByName} from "/_100554_/l2/aiAgentHelper.js";
 
 @customElement('collab-messages-task-preview-clarification-102025')   
 export class CollabMessageTaskPreviewClarification extends CollabLitElement { 

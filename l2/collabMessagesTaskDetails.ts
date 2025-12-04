@@ -2,7 +2,7 @@
 
 import { html, TemplateResult } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
 
 import {
     getNextResultStep,
@@ -11,11 +11,11 @@ import {
     getInteractionStepId,
     getStepById,
     getTotalCost, getTemporaryContext
-} from '/_100554_/aiAgentHelper.js';
+} from '/_100554_/l2/aiAgentHelper.js';
 
-import { getClarification } from '/_100554_/aiAgentOrchestration.js';
-import { collab_money } from '/_102025_/collabMessagesIcons.js';
-import { IAgent } from '/_100554_/aiAgentBase.js';
+import { getClarification } from '/_100554_/l2/aiAgentOrchestration.js';
+import { collab_money } from '/_102025_/l2/collabMessagesIcons.js';
+import { IAgent } from '/_100554_/l2/aiAgentBase.js';
 
 @customElement('collab-messages-task-details-102025')
 export class CollabMessagesTaskDetails extends StateLitElement {

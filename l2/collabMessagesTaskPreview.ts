@@ -2,14 +2,14 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { getAllSteps } from '/_100554_/aiAgentHelper.js';
-import { CollabLitElement } from '/_100554_/collabLitElement.js';
+import { getAllSteps } from '/_100554_/l2/aiAgentHelper.js';
+import { CollabLitElement } from '/_100554_/l2/collabLitElement.js';
 
-import '/_102025_/collabMessagesTaskPreviewAgent.js';
-import '/_102025_/collabMessagesTaskPreviewClarification.js';
-import '/_102025_/collabMessagesTaskPreviewFlexible.js';
-import '/_102025_/collabMessagesTaskPreviewTools.js';
-import '/_102025_/collabMessagesTaskPreviewResult.js';
+import '/_102025_/l2/collabMessagesTaskPreviewAgent.js';
+import '/_102025_/l2/collabMessagesTaskPreviewClarification.js';
+import '/_102025_/l2/collabMessagesTaskPreviewFlexible.js';
+import '/_102025_/l2/collabMessagesTaskPreviewTools.js';
+import '/_102025_/l2/collabMessagesTaskPreviewResult.js';
 
 @customElement('collab-messages-task-preview-102025')
 export class CollabMessageTaskPreview extends CollabLitElement {

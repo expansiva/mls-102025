@@ -2,11 +2,11 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import { collab_clock_static, collab_users } from '/_102025_/collabMessagesIcons.js';
-import { getDateFormated } from '/_100554_/libCommom.js';
-import { formatTimestamp } from '/_100554_/aiAgentHelper.js';
-import '/_102025_/collabMessagesAvatar.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { getDateFormated } from '/_100554_/l2/libCommom.js';
+import { formatTimestamp } from '/_100554_/l2/aiAgentHelper.js';
+import { collab_clock_static, collab_users } from '/_102025_/l2/collabMessagesIcons.js';
+import '/_102025_/l2/collabMessagesAvatar.js';
 
 /// **collab_i18n_start**
 const message_pt = {

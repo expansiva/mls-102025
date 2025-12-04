@@ -6,9 +6,9 @@ import {
     notifyThreadChange,
     notifyThreadCreate,
     getAgentInstanceByName
-} from '/_100554_/aiAgentHelper.js';
+} from '/_100554_/l2/aiAgentHelper.js';
 
-import { addThread, listThreads, updateThread } from '/_102025_collabMessagesIndexedDB.js';
+import { addThread, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 const LS_KEY_OLD = 'collabChatPreferences';
 const LOCAL_STORAGE_KEY = 'serviceCollabMessages';

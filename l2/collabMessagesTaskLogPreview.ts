@@ -2,10 +2,10 @@
 
 import { html, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import { getRootAgent } from '/_100554_/aiAgentHelper.js';
-import { IAgent } from '/_100554_/aiAgentBase.js';
-import { loadAgent } from '/_100554_/aiAgentOrchestration.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { getRootAgent } from '/_100554_/l2/aiAgentHelper.js';
+import { IAgent } from '/_100554_/l2/aiAgentBase.js';
+import { loadAgent } from '/_100554_/l2/aiAgentOrchestration.js';
 
 @customElement('collab-messages-task-log-preview-102025')
 export class CollabMessagesTaskLogPreview extends StateLitElement {

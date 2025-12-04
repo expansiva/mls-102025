@@ -2,13 +2,13 @@
 
 import { html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/stateLitElement.js';
-import { getClarification } from '/_100554_/aiAgentOrchestration.js';
+import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { getClarification } from '/_100554_/l2/aiAgentOrchestration.js';
 import { getNextPendentStep, getNextClarificationStep, getInteractionStepId, getStepById } from '/_100554_/aiAgentHelper.js';
 
-import '/_102025_/collabMessagesTaskDetails.js';
-import '/_102025_/collabMessagesTaskPreview.js';
-import '/_102025_/collabMessagesTaskLogPreview.js';
+import '/_102025_/l2/collabMessagesTaskDetails.js';
+import '/_102025_/l2/collabMessagesTaskPreview.js';
+import '/_102025_/l2/collabMessagesTaskLogPreview.js';
 
 @customElement('collab-messages-task-info-102025')
 export class CollabMessagesTaskInfo extends StateLitElement {
@@ -116,11 +116,11 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     }
 
     renderStep() {
-        return html`<plugin-task-preview-100554 .message=${this.message} .task=${this.task}></plugin-task-preview-100554>`
+        return html`<collab-messages-task-preview-102025 .message=${this.message} .task=${this.task}></collab-messages-task-preview-102025>`
     }
 
     renderTodo() {
-        return html`<plugin-task-log-preview-100554 .message=${this.message} .task=${this.task}></plugin-task-log-preview-100554>`
+        return html`<collab-messages-task-log-preview-102025 .message=${this.message} .task=${this.task}></collab-messages-task-log-preview-102025>`
     }
 
     renderDirectClarification() {
