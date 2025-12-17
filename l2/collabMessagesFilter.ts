@@ -7,8 +7,8 @@ import { collab_magnifying_glass } from '/_102025_/l2/collabMessagesIcons.js'
 
 @customElement('collab-messages-filter-102025')
 export class CollabMessagesFilter extends StateLitElement {
-    @state() private expanded = false;
-    @state() private query = '';
+    @property({ reflect: true }) private expanded = false;
+    @property() private query = '';
 
     @property() placeholder: string = '';
 

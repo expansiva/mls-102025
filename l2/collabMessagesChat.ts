@@ -892,20 +892,11 @@ export class CollabMessagesChat extends StateLitElement {
         return html`
 		<collab-messages-filter-102025
 			@search-change=${this.onSearchInput}
+            .expanded=${this.searchTerm !== ''}
+            .query=${this.searchTerm}
 			placeholder=${this.msg.placeholderSearch}>
 		</collab-messages-filter-102025>
 	`;
-    }
-
-    private renderThreadSearch2() {
-        return html`<div class="thread-search">
-                <input type="search"
-                    .value=${this.searchTerm}
-                    placeholder=${this.msg.placeholderSearch} 
-                    @input=${this.onSearchInput} 
-                    type="text">
-                </input>
-        </div>`
     }
 
     private renderTaskDetails() {
