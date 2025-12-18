@@ -68,7 +68,9 @@ const message_pt = {
     archived: 'Arquivado',
     deleting: 'Deletando',
     btnNext: 'Continuar',
-    promptPlaceholder: 'Digite aqui... (@ para menções) (@@ para agentes)'
+    promptPlaceholder: 'Digite aqui... (@ para menções) (@@ para agentes)',
+    today: 'Hoje',
+    yesterday: 'Ontem'
 }
 
 const message_en = {
@@ -84,7 +86,9 @@ const message_en = {
     archived: 'Archived',
     deleting: 'Deleting',
     btnNext: 'Next',
-    promptPlaceholder: 'Type here... (@ for mentions) (@@ for agents)'
+    promptPlaceholder: 'Type here... (@ for mentions) (@@ for agents)',
+    today: 'Today',
+    yesterday: 'Yesterday'
 }
 
 type MessageType = typeof message_en;
@@ -317,8 +321,9 @@ export class CollabMessagesChat extends StateLitElement {
             ${Object.keys(sortedObj).map((key) => {
             const threadMessages = sortedObj[key];
             const messageTime = this.parseLocalDate(key);
+            const displayDate = this.formatMessageDate(messageTime.dateObject);
             return html`
-                    <div class="message-time">${messageTime.date}</div>
+                    <div class="message-time">${displayDate}</div>
                     ${threadMessages.map((message) => {
                 const dateFormated = formatTimestamp(message.createAt);
                 const userToFind = [
@@ -669,7 +674,8 @@ export class CollabMessagesChat extends StateLitElement {
 
                 const displayDate = isToday
                     ? lastItem._lastMessageDate.time
-                    : lastItem._lastMessageDate.date;
+                    : this.formatMessageDate(lastItem._lastMessageDate.dateObject);
+
 
                 return html`
                         <li class="thread-group">
@@ -702,7 +708,6 @@ export class CollabMessagesChat extends StateLitElement {
     `;
     }
 
-
     private renderThreadItemLi(item: IFilteredThreads, prefix?: string) {
         let threadAvatar = this.getThreadAvatar(item);
         let threadName = this.getThreadName(item);
@@ -717,7 +722,7 @@ export class CollabMessagesChat extends StateLitElement {
 
         const displayDate = isToday
             ? item._lastMessageDate.time
-            : item._lastMessageDate.date;
+            : this.formatMessageDate(item._lastMessageDate.dateObject);
 
         if (item.users.length > 0) {
             const sortedUsers = [...item.users].sort((a, b) => b.name.length - a.name.length);
@@ -753,64 +758,29 @@ export class CollabMessagesChat extends StateLitElement {
     `;
     }
 
+    private formatMessageDate(input: string | Date): string {
 
-    private renderThreadsByStatus() {
+        const date = typeof input === 'string' ? new Date(input) : input;
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-        return html`
-        <ul class="thread-list">
-            ${this.filteredThreads.active.map((item) => {
+        const diffTime = today.getTime() - target.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            let threadAvatar = this.getThreadAvatar(item);
-            let threadName = this.getThreadName(item);
-            let lastMessage: string = item.thread.lastMessage || '';
-            const unreadCount = item.thread.unreadCount || 0;
-            const now = new Date();
-            const isToday =
-                item._lastMessageDate.dateObject.getFullYear() === now.getFullYear() &&
-                item._lastMessageDate.dateObject.getMonth() === now.getMonth() &&
-                item._lastMessageDate.dateObject.getDate() === now.getDate();
+        if (diffDays === 0) return this.msg.today;
+        if (diffDays === 1) return this.msg.yesterday;
 
-            const displayDate = isToday
-                ? item._lastMessageDate.time
-                : item._lastMessageDate.date;
+        const lang = document.querySelector('html')?.lang || 'pt-BR';
+        if (diffDays > 1 && diffDays < 7) {
+            return target.toLocaleDateString(lang, {
+                weekday: 'short',
+            });
+        }
 
-            if (item.users.length > 0) {
-                const sortedUsers = [...item.users].sort((a, b) => b.name.length - a.name.length);
-
-                lastMessage = lastMessage.replace(/\[@([^\]]+)\]\(([^)]+)\)/g, (_m, name, userId) => {
-                    const user = sortedUsers.find(u => u.userId === userId);
-                    if (!user) return `@${name}`;
-                    return `@${user.name}`;
-                });
-            }
-
-            return html`
-                <li .item=${item} threadId=${item.thread.threadId} @click=${() => this.onThreadClick(item)} class="thread-item">
-                    <div class="thread-item-avatar">
-                    ${threadAvatar.startsWith('<') && threadAvatar.endsWith('>') ?
-                    html`${unsafeHTML(threadAvatar)}` :
-                    html`<img src="${threadAvatar}"></img>`
-                }
-                    </div>
-                    <div class="thread-content">
-                        <div class="thread-item-header">
-                            <span class="thread-name">${threadName}</span>
-                            <span class="last-update">${displayDate}</span>
-                        </div>
-                        <div class="thread-summary">
-                            <span class="last-message">${lastMessage || ''}</span>
-                            ${unreadCount > 0 ? html`<span class="unread-count">${unreadCount}</span>` : ''}
-                        </div>
-                    </div>
-                </li>
-                `;
-        })}
-            ${this.renderArchivedThreads()}
-            ${this.renderDeletingThreads()}
-
-        </ul>
-        `
+        return target.toLocaleDateString(lang);
     }
+
 
     private renderArchivedThreads() {
         if (this.filteredThreads.archived.length === 0) return html``;
