@@ -158,7 +158,7 @@ export class ServiceCollabMessages extends ServiceBase {
                 { text: this.msg.crm, icon: 'f095' },
                 { text: this.msg.tasks, icon: 'f0ae' },
                 { text: this.msg.connect, icon: 'f0c1' },
-                { text: this.msg.apps, icon: 'f58d' },
+                { text: this.msg.moments, icon: 'f1ea' },
             ]
             if (this.isFirstEnter) {
                 this.isFirstEnter = false;
