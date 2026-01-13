@@ -4,7 +4,8 @@
 import { html, unsafeHTML } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { CollabLitElement } from '/_100554_/l2/collabLitElement.js'; 
-import {getStepById, getTemporaryContext, getAgentInstanceByName} from "/_100554_/l2/aiAgentHelper.js";
+import { getStepById, getTemporaryContext } from "/_100554_/l2/aiAgentHelper.js";
+import { loadAgent, executeBeforePrompt } from '/_100554_/l2/aiAgentOrchestration.js';
 
 @customElement('collab-messages-task-preview-clarification-102025')   
 export class CollabMessageTaskPreviewClarification extends CollabLitElement { 
@@ -195,7 +196,7 @@ export class CollabMessageTaskPreviewClarification extends CollabLitElement {
         if (!this.step || !this.task ) return;
         const agentName = this.getAgentBeforeStep(this.step.stepId);
         if (!agentName) return;
-        const agent = await getAgentInstanceByName(agentName);
+        const agent = await loadAgent(agentName);
         if (!agent) return;
         const ctx = getTemporaryContext('11111', this.task.owner, '');
         ctx.task = this.task;
