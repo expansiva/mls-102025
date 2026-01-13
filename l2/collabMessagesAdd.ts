@@ -3,7 +3,8 @@
 import { html, css } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { notifyThreadChange, notifyThreadCreate, getTemporaryContext, getAgentInstanceByName } from '/_100554_/l2/aiAgentHelper.js';
+import { notifyThreadChange, notifyThreadCreate, getTemporaryContext } from '/_100554_/l2/aiAgentHelper.js';
+import { loadAgent, executeBeforePrompt } from '/_100554_/l2/aiAgentOrchestration.js';
 import { IAgent } from '/_100554_/l2/aiAgentBase.js'
 import { addThread, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { getUserId, getDmThreadByUsers, addMessage, createThreadDM } from '/_102025_/l2/collabMessagesHelper.js';
@@ -571,11 +572,11 @@ export class CollabMessagesAdd extends StateLitElement {
     private async generateAvatar(threadId: string, userId: string) {
         try {
         
-            const agent = await getAgentInstanceByName(agentName);
+            const agent = await loadAgent(agentName);
             if (!agent) throw new Error('Invalid agent');
             
             const context = getTemporaryContext(threadId, userId, this._promptToAvatar);
-            await agent.beforePrompt(context);
+            await executeBeforePrompt(agent, context);
 
             if (context.task &&
                 context.task.iaCompressed &&
