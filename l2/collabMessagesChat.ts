@@ -12,7 +12,8 @@ import {
     formatTimestamp,
     notifyThreadChange
 } from '/_100554_/l2/aiAgentHelper.js';
-import { loadAgent, executeBeforePrompt } from '/_100554_/l2/aiAgentOrchestration.js';
+
+import { loadAgent } from '/_100554_/l2/aiAgentOrchestration.js';
 
 import {
     addOrUpdateTask,
@@ -23,7 +24,9 @@ import {
     getMessage,
     getMessagesByThreadId,
     deleteAllMessagesFromThread,
-    listUsers
+    listUsers,
+    getThread,
+    updateLastMessageReadTime
 } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 import {
@@ -70,7 +73,8 @@ const message_pt = {
     btnNext: 'Continuar',
     promptPlaceholder: 'Digite aqui... (@ para menções) (@@ para agentes)',
     today: 'Hoje',
-    yesterday: 'Ontem'
+    yesterday: 'Ontem',
+    newMessages: 'Novas mensagens',
 }
 
 const message_en = {
@@ -88,7 +92,8 @@ const message_en = {
     btnNext: 'Next',
     promptPlaceholder: 'Type here... (@ for mentions) (@@ for agents)',
     today: 'Today',
-    yesterday: 'Yesterday'
+    yesterday: 'Yesterday',
+    newMessages: 'New messages',
 }
 
 type MessageType = typeof message_en;
@@ -105,7 +110,7 @@ export class CollabMessagesChat extends StateLitElement {
     private msg: MessageType = messages['en'];
 
     @query('collab-messages-prompt-102025') collabMessagesPrompt: CollabMessagesPrompt | undefined;
-    @query('#unread') private unreadEl!: HTMLDivElement | undefined;
+    @query('.new-messages-label') private unreadEl!: HTMLDivElement | undefined;
     @query('.chat-container') private messageContainer!: HTMLDivElement | undefined;
 
     @state() userPreferenceChat?: IChatPreferences;
@@ -131,7 +136,9 @@ export class CollabMessagesChat extends StateLitElement {
     @property() isLoadingMessages: boolean = false;
     @property() searchTerm: string = '';
     @property({ attribute: false }) userThreads: IThread = {};
-    @property({ attribute: false }) allThreads: mls.msg.Thread[] = []
+    @property({ attribute: false }) allThreads: mls.msg.Thread[] = [];
+    @property() lastMessageReaded: string | undefined = ''
+    @property() unreadCount: number = 0;
 
     private isSystemChangeScroll: boolean = false;
     private savedScrollTop = 0;
@@ -144,12 +151,26 @@ export class CollabMessagesChat extends StateLitElement {
     private wasMessagesAtBottom: boolean = true;
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
+
         super.updated(changedProperties);
-        if (this.unreadEl && this.messageContainer) {
+
+        /*if (this.unreadEl && this.messageContainer) {
+
+            await this.updateComplete;
+            const container = this.messageContainer;
+            const target = this.unreadEl;
+            const offset =
+                target.offsetTop -
+                container.offsetTop;
+            container.scrollTop = offset;
+
+        } else if (this.messageContainer) {
+
             await this.updateComplete;
             this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
             return;
-        }
+        }*/
+
 
         if (changedProperties.has('activeScenerie') && (this.activeScenerie === 'list')) {
             this.usersAvaliables = await listUsers();
@@ -187,7 +208,6 @@ export class CollabMessagesChat extends StateLitElement {
         }
 
         if (changedProperties.has('actualMessagesParsed') && this.actualMessagesParsed !== undefined) {
-
             if (this.messageContainer && (this.isSystemChangeScroll)) {
                 await this.updateComplete;
                 this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
@@ -311,19 +331,19 @@ export class CollabMessagesChat extends StateLitElement {
             .map(([date, value]) => [date.trim(), value])
             .sort(([a], [b]) => new Date(a as string).getTime() - new Date(b as string).getTime());
         const sortedObj: IMessageGrouped = Object.fromEntries(sortedEntries);
-
+        let nextNeedShowLabel: boolean = false;
         return html`
-        ${this.renderTopics()}
-        <div
-        @scroll=${this.onChatScroll} class="chat-container"
-        @copy=${this.onCopyChat}
-        >
-            ${Object.keys(sortedObj).map((key) => {
+            ${this.renderTopics()}
+            <div
+                @scroll=${this.onChatScroll} class="chat-container"
+                @copy=${this.onCopyChat}
+            >
+            ${Object.keys(sortedObj).map((key, index) => {
             const threadMessages = sortedObj[key];
             const messageTime = this.parseLocalDate(key);
             const displayDate = this.formatMessageDate(messageTime.dateObject);
             return html`
-                    <div class="message-time">${displayDate}</div>
+                <div class="message-time">${displayDate}</div>
                     ${threadMessages.map((message) => {
                 const dateFormated = formatTimestamp(message.createAt);
                 const userToFind = [
@@ -338,53 +358,59 @@ export class CollabMessagesChat extends StateLitElement {
                 const userAvatar = userToFind.find((user) => user.userId === message.senderId)?.avatar_url || '';
                 const cls = message.senderId === this.userId ? 'user' : 'system';
                 const isSame = message.isSame;
-                const titleTranslated = this.getTitleMessageTranslated(message)
+
+                if (this.lastMessageReaded === message.createAt && this.unreadCount) nextNeedShowLabel = true;
+                else nextNeedShowLabel = false;
+
+                const titleTranslated = this.getTitleMessageTranslated(message);
+
                 return html`
-                    <div class="message ${cls} ${isSame ? 'same' : ''}">
-                        <div class="message-group">
-                            <div class="message-row">
-                                <div class="message-card ${cls} ${isSame ? 'same' : ''}">
-                                    ${!isSame ? html`<div class="message-title">@${userName}</div>` : ``}
-                                    ${this.renderMessageByLanguage(message)}
-                                    ${message.isLoading ? html`<span class="loader"></span>` : ''}
-                                    ${message.isFailed ? html`<div class="failed">
-                                        <div>
-                                            <span>${collab_circle_exclamation}</span>
-                                            <small>${this.msg.msgNotSend}</small>
+                            <div class="message ${cls} ${isSame ? 'same' : ''}">
+                                <div class="message-group">
+                                    <div class="message-row">
+                                        <div class="message-card ${cls} ${isSame ? 'same' : ''}">
+                                            ${!isSame ? html`<div class="message-title">@${userName}</div>` : ``}
+                                            ${this.renderMessageByLanguage(message)}
+                                            ${message.isLoading ? html`<span class="loader"></span>` : ''}
+                                            ${message.isFailed ? html`<div class="failed">
+                                                <div>
+                                                    <span>${collab_circle_exclamation}</span>
+                                                    <small>${this.msg.msgNotSend}</small>
+                                                </div>
+                                                <small>${message.isFailedError}</small>
+                                            </div>`: ''}
+                                            ${message.taskId ? html`
+                                                <div class="message-ai">
+                                                    <collab-messages-task-102025
+                                                        messageId=${message.createAt}
+                                                        .context= ${message.context}
+                                                        lastChanged= ${message.lastChanged}
+                                                        taskId=${message.taskId}
+                                                        threadId=${this.actualThread?.thread.threadId}
+                                                        userId=${this.userId}
+                                                        title=${titleTranslated}
+                                                        status=${message.taskStatus}
+                                                        @taskclick=${() => this.onTaskClick(message?.taskId || '', message.createAt, message.threadId, message)}
+                                                    >
+                                                    </collab-messages-task-102025>
+                                                </div> `: html``}
+                                            ${this.renderMessageResultByLanguage(message)}
+                                            ${this.renderMessageFooterResult(message)}
+                                            <div class="message-footer">${dateFormated?.timeShort}</div>
                                         </div>
-                                        <small>${message.isFailedError}</small>
-                                    </div>`: ''}
-                                    ${message.taskId ? html`
-                                        <div class="message-ai">
-                                            <collab-messages-task-102025
-                                                messageId=${message.createAt}
-                                                .context= ${message.context}
-                                                lastChanged= ${message.lastChanged}
-                                                taskId=${message.taskId}
-                                                threadId=${this.actualThread?.thread.threadId}
-                                                userId=${this.userId}
-                                                title=${titleTranslated}
-                                                status=${message.taskStatus}
-                                                @taskclick=${() => this.onTaskClick(message?.taskId || '', message.createAt, message.threadId, message)}
-                                            >
-                                            </collab-messages-task-102025>
-                                        </div> `: html``}
-                                    ${this.renderMessageResultByLanguage(message)}
-                                    ${this.renderMessageFooterResult(message)}
-                                    <div class="message-footer">${dateFormated?.timeShort}</div>
+                                        ${cls === 'system' && !isSame ? html`<collab-messages-avatar-102025 avatar=${userAvatar}></collab-messages-avatar-102025>` : ''}
+                                    </div>
                                 </div>
-                                ${cls === 'system' && !isSame ? html`<collab-messages-avatar-102025 avatar=${userAvatar}></collab-messages-avatar-102025>` : ''}
                             </div>
-                        </div>
-                    </div>`
+                            ${nextNeedShowLabel ? html`<div class="new-messages-label">${this.msg.newMessages}</div>` : ''}
+                            `
             })}`
         })}
-        ${this.isLoadingMessages ? html`<div class="unread-messages" id="unread">Loading messages...</div>` : html``}
-        ${this.isThreadError ? html`<div class="error-messages">${this.threadErrorMsg}</div>` : html``}
+                ${this.isLoadingMessages ? html`<div class="unread-messages">Loading messages...</div>` : html``}
+                ${this.isThreadError ? html`<div class="error-messages">${this.threadErrorMsg}</div>` : html``}
 
-</div>
-        ${this.renderPrompt()}
-`
+            </div>
+        ${this.renderPrompt()}`
     }
 
     private renderWelcomeMessage() {
@@ -1273,6 +1299,8 @@ export class CollabMessagesChat extends StateLitElement {
         this.hasMoreMessagesLocalDB = true;
         this.hasMoreMessagesBefore = false;
         this.actualThread = threadInfo;
+        const temp = await getThread(this.actualThread.thread.threadId)
+        this.unreadCount = temp?.unreadCount || 0;
         const messagesInDb = await getMessagesByThreadId(this.actualThread.thread.threadId, this.messagesLimit, 0);
         this.actualMessages = messagesInDb;
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
@@ -1281,7 +1309,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.isThreadError = false;
         this.threadErrorMsg = '';
         this.checkWelcomeMessage(this.actualThread.thread, messagesInDb);
-
+        this.lastMessageReaded = (threadInfo.thread as any).lastMessageReadTime;
 
         try {
             if (!this.userId) return;
@@ -1314,10 +1342,16 @@ export class CollabMessagesChat extends StateLitElement {
             if (this.taskToOpen) {
                 await this.updateComplete;
                 this.openTask();
-
             }
 
-
+            if (this.messageContainer) {
+                await this.updateComplete;
+                const container = this.messageContainer;
+                const target = this.unreadEl;
+                let offset = this.messageContainer.scrollHeight;
+                if (target) offset = target.offsetTop - container.offsetTop;
+                this.messageContainer.scrollTop = offset;
+            }
 
         } catch (err: any) {
             this.isThreadError = true;
@@ -1370,6 +1404,7 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private async loadAllMessages(threadInfo: IThreadInfo): Promise<void> {
+
         const response = await this.getMessagesAfter(threadInfo.thread, threadInfo.thread.lastSync || '');
         if (!response || !response.data || response.data.length === 0 || !this.actualThread || !this.userId) {
             return;
@@ -1378,6 +1413,7 @@ export class CollabMessagesChat extends StateLitElement {
         if (!response.hasMore) return;
         return this.loadAllMessages(threadInfo);
     }
+
 
     private async updateMessagesOnDb(threadInfo: IThreadInfo, messages: mls.msg.Message[] | undefined) {
         if (!messages) return threadInfo;
@@ -1388,7 +1424,11 @@ export class CollabMessagesChat extends StateLitElement {
             const tempMessage: mls.msg.MessagePerformanceCache = { ...mm, footers: messageOld?.footers || [] };
             newMessages.push(tempMessage);
         }
+
+
+        const lastMessages = newMessages[newMessages.length - 1] || this.actualMessages[0];
         await addMessages(newMessages);
+        if (lastMessages && this.actualThread) this.actualThread.thread = await updateLastMessageReadTime(threadInfo.thread.threadId, lastMessages.createAt);
         this.actualMessages = this.mergeMessages(this.actualMessages, newMessages);
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         await this.updateLastMessage(threadInfo);
@@ -1605,14 +1645,16 @@ export class CollabMessagesChat extends StateLitElement {
 
         if (this.actualThread && (updateLastSyncThreadDB || updateLastMessageThreadDB)) {
 
-            const thread = await updateThread(
+            let thread = await updateThread(
                 newMessage.threadId,
                 this.actualThread.thread,
                 updateLastMessageThreadDB ? newMessage.content : undefined,
                 updateLastMessageThreadDB ? newMessage.createAt : undefined,
                 0,
                 updateLastSyncThreadDB ? newMessage.createAt : undefined,
-            );
+            ); newMessage.createAt
+
+            thread = await updateLastMessageReadTime(newMessage.threadId, newMessage.createAt)
             if (this.actualThread) this.actualThread.thread = thread;
             notifyThreadChange(this.actualThread.thread);
         }
@@ -1685,10 +1727,9 @@ export class CollabMessagesChat extends StateLitElement {
     private async loadAgent(shortName: string): Promise<IAgent> {
 
         try {
-
-            const agent = loadAgent(shortName);
+            const agent = await loadAgent(shortName);
             if (!agent) throw new Error(`(loadAgent) createAgent function not found in ${shortName}`);
-            return agent as any;
+            return agent as IAgent;
         } catch (error: any) {
             throw new Error(`[loadAgent] ${error.message || error} `);
         }
@@ -1761,6 +1802,7 @@ export class CollabMessagesChat extends StateLitElement {
             this.messageContainer.scrollTop = this.savedScrollTop;
         }
     }
+    
     private onTaskChange = async (e: Event) => {
         const customEvent = e as CustomEvent;
         const message: mls.msg.Message = customEvent.detail.context.message;
