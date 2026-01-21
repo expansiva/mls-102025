@@ -328,7 +328,7 @@ export class ServiceCollabMessages extends ServiceBase {
 
     renderCRM() {
         this.groupSelected = 'CRM';
-        this.execCoachMarks('CRM');
+        // this.execCoachMarks('CRM');
         return html`
         ${this.renderAlert()}
         <collab-messages-chat-102025 
@@ -347,26 +347,26 @@ export class ServiceCollabMessages extends ServiceBase {
 
     renderTasks() {
         this.groupSelected = 'TASK';
-        this.execCoachMarks('Tasks');
+        // this.execCoachMarks('Tasks');
         return html`<collab-messages-tasks-102025></collab-messages-tasks-102025>`
     }
 
     renderMoments() {
         this.groupSelected = 'MOMENTS';
-        this.execCoachMarks('Moments');
+        // this.execCoachMarks('Moments');
         return html`<collab-messages-moments-102025 ></collab-messages-moments-102025>`
     }
 
     renderApps() {
         this.groupSelected = 'APPS';
-        this.execCoachMarks('Apps');
+        // this.execCoachMarks('Apps');
         return html`<collab-messages-apps-102025 ></collab-messages-apps-102025>`
     }
 
     renderConnect() {
 
         this.groupSelected = 'CONNECT';
-        this.execCoachMarks('Connect');
+        // this.execCoachMarks('Connect');
         return html`
         ${this.renderAlert()}
         <collab-messages-chat-102025 
@@ -461,7 +461,6 @@ export class ServiceCollabMessages extends ServiceBase {
 
 
     private execCoachMarks(name: string) {
-        return;
         if (this.visible === 'false') return;
 
         const infoMark: ICoachMarks = {
