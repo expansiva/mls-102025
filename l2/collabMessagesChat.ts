@@ -13,7 +13,7 @@ import {
     notifyThreadChange
 } from '/_100554_/l2/aiAgentHelper.js';
 
-import { loadAgent } from '/_100554_/l2/aiAgentOrchestration.js';
+import { loadAgent, executeBeforePrompt } from '/_100554_/l2/aiAgentOrchestration.js';
 
 import {
     addOrUpdateTask,
@@ -1538,9 +1538,10 @@ export class CollabMessagesChat extends StateLitElement {
         if (agentName) agentToCall = agentName;
         const message: IMessage = await this.createTempMessage(prompt, this.userId, this.actualThread.thread.threadId);
         try {
+
             const agent = await this.loadAgent(agentToCall);
             context.message = message;
-            await agent.beforePrompt(context);
+            await executeBeforePrompt(agent, context);
         } catch (err: any) {
             console.error('Error on send message:' + err.message);
             if (message.isLoading) {
