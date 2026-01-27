@@ -4,8 +4,7 @@ import { html, LitElement, unsafeHTML } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { collab_chevron_left, collab_gear, collab_translate, collab_circle_exclamation, collab_plus, collab_folder_tree } from '/_102025_/l2/collabMessagesIcons.js';
 import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
-import { openElementInServiceDetails, clearServiceDetails } from '/_100554_/l2/libCommom.js';
-import { setFavicon } from '/_100554_/l2/collabInit.js';
+import { openElementInServiceDetails, clearServiceDetails, changeFavIcon } from '/_100554_/l2/libCommom.js';
 
 import {
     getTemporaryContext,
@@ -1390,7 +1389,7 @@ export class CollabMessagesChat extends StateLitElement {
     private async checkNotificationsUnreadMessages() {
         const hasPendingMessages = await checkIfNotificationUnread();
         if (!hasPendingMessages) {
-            setFavicon(false);
+            changeFavIcon(false);
             mls.services['102025_serviceCollabMessages_left']?.toogleBadge(false, '_102025_serviceCollabMessages');
         }
     }
