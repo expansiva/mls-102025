@@ -125,10 +125,12 @@ export async function getThreadUpdateInBackground(threadId: string): Promise<voi
         const lastUnreadCount = threadDB && threadDB.unreadCount ? threadDB.unreadCount : 0;
 
         if (!threadDB) threadDB = await addThread(response.thread);
+
+        const lastMessageText = `${lastMessage.senderId}:${lastMessage.content}`;
         const thread = await updateThread(
             threadId,
             response.thread,
-            lastMessage.content,
+            lastMessageText,
             lastMessage.createAt,
             response.messages.length + lastUnreadCount,
             lastMessage.createAt,
