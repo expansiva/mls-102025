@@ -1,6 +1,6 @@
 /// <mls shortName="collabMessagesChat" project="102025" enhancement="_100554_enhancementLit" />
 
-import { html, LitElement, unsafeHTML } from 'lit';
+import { html, LitElement, unsafeHTML, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { collab_chevron_left, collab_gear, collab_translate, collab_circle_exclamation, collab_plus, collab_folder_tree } from '/_102025_/l2/collabMessagesIcons.js';
 import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
@@ -74,6 +74,7 @@ const message_pt = {
     today: 'Hoje',
     yesterday: 'Ontem',
     newMessages: 'Novas mensagens',
+    lastMessagePrefix: 'Você'
 }
 
 const message_en = {
@@ -93,6 +94,7 @@ const message_en = {
     today: 'Today',
     yesterday: 'Yesterday',
     newMessages: 'New messages',
+    lastMessagePrefix: 'You'
 }
 
 type MessageType = typeof message_en;
@@ -737,8 +739,16 @@ export class CollabMessagesChat extends StateLitElement {
         let threadAvatar = this.getThreadAvatar(item);
         let threadName = this.getThreadName(item);
         if (prefix) threadName = threadName.replace(prefix + '/', '');
+
+
         let lastMessage: string = item.thread.lastMessage || '';
+        
+        const firstColonIndex = lastMessage.indexOf(':');
+
+        let userMessageId = lastMessage.slice(0, firstColonIndex);
+        let userMessage = lastMessage.slice(firstColonIndex + 1);
         const unreadCount = item.thread.unreadCount || 0;
+
         const now = new Date();
         const isToday =
             item._lastMessageDate.dateObject.getFullYear() === now.getFullYear() &&
@@ -752,7 +762,10 @@ export class CollabMessagesChat extends StateLitElement {
         if (item.users.length > 0) {
             const sortedUsers = [...item.users].sort((a, b) => b.name.length - a.name.length);
 
-            lastMessage = lastMessage.replace(/\[@([^\]]+)\]\(([^)]+)\)/g, (_m, name, userId) => {
+            if (userMessageId === this.userId) userMessageId = this.msg.lastMessagePrefix
+            else userMessageId = sortedUsers.find(u => u.userId === userMessageId)?.name || '';
+        
+            userMessage = userMessage.replace(/\[@([^\]]+)\]\(([^)]+)\)/g, (_m, name, userId) => {
                 const user = sortedUsers.find(u => u.userId === userId);
                 if (!user) return `@${name}`;
                 return `@${user.name}`;
@@ -775,8 +788,12 @@ export class CollabMessagesChat extends StateLitElement {
                     <span class="last-update">${displayDate}</span>
                 </div>
                 <div class="thread-summary">
-                    <span class="last-message">${lastMessage || ''}</span>
-                    ${unreadCount > 0 ? html`<span class="unread-count">${unreadCount}</span>` : ''}
+                    ${userMessage ? html`
+                            <span class="last-message">${userMessageId ? html`<span>${userMessageId}:</span>` : nothing }${userMessage || ''}</span>
+                        `: nothing
+                    }
+                    
+                    ${unreadCount > 0 ? html`<span class="unread-count">${unreadCount}</span>` : nothing}
                 </div>
             </div>
         </li>
@@ -1440,10 +1457,12 @@ export class CollabMessagesChat extends StateLitElement {
         const lastArray = lastKey ? this.actualMessagesParsed[lastKey] : [];
         const lastMessage = lastArray.length > 0 ? lastArray[lastArray.length - 1] : undefined;
         if (lastMessage) {
+            const lastMessageText = `${lastMessage.senderId}:${lastMessage.content}`;
+
             const thread = await updateThread(
                 threadInfo.thread.threadId,
                 threadInfo.thread,
-                lastMessage.content,
+                lastMessageText,
                 lastMessage.createAt,
                 0,
                 lastMessage.createAt,
@@ -1576,7 +1595,8 @@ export class CollabMessagesChat extends StateLitElement {
                 footers: []
             }
             if (updateThreadDB && this.actualThread) {
-                const thread = await updateThread(threadId, this.actualThread.thread, content, createAt, 0, createAt);
+                const lastMessageText = `${senderId}:${content}`;
+                const thread = await updateThread(threadId, this.actualThread.thread, lastMessageText, createAt, 0, createAt);
                 if (this.actualThread) this.actualThread.thread = thread;
             }
             if (taskId) newMessage.taskId = taskId;
@@ -1645,10 +1665,12 @@ export class CollabMessagesChat extends StateLitElement {
 
         if (this.actualThread && (updateLastSyncThreadDB || updateLastMessageThreadDB)) {
 
+            const lastMessageText = `${newMessage.senderId}:${newMessage.content}`;
+
             let thread = await updateThread(
                 newMessage.threadId,
                 this.actualThread.thread,
-                updateLastMessageThreadDB ? newMessage.content : undefined,
+                updateLastMessageThreadDB ? lastMessageText : undefined,
                 updateLastMessageThreadDB ? newMessage.createAt : undefined,
                 0,
                 updateLastSyncThreadDB ? newMessage.createAt : undefined,
@@ -1802,7 +1824,7 @@ export class CollabMessagesChat extends StateLitElement {
             this.messageContainer.scrollTop = this.savedScrollTop;
         }
     }
-    
+
     private onTaskChange = async (e: Event) => {
         const customEvent = e as CustomEvent;
         const message: mls.msg.Message = customEvent.detail.context.message;
