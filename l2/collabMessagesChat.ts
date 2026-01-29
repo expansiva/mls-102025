@@ -675,11 +675,15 @@ export class CollabMessagesChat extends StateLitElement {
     private getThreadName(item: IThreadInfo | undefined) {
 
         if (!item) return '';
-        if (item.thread.name.startsWith('@') && item.thread.users.length === 2) {
+        if (this.isDirectMessage(item)) {
             const user = item.users.find((user) => user.userId !== this.userId);
             if (user) return '@' + user.name;
         }
         return item.thread.name || item.thread.threadId;
+    }
+
+    private isDirectMessage(item: IThreadInfo) {
+        return item.thread.name.startsWith('@') && item.thread.users.length === 2
     }
 
     private renderThreadsByStatus2() {
@@ -740,6 +744,7 @@ export class CollabMessagesChat extends StateLitElement {
         let threadName = this.getThreadName(item);
         if (prefix) threadName = threadName.replace(prefix + '/', '');
 
+        const isDirectMessage = this.isDirectMessage(item);
 
         let lastMessage: string = item.thread.lastMessage || '';
         
@@ -789,7 +794,7 @@ export class CollabMessagesChat extends StateLitElement {
                 </div>
                 <div class="thread-summary">
                     ${userMessage ? html`
-                            <span class="last-message">${userMessageId ? html`<span>${userMessageId}:</span>` : nothing }${userMessage || ''}</span>
+                            <span class="last-message">${userMessageId && !isDirectMessage ? html`<span>${userMessageId}:</span>` : nothing }${userMessage || ''}</span>
                         `: nothing
                     }
                     
