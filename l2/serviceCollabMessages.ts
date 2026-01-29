@@ -77,8 +77,6 @@ export class ServiceCollabMessages extends ServiceBase {
 
     @state() threadToOpen: string = '';
     @state() taskToOpen: string = '';
-    @state() lastLevel: number = -1;
-
 
     groupSelected: ITabType = 'CRM';
 
@@ -129,11 +127,16 @@ export class ServiceCollabMessages extends ServiceBase {
             group: 'Mode',
             type: 'onlyicon',
             selected: ETabs.Loading,
-            options: []
+            options: [
+                { text: this.msg.crm, icon: 'f095' },
+                { text: this.msg.tasks, icon: 'f0ae' },
+                { text: this.msg.connect, icon: 'f0c1' },
+                { text: this.msg.moments, icon: 'f1ea' },
+                { text: this.msg.apps, icon: 'f58d' },
+            ]
         },
         onClickMain: this.onClickMain.bind(this),
         onClickTabs: this.onClickTabs.bind(this),
-
 
     }
 
@@ -141,43 +144,82 @@ export class ServiceCollabMessages extends ServiceBase {
         if (visible) {
             this.checkNotificationPermission();
             this.configureByLevel();
-
         }
+    }
+
+    async connectedCallback() {
+        super.connectedCallback();
+
+        if (this.level === 7) {
+            this.dataLocal.lastTab = 'APPS';
+        } else this.dataLocal.lastTab = loadLastTab() as ITabType;
+
+        this.setEvents();
+        const hasPendingMessages = await checkIfNotificationUnread();
+        if (hasPendingMessages) {
+            changeFavIcon(true);
+            mls.services['102025_serviceCollabMessages_left']?.toogleBadge(true, '_102025_serviceCollabMessages');
+        }
+    }
+
+    disconnectedCallback() {
+        this.removeEvents();
+    }
+
+    async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
+        super.firstUpdated(changedProperties);
+        window.addEventListener('thread-change', this.onThreadChange.bind(this));
+    }
+
+    async updated(changedProperties: Map<PropertyKey, unknown>) {
+        super.updated(changedProperties);
+        if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT', 'APPS'].includes(this.activeTab)) {
+
+            if (!this.userPerfil) {
+                this.userPerfil = await this.getUser();
+                saveUserId(this.userPerfil.userId);
+                await cleanupThreads(this.userPerfil.threads);
+            }
+
+            await this.getThreadFromLocalDB();
+            this.updateThreads();
+        }
+
+        if (changedProperties.has('dataLocal')) {
+            if (this.menu.setTabActive && this.activeTab !== 'Loading') this.menu.setTabActive(ETabs[this.dataLocal.lastTab])
+        }
+    }
+
+    render() {
+        const lang = this.getMessageKey(messages);
+        this.msg = messages[lang];
+        return this.renderTabs();
+    }
+
+    private changeDisplayMenu(show: boolean) {
+        if (!this.nav3Menu) return;
+        const item = this.nav3Menu?.querySelector('li[data-key="4"]') as HTMLElement;
+        if (!item) return;
+        if (show) item.style.display = 'inline-flex';
+        else item.style.display = 'none';
     }
 
     private isFirstEnter: boolean = true;
     private configureByLevel() {
-
         if (!this.menu || !this.menu.tabs) return;
+        if (this.level === 7) this.changeDisplayMenu(true)
+        else if (this.menu.setTabActive) {
 
-        if (this.level === 7 && this.lastLevel !== 7) {
-            this.menu.tabs.options = [
-                { text: this.msg.crm, icon: 'f095' },
-                { text: this.msg.tasks, icon: 'f0ae' },
-                { text: this.msg.connect, icon: 'f0c1' },
-                { text: this.msg.moments, icon: 'f1ea' },
-                { text: this.msg.apps, icon: 'f58d' },
-            ];
-            if (this.menu && this.menu.refresh) this.menu.refresh('tabs');
+            this.changeDisplayMenu(false);
 
-        }
-
-        if (this.lastLevel === 7 && this.level !== 7) {
-            this.menu.tabs.options = [
-                { text: this.msg.crm, icon: 'f095' },
-                { text: this.msg.tasks, icon: 'f0ae' },
-                { text: this.msg.connect, icon: 'f0c1' },
-                { text: this.msg.moments, icon: 'f1ea' },
-            ]
             if (this.isFirstEnter) {
                 this.isFirstEnter = false;
-                this.menu.tabs.selected = ETabs[loadLastTab() as ITabType];
+                this.menu.setTabActive(ETabs[loadLastTab() as ITabType])
             }
-            if (this.menu && this.menu.refresh) this.menu.refresh('tabs');
 
+            else if (this.activeTab === 'APPS') this.menu.setTabActive(ETabs[loadLastTab() as ITabType])
+            else this.menu.setTabActive(ETabs[this.activeTab as ITabType]);
         }
-
-        this.lastLevel = this.level;
 
     }
 
@@ -240,21 +282,10 @@ export class ServiceCollabMessages extends ServiceBase {
 
     }
 
-    async connectedCallback() {
-        super.connectedCallback();
-        if (this.level === 7) {
-            this.dataLocal.lastTab = 'APPS';
-        } else this.dataLocal.lastTab = loadLastTab() as ITabType;
-        this.setEvents();
-        const hasPendingMessages = await checkIfNotificationUnread();
-        if (hasPendingMessages) {
-            changeFavIcon(true);
-            mls.services['102025_serviceCollabMessages_left']?.toogleBadge(true, '_102025_serviceCollabMessages');
-        }
-    }
-
-    disconnectedCallback() {
-        this.removeEvents();
+    private onThreadChange = async (e: Event) => {
+        const customEvent = e as CustomEvent;
+        const thread = customEvent.detail as mls.msg.Thread;
+        this.userThreads[thread.threadId].thread = thread;
     }
 
     private setEvents() {
@@ -264,39 +295,8 @@ export class ServiceCollabMessages extends ServiceBase {
 
     private removeEvents() {
         window.removeEventListener('thread-create', this.onThreadCreate);
+        window.removeEventListener('thread-change', this.onThreadChange.bind(this));
         mls.events.removeEventListener([0, 1, 2, 3, 4, 5, 6, 7], ['collabMessages'] as any, this.onCollabEventsCollabMessages.bind(this));
-    }
-
-
-    async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
-        super.firstUpdated(changedProperties);
-
-    }
-
-    async updated(changedProperties: Map<PropertyKey, unknown>) {
-        super.updated(changedProperties);
-        if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT', 'APPS'].includes(this.activeTab)) {
-
-            if (!this.userPerfil) {
-                this.userPerfil = await this.getUser();
-                saveUserId(this.userPerfil.userId);
-                await cleanupThreads(this.userPerfil.threads);
-            }
-
-            await this.getThreadFromLocalDB();
-            this.updateThreads();
-        }
-
-        if (changedProperties.has('dataLocal')) {
-            if (this.menu.setTabActive && this.activeTab !== 'Loading') this.menu.setTabActive(ETabs[this.dataLocal.lastTab])
-        }
-    }
-
-
-    render() {
-        const lang = this.getMessageKey(messages);
-        this.msg = messages[lang];
-        return this.renderTabs();
     }
 
 
