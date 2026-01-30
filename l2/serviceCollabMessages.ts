@@ -3,7 +3,7 @@
 import { html, ifDefined } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { addCoachMark, ICoachMarks } from '/_100554_/l2/coachMarks';
-import { listThreads, addThread, listUsers, updateUsers, getThread, cleanupThreads, getTask } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { listThreads, addThread, listUsers, updateUsers, getThread, cleanupThreads, listPoolings, getTask, getMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import {
     saveLastTab,
     loadLastTab,
@@ -13,6 +13,8 @@ import {
 } from "/_102025_/l2/collabMessagesHelper.js";
 
 import { openService, changeFavIcon } from "/_100554_/l2/libCommom.js";
+import { continuePoolingTask } from "/_100554_/l2/aiAgentOrchestration.js";
+
 import { checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 import { ServiceBase, IService, IToolbarContent, IServiceMenu } from '/_100554_/l2/serviceBase.js';
@@ -169,6 +171,7 @@ export class ServiceCollabMessages extends ServiceBase {
     async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
         super.firstUpdated(changedProperties);
         window.addEventListener('thread-change', this.onThreadChange.bind(this));
+        this.startPendentsPoolingsIfNeeded();
     }
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
@@ -237,6 +240,21 @@ export class ServiceCollabMessages extends ServiceBase {
             this.showNotificationAlert = true;
             saveLastAlertTime(now);
         }
+    }
+
+    private async startPendentsPoolingsIfNeeded() {
+        const pendingsTasks = await listPoolings();
+        if (!pendingsTasks || pendingsTasks.length === 0) return;
+
+        for (let taskPending of pendingsTasks) {
+            const task = await getTask(taskPending.taskId);
+            if (!task || !task.messageid_created) continue;
+            const message = await getMessage(task.messageid_created);
+            if (!message) continue;
+            const context: mls.msg.ExecutionContext = { message, task };
+            await continuePoolingTask(context);
+        }
+
     }
 
 
