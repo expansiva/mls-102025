@@ -747,7 +747,7 @@ export class CollabMessagesChat extends StateLitElement {
         const isDirectMessage = this.isDirectMessage(item);
 
         let lastMessage: string = item.thread.lastMessage || '';
-        
+
         const firstColonIndex = lastMessage.indexOf(':');
 
         let userMessageId = lastMessage.slice(0, firstColonIndex);
@@ -769,7 +769,7 @@ export class CollabMessagesChat extends StateLitElement {
 
             if (userMessageId === this.userId) userMessageId = this.msg.lastMessagePrefix
             else userMessageId = sortedUsers.find(u => u.userId === userMessageId)?.name || '';
-        
+
             userMessage = userMessage.replace(/\[@([^\]]+)\]\(([^)]+)\)/g, (_m, name, userId) => {
                 const user = sortedUsers.find(u => u.userId === userId);
                 if (!user) return `@${name}`;
@@ -794,9 +794,9 @@ export class CollabMessagesChat extends StateLitElement {
                 </div>
                 <div class="thread-summary">
                     ${userMessage ? html`
-                            <span class="last-message">${userMessageId && !isDirectMessage ? html`<span>${userMessageId}:</span>` : nothing }${userMessage || ''}</span>
+                            <span class="last-message">${userMessageId && !isDirectMessage ? html`<span>${userMessageId}:</span>` : nothing}${userMessage || ''}</span>
                         `: nothing
-                    }
+            }
                     
                     ${unreadCount > 0 ? html`<span class="unread-count">${unreadCount}</span>` : nothing}
                 </div>
@@ -1372,7 +1372,7 @@ export class CollabMessagesChat extends StateLitElement {
                 let offset = this.messageContainer.scrollHeight;
                 if (target) {
                     // offset = target.offsetTop - container.offsetTop;
-                    target.scrollIntoView()
+                    target.scrollIntoView({ block: 'center' })
                 } else this.messageContainer.scrollTop = offset;
             }
 
@@ -1417,7 +1417,7 @@ export class CollabMessagesChat extends StateLitElement {
             mls.services['102025_serviceCollabMessages_left']?.toogleBadge(false, '_102025_serviceCollabMessages');
         }
     }
-    
+
     private alreadyCheckForRegisterToken: boolean = false;
     private async checkForRegisterNotification() {
         if (this.alreadyCheckForRegisterToken) return;
