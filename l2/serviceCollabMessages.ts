@@ -3,7 +3,17 @@
 import { html, ifDefined } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { addCoachMark, ICoachMarks } from '/_100554_/l2/coachMarks';
-import { listThreads, addThread, listUsers, updateUsers, getThread, cleanupThreads, listPoolings, getTask, getMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import {
+    listThreads,
+    addThread,
+    listUsers,
+    updateUsers,
+    getThread,
+    cleanupThreads,
+    listPoolings,
+    getTask,
+    getMessage
+} from '/_102025_/l2/collabMessagesIndexedDB.js';
 import {
     saveLastTab,
     loadLastTab,
@@ -14,7 +24,6 @@ import {
 
 import { openService, changeFavIcon } from "/_100554_/l2/libCommom.js";
 import { continuePoolingTask } from "/_100554_/l2/aiAgentOrchestration.js";
-
 import { checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 import { ServiceBase, IService, IToolbarContent, IServiceMenu } from '/_100554_/l2/serviceBase.js';
@@ -106,6 +115,7 @@ export class ServiceCollabMessages extends ServiceBase {
         this.activeTab = ETabs[index] as ITabType;
         if (this.level === 7 && this.activeTab === 'APPS') return;
         saveLastTab(this.activeTab);
+        
     }
 
     public onClickMain(op: string) {
@@ -155,13 +165,7 @@ export class ServiceCollabMessages extends ServiceBase {
         if (this.level === 7) {
             this.dataLocal.lastTab = 'APPS';
         } else this.dataLocal.lastTab = loadLastTab() as ITabType;
-
         this.setEvents();
-        const hasPendingMessages = await checkIfNotificationUnread();
-        if (hasPendingMessages) {
-            changeFavIcon(true);
-            mls.services['102025_serviceCollabMessages_left']?.toogleBadge(true, '_102025_serviceCollabMessages');
-        }
     }
 
     disconnectedCallback() {
@@ -172,6 +176,7 @@ export class ServiceCollabMessages extends ServiceBase {
         super.firstUpdated(changedProperties);
         window.addEventListener('thread-change', this.onThreadChange.bind(this));
         this.startPendentsPoolingsIfNeeded();
+        this.checkNotificationPending();
     }
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
@@ -226,7 +231,6 @@ export class ServiceCollabMessages extends ServiceBase {
 
     }
 
-
     private checkNotificationPermission() {
 
         if (typeof Notification === "undefined" || Notification.permission !== "denied") {
@@ -256,7 +260,6 @@ export class ServiceCollabMessages extends ServiceBase {
         }
 
     }
-
 
     private showAboutThis(): boolean {
 
@@ -304,6 +307,9 @@ export class ServiceCollabMessages extends ServiceBase {
         const customEvent = e as CustomEvent;
         const thread = customEvent.detail as mls.msg.Thread;
         this.userThreads[thread.threadId].thread = thread;
+        if (this.groupSelected !== 'CONNECT') {
+            this.checkNotificationPending();
+        }
     }
 
     private setEvents() {
@@ -314,6 +320,7 @@ export class ServiceCollabMessages extends ServiceBase {
     private removeEvents() {
         window.removeEventListener('thread-create', this.onThreadCreate);
         window.removeEventListener('thread-change', this.onThreadChange.bind(this));
+
         mls.events.removeEventListener([0, 1, 2, 3, 4, 5, 6, 7], ['collabMessages'] as any, this.onCollabEventsCollabMessages.bind(this));
     }
 
@@ -587,6 +594,14 @@ export class ServiceCollabMessages extends ServiceBase {
         };
 
         this.requestUpdate();
+    }
+
+    private async checkNotificationPending() {
+        const hasPendingMessages = await checkIfNotificationUnread();
+        if (hasPendingMessages) {
+            changeFavIcon(true);
+            this.toogleBadge(true, '_102025_serviceCollabMessages');
+        }
     }
 
 }

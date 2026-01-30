@@ -1359,19 +1359,21 @@ export class CollabMessagesChat extends StateLitElement {
 
             this.checkNotificationsUnreadMessages();
 
-
             if (this.taskToOpen) {
                 await this.updateComplete;
                 this.openTask();
             }
 
             if (this.messageContainer) {
+
                 await this.updateComplete;
                 const container = this.messageContainer;
                 const target = this.unreadEl;
                 let offset = this.messageContainer.scrollHeight;
-                if (target) offset = target.offsetTop - container.offsetTop;
-                this.messageContainer.scrollTop = offset;
+                if (target) {
+                    // offset = target.offsetTop - container.offsetTop;
+                    target.scrollIntoView()
+                } else this.messageContainer.scrollTop = offset;
             }
 
         } catch (err: any) {
@@ -1415,6 +1417,7 @@ export class CollabMessagesChat extends StateLitElement {
             mls.services['102025_serviceCollabMessages_left']?.toogleBadge(false, '_102025_serviceCollabMessages');
         }
     }
+    
     private alreadyCheckForRegisterToken: boolean = false;
     private async checkForRegisterNotification() {
         if (this.alreadyCheckForRegisterToken) return;
@@ -1765,12 +1768,10 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async onTaskClick(taskId: string, messageId: string, threadId: string, message: IMessage) {
         this.saveScrollPosition();
-        // this.activeScenerie = 'loading';
         const task = await this.getTaskUpdate(taskId, messageId, threadId);
         addOrUpdateTask(task);
         this.actualTask = task;
         this.actualMessage = message;
-
         const messageId2 = `${this.actualThread?.thread.threadId}/${this.actualMessage?.createAt}`
         const el = document.createElement('collab-messages-task-info-102025');
         el.setAttribute('messageId', messageId2);
@@ -1778,7 +1779,7 @@ export class CollabMessagesChat extends StateLitElement {
         (el as any)['task'] = this.actualTask;
         (el as any)['message'] = this.actualMessage;
         openElementInServiceDetails(el);
-        // this.activeScenerie = 'task';
+
     }
 
     private async getTaskUpdate(taskId: string, createdAt: string, threadId: string) {
