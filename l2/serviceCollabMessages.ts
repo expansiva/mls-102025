@@ -88,6 +88,7 @@ export class ServiceCollabMessages extends ServiceBase {
 
     @state() threadToOpen: string = '';
     @state() taskToOpen: string = '';
+    @state() lastLevel: number = -1;
 
     groupSelected: ITabType = 'CRM';
 
@@ -115,7 +116,7 @@ export class ServiceCollabMessages extends ServiceBase {
         this.activeTab = ETabs[index] as ITabType;
         if (this.level === 7 && this.activeTab === 'APPS') return;
         saveLastTab(this.activeTab);
-        
+
     }
 
     public onClickMain(op: string) {
@@ -215,8 +216,12 @@ export class ServiceCollabMessages extends ServiceBase {
     private isFirstEnter: boolean = true;
     private configureByLevel() {
         if (!this.menu || !this.menu.tabs) return;
-        if (this.level === 7) this.changeDisplayMenu(true)
-        else if (this.menu.setTabActive) {
+
+        if (this.level === 7 && this.lastLevel !== 7) {
+            this.changeDisplayMenu(true)
+        }
+
+        if (this.lastLevel === 7 && this.level !== 7 && this.menu.setTabActive) {
 
             this.changeDisplayMenu(false);
 
@@ -228,7 +233,7 @@ export class ServiceCollabMessages extends ServiceBase {
             else if (this.activeTab === 'APPS') this.menu.setTabActive(ETabs[loadLastTab() as ITabType])
             else this.menu.setTabActive(ETabs[this.activeTab as ITabType]);
         }
-
+        this.lastLevel = this.level;
     }
 
     private checkNotificationPermission() {
