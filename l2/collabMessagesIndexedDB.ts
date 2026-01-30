@@ -1,7 +1,7 @@
 /// <mls shortName="collabMessagesIndexedDB" project="102025" enhancement="_blank" />
 
 const MAXMESSAGESBYTHREAD = 100;
-const VERSION = 4;
+const VERSION = 5;
 
 export function openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -18,6 +18,13 @@ export function openDB(): Promise<IDBDatabase> {
                 if (!threadStore.indexNames.contains("byName")) {
                     threadStore.createIndex("byName", "name", { unique: false });
                 }
+            }
+
+            if (!db.objectStoreNames.contains("poolings")) {
+                const poolingStore = db.createObjectStore("poolings", { keyPath: "taskId" });
+
+                poolingStore.createIndex("byUserId", "userId", { unique: false });
+                poolingStore.createIndex("byStartAt", "startAt", { unique: false });
             }
 
             if (!db.objectStoreNames.contains("users")) {
@@ -578,7 +585,64 @@ export async function getUser(userId: string): Promise<mls.msg.User | undefined>
     });
 }
 
-function getCompactUTC() {
+export async function addPooling(pooling: PoolingTask): Promise<void> {
+    const db = await openDB();
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("poolings", "readwrite");
+        const store = tx.objectStore("poolings");
+
+        store.put(pooling);
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject("Erro ao adicionar pooling");
+        tx.onabort = () => reject("Transação abortada");
+    });
+}
+
+export async function deletePooling(taskId: string): Promise<void> {
+    const db = await openDB();
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("poolings", "readwrite");
+        const store = tx.objectStore("poolings");
+
+        store.delete(taskId);
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject("Erro ao deletar pooling");
+    });
+}
+
+export async function getPooling(taskId: string): Promise<PoolingTask | undefined> {
+    const db = await openDB();
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("poolings", "readonly");
+        const store = tx.objectStore("poolings");
+
+        const request = store.get(taskId);
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject("Erro ao buscar pooling");
+    });
+}
+
+export async function listPoolings(): Promise<PoolingTask[]> {
+    const db = await openDB();
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("poolings", "readonly");
+        const store = tx.objectStore("poolings");
+
+        const request = store.getAll();
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject("Erro ao listar poolings");
+    });
+}
+
+export function getCompactUTC() {
     const now = new Date();
 
     const year = now.getUTCFullYear();
@@ -592,4 +656,8 @@ function getCompactUTC() {
 }
 
 
-
+export interface PoolingTask {
+    taskId: string;
+    userId: string;
+    startAt: string; // mesmo padrão UTC compactado que você já usa
+}

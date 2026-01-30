@@ -12,6 +12,8 @@ import { collabImport } from '/_102027_/l2/collabImport.js';
 export class CollabMessagesTaskLogPreview extends StateLitElement {
 
   @property() task: mls.msg.TaskData | undefined = undefined;
+  @property() message: mls.msg.Message | undefined = undefined;
+
 
   @state() template?: TemplateResult;
 
@@ -52,7 +54,7 @@ export class CollabMessagesTaskLogPreview extends StateLitElement {
     const agent: IAgent | IAgentAsync | undefined = await loadAgent(agentName);
     if (!agent || !agent.getFeedBack) {
       await collabImport({ folder: '', project: 100554, shortName: 'aiAgentDefaultFeedback', extension: '.ts' })
-      this.template = html`<ai-agent-default-feedback-100554 .task=${this.task}></ai-agent-default-feedback-100554>`
+      this.template = html`<ai-agent-default-feedback-100554 .task=${this.task} .message=${this.message}></ai-agent-default-feedback-100554>`
       return;
     }
     const html2 = await agent.getFeedBack(this.task);
