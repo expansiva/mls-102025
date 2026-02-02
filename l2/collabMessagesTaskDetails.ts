@@ -28,8 +28,13 @@ export class CollabMessagesTaskDetails extends StateLitElement {
     @query('.direct-clarification') directClarification: HTMLElement | undefined;
     @query('.direct-clarification .content') directClarificationContent: HTMLElement | undefined;
 
+    disconnectedCallback() {
+        window.removeEventListener('task-change', this.onTaskChange.bind(this));
+    }
+
     async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
         super.firstUpdated(changedProperties);
+        window.addEventListener('task-change', this.onTaskChange.bind(this));
         if (this.interactionClarification) {
             this.setClarification();
         }
@@ -211,7 +216,6 @@ export class CollabMessagesTaskDetails extends StateLitElement {
         <details ?open=${isDirect}>
             <summary>
                 ${payload.type}(${payload.agentName})
-                <icon class="fa-solid fa-reply-all" style="transform: rotateY(174deg); z-index:9999" @click=${(e: MouseEvent) => { e.stopPropagation(); e.preventDefault(); this.replayForSupport(e.currentTarget as HTMLElement, payload.agentName, payload.interaction, payload.stepId) }}></icon>
                 <span class="result"></span>
             </summary>
             ${this.renderAgent(payload)}
@@ -395,53 +399,13 @@ export class CollabMessagesTaskDetails extends StateLitElement {
         );
     }
 
-    private PROJECTNUMBER = 100554
-    private async replayForSupport(el:HTMLElement, agentName: string, interaction: any, stepId: number) {
-
-        const sum = el?.closest('summary');
-        let result: HTMLElement | undefined;
-        if (sum) result = sum.querySelector('.result') as HTMLElement;
-        if (result) result.innerHTML = '';
-
-        const load = (start: boolean) => {
-
-            if (!el) return;
-
-            if (start) {
-                el.classList.remove('fa-reply-all');
-                el.classList.add('rotate');
-                el.classList.add('fa-rotate-left');
-            } else {
-                el.classList.remove('fa-rotate-left'); 
-                el.classList.remove('rotate');
-                el.classList.add('fa-reply-all');
-            }
-        };
-
-        try {
-            load(true);
-            const moduleAgent = await import(`./_${this.PROJECTNUMBER}_${agentName}`);
-            if (!moduleAgent || !this.task) throw new Error('Not found agent:' + agentName);
-            if (!moduleAgent.createAgent) throw new Error('Not found createAgent:' + agentName);
-
-            const agent = moduleAgent.createAgent() as IAgent ;
-            if(!agent.replayForSupport) throw new Error('Not found replayForSupport:' + agentName);
-
-            const context = getTemporaryContext(this.task.PK, this.task.owner, 'context temporary');
-
-            context.task = this.task;
-            
-            await agent.replayForSupport(context, interaction.payload);
-
-            if (result) result.innerText = 'result: Ok';
-            load(false);
-
-        } catch (e:any) {
-            console.info(e);
-            if (result) result.innerText = e && e.message ? 'result: '+e.message : 'result: Erro';
-            load(false);
-        }
-
+    private onTaskChange(e: Event) {
+        if (!this.task) return;
+        const customEvent = e as CustomEvent;
+        const task: mls.msg.TaskData = customEvent.detail.context.task;
+        if (task.PK !== this.task.PK) return;
+        this.task = task;
+        this.requestUpdate();
     }
 
 }
