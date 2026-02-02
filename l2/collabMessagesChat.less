@@ -132,6 +132,16 @@ collab-messages-chat-102025 {
             font-size: @font-size-16;
         }
 
+        .unread-count {
+            background-color: @success-color;
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            margin-left: 1rem;
+            white-space: nowrap;
+        }
 
         .thread-group details:not([open]) {
             background: @grey-color-light;
@@ -302,17 +312,8 @@ collab-messages-chat-102025 {
                 flex: 1;
             }
 
-            .unread-count {
-                background-color: @success-color;
-                color: #fff;
-                font-size: 0.75rem;
-                font-weight: bold;
-                padding: 0.25rem 0.5rem;
-                border-radius: 12px;
-                margin-left: 1rem;
-                white-space: nowrap;
-            }
         }
+
     }
 
     .unread-messages {
