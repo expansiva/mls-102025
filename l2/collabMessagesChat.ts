@@ -139,7 +139,7 @@ export class CollabMessagesChat extends StateLitElement {
     @property({ attribute: false }) userThreads: IThread = {};
     @property({ attribute: false }) allThreads: mls.msg.Thread[] = [];
     @property() lastMessageReaded: string | undefined = ''
-    @property() unreadCount: number = 0;
+    @property() unreadCountInSelectedThread: number = 0;
 
     private isSystemChangeScroll: boolean = false;
     private savedScrollTop = 0;
@@ -360,7 +360,7 @@ export class CollabMessagesChat extends StateLitElement {
                 const cls = message.senderId === this.userId ? 'user' : 'system';
                 const isSame = message.isSame;
 
-                if (this.lastMessageReaded === message.createAt && this.unreadCount) nextNeedShowLabel = true;
+                if (this.lastMessageReaded === message.createAt && this.unreadCountInSelectedThread) nextNeedShowLabel = true;
                 else nextNeedShowLabel = false;
 
                 const titleTranslated = this.getTitleMessageTranslated(message);
@@ -696,7 +696,12 @@ export class CollabMessagesChat extends StateLitElement {
                 return this.renderThreadItemLi(items[0]);
             } else {
                 const lastItem = items[0];
-                // let threadAvatar = this.getThreadAvatar(lastItem);
+
+                const unreadCount = items.reduce(
+                    (total, item) => total + (item.thread?.unreadCount || 0),
+                    0
+                );
+
                 const now = new Date();
                 const isToday =
                     lastItem._lastMessageDate.dateObject.getFullYear() === now.getFullYear() &&
@@ -722,6 +727,7 @@ export class CollabMessagesChat extends StateLitElement {
                                         </div>
                                         <div class="thread-group-summary">
                                             <span class="last-group-message">${items.length} Threads </span>
+                                            ${unreadCount > 0 ? html`<span class="unread-count">${unreadCount}</span>` : nothing}
                                         </div>
                                     </div>                                
                                 </summary>
@@ -1321,7 +1327,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.hasMoreMessagesBefore = false;
         this.actualThread = threadInfo;
         const temp = await getThread(this.actualThread.thread.threadId)
-        this.unreadCount = temp?.unreadCount || 0;
+        this.unreadCountInSelectedThread = temp?.unreadCount || 0;
         const messagesInDb = await getMessagesByThreadId(this.actualThread.thread.threadId, this.messagesLimit, 0);
         this.actualMessages = messagesInDb;
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
