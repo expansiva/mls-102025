@@ -33,9 +33,15 @@ export class CollabMessageTaskPreview extends CollabLitElement {
         }
     }
 
-    firstUpdated() {
-        if (this.modeTest) return
+    disconnectedCallback() {
+        window.removeEventListener('task-change', this.onTaskChange.bind(this));
+    }
+
+    firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
+        super.firstUpdated(changedProperties);
+        if (this.modeTest) return;
         this.init();
+        window.addEventListener('task-change', this.onTaskChange.bind(this));
     }
 
     render() {
@@ -144,6 +150,18 @@ export class CollabMessageTaskPreview extends CollabLitElement {
         this.buildStepMap(this.task.iaCompressed.nextSteps);
         this.currentStepId = 1;
         this.navigationStack = [1];
+        this.allSteps = getAllSteps(this.task.iaCompressed.nextSteps);
+    }
+
+    private onTaskChange(e: Event) {
+        if (!this.task) return;
+        const customEvent = e as CustomEvent;
+        const task: mls.msg.TaskData = customEvent.detail.context.task;
+        if (task.PK !== this.task.PK) return;
+        this.task = task;
+        if (!this.task || !this.task.iaCompressed) return;
+        this.stepMap.clear();
+        this.buildStepMap(this.task.iaCompressed.nextSteps);
         this.allSteps = getAllSteps(this.task.iaCompressed.nextSteps);
     }
 
