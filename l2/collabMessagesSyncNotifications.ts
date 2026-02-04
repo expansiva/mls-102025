@@ -81,7 +81,9 @@ async function scheduleNextSync() {
     syncTimeout = setTimeout(async () => {
         syncTimeout = null;
 
-        const [threadId] = threadSyncMap.entries().next().value;
+        // const [threadId] = threadSyncMap.entries().next().value;
+        const threadId = threadSyncMap.keys().next().value;
+        if (!threadId) return;
         threadSyncMap.delete(threadId);
 
         try {
@@ -89,7 +91,7 @@ async function scheduleNextSync() {
             await getThreadUpdateInBackground(threadId);
 
         } catch (err) {
-            console.error(`Erro ao sincronizar thread ${threadId}`, err);
+            console.error(`Error on sync thread ${threadId}`, err);
         }
 
         return scheduleNextSync();
