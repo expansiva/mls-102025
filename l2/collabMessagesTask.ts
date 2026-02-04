@@ -148,6 +148,7 @@ export class CollabMessagesTask extends StateLitElement {
     }
 
     private onContinueClick(e: MouseEvent) {
+
         e.stopPropagation();
         if (this.context) {
             executeNextStep(this.context);
@@ -194,7 +195,8 @@ export class CollabMessagesTask extends StateLitElement {
 
                 this.context = {
                     task: response.task,
-                    message
+                    message,
+                    isTest: false
                 }
 
                 this.lastChanged = new Date().getTime().toString();
