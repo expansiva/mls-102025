@@ -1,4 +1,4 @@
-/// <mls shortName="collabMessagesIcons" project="102025" enhancement="_blank" />
+/// <mls fileReference="_102025_/l2/collabMessagesIcons.ts" enhancement="_blank" />
 
 import { svg } from 'lit';
 
