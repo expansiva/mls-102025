@@ -1,4 +1,4 @@
-/// <mls shortName="collabMessagesTaskPreviewFlexible" project="102025" enhancement="_100554_enhancementLit" />
+/// <mls fileReference="_102025_/l2/collabMessagesTaskPreviewFlexible.ts" enhancement="_100554_enhancementLit" />
 
 
 import { html, repeat } from 'lit';
