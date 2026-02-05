@@ -742,7 +742,8 @@ export class CollabMessagesChat extends StateLitElement {
                         </li>
                     `;
             }
-        })}
+            })}
+        
             ${this.renderArchivedThreads()}
             ${this.renderDeletingThreads()}
             ${this.renderDeletedThreads()}
@@ -1161,7 +1162,7 @@ export class CollabMessagesChat extends StateLitElement {
                     lastMessageDateArchived = this.parseLocalDate(formatedTimestampArchived || '');
                 }
 
-                if (item.thread.status === 'deleting' && item.thread.deletedAt) {
+                if ((item.thread.status === 'deleting' || item.thread.status === 'deleted') && item.thread.deletedAt) {
                     const formatedTimestampArchived = formatTimestamp(item.thread.deletedAt)?.dateFull;
                     lastMessageDateDeleting = this.parseLocalDate(formatedTimestampArchived || '');
                 }
