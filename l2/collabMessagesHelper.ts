@@ -1,4 +1,4 @@
-/// <mls shortName="collabMessagesHelper" project="102025" enhancement="_blank" />
+/// <mls fileReference="_102025_/l2/collabMessagesHelper.ts" enhancement="_blank" />
 
 import {
     getTemporaryContext,
