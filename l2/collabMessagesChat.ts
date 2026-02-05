@@ -742,7 +742,7 @@ export class CollabMessagesChat extends StateLitElement {
                         </li>
                     `;
             }
-            })}
+        })}
         
             ${this.renderArchivedThreads()}
             ${this.renderDeletingThreads()}
@@ -1401,7 +1401,8 @@ export class CollabMessagesChat extends StateLitElement {
 
             if (['deleted'].includes(threadByServer.thread.status)) {
                 await deleteAllMessagesFromThread(threadByServer.thread.threadId);
-                notifyThreadChange(threadByServer.thread)
+                const threadUpdated = await this.clearUnreadMessageFromThread(threadByServer.thread);
+                notifyThreadChange(threadUpdated);
             }
 
             this.checkNotificationsUnreadMessages();
@@ -1493,6 +1494,18 @@ export class CollabMessagesChat extends StateLitElement {
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         await this.updateLastMessage(threadInfo);
         return threadInfo;
+    }
+
+    private async clearUnreadMessageFromThread(thread: mls.msg.Thread) {
+        const _thread = await updateThread(
+            thread.threadId,
+            thread,
+            '',
+            '',
+            0
+        );
+        if (this.actualThread) this.actualThread.thread = _thread;
+        return _thread;
     }
 
     private async updateLastMessage(threadInfo: IThreadInfo) {
