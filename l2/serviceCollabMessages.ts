@@ -316,7 +316,14 @@ export class ServiceCollabMessages extends ServiceBase {
     private onThreadChange = async (e: Event) => {
         const customEvent = e as CustomEvent;
         const thread = customEvent.detail as mls.msg.Thread;
-        this.userThreads[thread.threadId].thread = thread;
+        if (this.userThreads[thread.threadId]) {
+            this.userThreads[thread.threadId].thread = thread;
+        } else {
+            if (!this.userPerfil) this.userPerfil = await this.getUser();
+            if (!this.userPerfil?.threads.find((item) => item === thread.threadId)) this.userPerfil?.threads.push(thread.threadId);
+            await this.updateThreads();
+        }
+
         if (this.groupSelected !== 'CONNECT') {
             this.checkNotificationPending();
         }
