@@ -1,7 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesSyncNotifications.ts" enhancement="_100554_enhancementLit" />
 
 import { getUserId, loadNotificationDeviceId, loadNotificationPreferencesAudio } from "/_102025_/l2/collabMessagesHelper.js";
-import { getThread, updateThread, getMessage, addMessages, getAllThreads, addThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { getThread, updateThread, getMessage, addMessages, getAllThreads, addThread, getCompactUTC } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 import { changeFavIcon } from "/_100554_/l2/libCommom.js";
 import { notifyThreadChange } from '/_100554_/l2/aiAgentHelper.js';
@@ -98,6 +98,8 @@ async function scheduleNextSync() {
     }, 500);
 }
 
+
+
 export async function getThreadUpdateInBackground(threadId: string): Promise<void> {
     const userId = getUserId();
     const deviceId = loadNotificationDeviceId();
@@ -121,8 +123,18 @@ export async function getThreadUpdateInBackground(threadId: string): Promise<voi
             }
         }
 
-        if (!response.messages || response.messages.length === 0) return;
+        const statusChanged = threadDB && threadDB.status != response.thread.status;
+        const hasNewMessages = response.messages && response.messages.length > 0;
 
+        if (!statusChanged && !hasNewMessages) return;
+        if (statusChanged && !hasNewMessages) {
+            const thread = await updateThread(threadId, response.thread, '', '', 1, getCompactUTC())
+            notifyThreadChange(thread);
+            hasNotificationMessages = true;
+            return;
+        }
+
+        if (!response.messages) return;
         const lastMessage = response.messages[response.messages.length - 1];
         const lastUnreadCount = threadDB && threadDB.unreadCount ? threadDB.unreadCount : 0;
 
