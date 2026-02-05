@@ -1,4 +1,4 @@
-/// <mls shortName="collabMessagesIndexedDB" project="102025" enhancement="_blank" />
+/// <mls fileReference="_102025_/l2/collabMessagesIndexedDB.ts" enhancement="_blank" />
 
 const MAXMESSAGESBYTHREAD = 100;
 const VERSION = 5;
