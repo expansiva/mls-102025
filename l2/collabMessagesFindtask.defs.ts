@@ -1,2 +1,2 @@
-/// <mls shortName="collabMessagesFindtask" project="102025" enhancement="_blank" folder="" />
+/// <mls fileReference="_102025_/l2/collabMessagesFindtask.defs.ts" enhancement="_blank" />
 

@@ -1,4 +1,4 @@
-/// <mls shortName="serviceCollabMessages" project="102025" enhancement="_100554_enhancementLitService" />
+/// <mls fileReference="_102025_/l2/serviceCollabMessages.ts" enhancement="_100554_enhancementLitService" />
 
 import { html, ifDefined } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
@@ -12,7 +12,8 @@ import {
     cleanupThreads,
     listPoolings,
     getTask,
-    getMessage
+    getMessage,
+    deletePooling
 } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import {
     saveLastTab,
@@ -259,8 +260,13 @@ export class ServiceCollabMessages extends ServiceBase {
             if (!task || !task.messageid_created) continue;
             const message = await getMessage(task.messageid_created);
             if (!message) continue;
-            const context: mls.msg.ExecutionContext = { message, task, isTest: false };
-            await continuePoolingTask(context);
+            try {
+                const context: mls.msg.ExecutionContext = { message, task, isTest: false };
+                await continuePoolingTask(context);
+            } catch (err) {
+                deletePooling(task.PK);
+            }
+
         }
 
     }

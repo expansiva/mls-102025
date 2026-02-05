@@ -1,4 +1,4 @@
-/// <mls shortName="collabMessagesSyncNotifications" project="102025" enhancement="_100554_enhancementLit" />
+/// <mls fileReference="_102025_/l2/collabMessagesSyncNotifications.ts" enhancement="_100554_enhancementLit" />
 
 import { getUserId, loadNotificationDeviceId, loadNotificationPreferencesAudio } from "/_102025_/l2/collabMessagesHelper.js";
 import { getThread, updateThread, getMessage, addMessages, getAllThreads, addThread } from '/_102025_/l2/collabMessagesIndexedDB.js';

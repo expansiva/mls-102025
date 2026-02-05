@@ -1,2 +1,2 @@
-/// <mls shortName="agentGenerateAvatarSvg" project="102025" enhancement="_blank" folder="agents" />
+/// <mls fileReference="_102025_/l2/agents/agentGenerateAvatarSvg.defs.ts" enhancement="_blank" />
 

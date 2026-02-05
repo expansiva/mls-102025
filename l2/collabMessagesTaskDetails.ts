@@ -1,4 +1,4 @@
-/// <mls shortName="collabMessagesTaskDetails" project="102025" enhancement="_blank" />
+/// <mls fileReference="_102025_/l2/collabMessagesTaskDetails.ts" enhancement="_blank" />
 
 import { html, TemplateResult } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';

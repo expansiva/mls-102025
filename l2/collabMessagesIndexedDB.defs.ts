@@ -1,2 +1,2 @@
-/// <mls shortName="collabMessagesIndexedDB" project="102025" enhancement="_blank" folder="" />
+/// <mls fileReference="_102025_/l2/collabMessagesIndexedDB.defs.ts" enhancement="_blank" />
 

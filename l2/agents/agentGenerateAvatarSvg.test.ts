@@ -1,4 +1,4 @@
-/// <mls shortName="agentGenerateAvatarSvg" project="102025" enhancement="_blank" folder="agents" />
+/// <mls fileReference="_102025_/l2/agents/agentGenerateAvatarSvg.test.ts" enhancement="_blank" />
 
  import { ICANTest, ICANIntegration, ICANSchema  } from './_100554_tsTestAST';
  export const integrations: ICANIntegration[] = [];

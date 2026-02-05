@@ -1,4 +1,4 @@
-/// <mls shortName="collabMessagesEmojis" project="102025" enhancement="_blank" />
+/// <mls fileReference="_102025_/l2/collabMessagesEmojis.ts" enhancement="_blank" />
 
 export interface IEmoji {
     unicode: string;
