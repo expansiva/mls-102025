@@ -1,4 +1,4 @@
-/// <mls shortName="collabMessagesFilter" project="102025" enhancement="_100554_enhancementLit" />
+/// <mls fileReference="_102025_/l2/collabMessagesFilter.ts" enhancement="_100554_enhancementLit" />
 
 import { html, classMap } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
