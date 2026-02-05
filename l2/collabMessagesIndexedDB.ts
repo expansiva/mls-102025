@@ -519,8 +519,8 @@ export async function cleanupThreads(validThreadIds: string[]): Promise<void> {
 
     const existingThreads = await getAllThreads();
     const threadsToDelete = existingThreads.filter(
-        (t) => !validThreadIds.includes(t.threadId)
-    );
+        (t) => !validThreadIds.includes(t.threadId) && (t.unreadCount === 0 || !t.unreadCount) // Delete only if there are no pending operations
+    ); 
 
     if (threadsToDelete.length === 0) return;
 

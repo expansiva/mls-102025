@@ -13,7 +13,8 @@ import {
     listPoolings,
     getTask,
     getMessage,
-    deletePooling
+    deletePooling,
+    getAllThreads
 } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import {
     saveLastTab,
@@ -470,9 +471,22 @@ export class ServiceCollabMessages extends ServiceBase {
             updateUsers(threadInfo.users);
         }
 
+        await this.searchForDeletedThreadsPending();
+
         this.isLoadingThread = false;
         this.requestUpdate();
 
+    }
+
+    private async searchForDeletedThreadsPending() {
+        const allLocalThreads = await getAllThreads();
+        const deletedThreadsPending = allLocalThreads.filter((thread) => thread.status === 'deleted' && thread.unreadCount && thread.unreadCount !== 0);
+        for await (let thread of deletedThreadsPending) {
+            this.userThreads[thread.threadId] = {
+                thread,
+                users: []
+            };
+        }
     }
 
     private async updateUsersThread(thread: mls.msg.Thread) {

@@ -69,6 +69,7 @@ const message_pt = {
     threadDeleting: 'A thread foi deletada em [date]',
     archived: 'Arquivado',
     deleting: 'Deletando',
+    deleted: 'Deletada',
     btnNext: 'Continuar',
     promptPlaceholder: 'Digite aqui... (@ para menções) (@@ para agentes)',
     today: 'Hoje',
@@ -89,6 +90,7 @@ const message_en = {
     threadDeleting: 'Thread was deleted in [date]',
     archived: 'Archived',
     deleting: 'Deleting',
+    deleted: 'Deleted',
     btnNext: 'Next',
     promptPlaceholder: 'Type here... (@ for mentions) (@@ for agents)',
     today: 'Today',
@@ -743,6 +745,8 @@ export class CollabMessagesChat extends StateLitElement {
         })}
             ${this.renderArchivedThreads()}
             ${this.renderDeletingThreads()}
+            ${this.renderDeletedThreads()}
+
         </ul>
     `;
     }
@@ -883,6 +887,7 @@ export class CollabMessagesChat extends StateLitElement {
             ${this.filteredThreads.deleting.map((item) => {
 
             let threadAvatar = this.getThreadAvatar(item);
+            const unreadCount = item.thread.unreadCount || 0;
 
             function isWithinLastWeek(date: Date): boolean {
                 const now = new Date();
@@ -907,10 +912,40 @@ export class CollabMessagesChat extends StateLitElement {
                             <div class="thread-content">
                                 <div class="thread-item-header">
                                     <span class="thread-name">(${this.msg.deleting}) ${item.thread.name || item.thread.threadId}</span>
+                                    ${unreadCount > 0 ? html`<span class="unread-count">*</span>` : nothing}
+
                                 </div>
                             </div>
                         </li>`
                 }`
+        })}
+        `
+    }
+
+    private renderDeletedThreads() {
+        if (this.filteredThreads.deleted.length === 0) return html``;
+        return html`      
+          
+            ${this.filteredThreads.deleted.map((item) => {
+            let threadAvatar = this.getThreadAvatar(item);
+            if (!item.lastMessageDateDeleting) return html``
+            const unreadCount = item.thread.unreadCount || 0;
+
+            return html`
+                <li @click=${() => this.onThreadClick(item)} class="thread-item">
+                    <div class="thread-item-avatar">
+                            ${threadAvatar.startsWith('<') && threadAvatar.endsWith('>') ?
+                    html`${unsafeHTML(threadAvatar)}` :
+                    html`<img src="${threadAvatar}"></img>`
+                }
+                    </div>
+                    <div class="thread-content">
+                        <div class="thread-item-header">
+                            <span class="thread-name">(${this.msg.deleted}) ${item.thread.name || item.thread.threadId}</span>
+                            ${unreadCount > 0 ? html`<span class="unread-count">*</span>` : nothing}
+                        </div>
+                    </div>
+                </li>`
         })}
         `
     }
