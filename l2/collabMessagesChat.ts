@@ -157,24 +157,6 @@ export class CollabMessagesChat extends StateLitElement {
 
         super.updated(changedProperties);
 
-        /*if (this.unreadEl && this.messageContainer) {
-
-            await this.updateComplete;
-            const container = this.messageContainer;
-            const target = this.unreadEl;
-            const offset =
-                target.offsetTop -
-                container.offsetTop;
-            container.scrollTop = offset;
-
-        } else if (this.messageContainer) {
-
-            await this.updateComplete;
-            this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
-            return;
-        }*/
-
-
         if (changedProperties.has('activeScenerie') && (this.activeScenerie === 'list')) {
             this.usersAvaliables = await listUsers();
         }
@@ -942,7 +924,7 @@ export class CollabMessagesChat extends StateLitElement {
                     </div>
                     <div class="thread-content">
                         <div class="thread-item-header">
-                            <span class="thread-name">(${this.msg.deleted}) ${item.thread.name || item.thread.threadId}</span>
+                            <span class="thread-name" style="text-decoration: line-through;">(${this.msg.deleted}) ${item.thread.name || item.thread.threadId}</span>
                             ${unreadCount > 0 ? html`<span class="unread-count">*</span>` : nothing}
                         </div>
                     </div>
@@ -1515,7 +1497,6 @@ export class CollabMessagesChat extends StateLitElement {
         const lastMessage = lastArray.length > 0 ? lastArray[lastArray.length - 1] : undefined;
         if (lastMessage) {
             const lastMessageText = `${lastMessage.senderId}:${lastMessage.content}`;
-
             const thread = await updateThread(
                 threadInfo.thread.threadId,
                 threadInfo.thread,
@@ -1615,7 +1596,6 @@ export class CollabMessagesChat extends StateLitElement {
         if (agentName) agentToCall = agentName;
         const message: IMessage = await this.createTempMessage(prompt, this.userId, this.actualThread.thread.threadId);
         try {
-
             const agent = await this.loadAgent(agentToCall);
             context.message = message;
             await executeBeforePrompt(agent, context);
@@ -1643,7 +1623,8 @@ export class CollabMessagesChat extends StateLitElement {
             item.senderId === senderId &&
             item.createAt === createAt2 &&
             item.threadId === threadId
-        )
+        );
+
         if (!messageAdded) {
             const newMessage: mls.msg.MessagePerformanceCache = {
                 content,
@@ -1663,6 +1644,7 @@ export class CollabMessagesChat extends StateLitElement {
             this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
             await addMessage(newMessage);
             this.requestUpdate();
+
         } else {
 
             messageAdded.content = content;
@@ -1684,11 +1666,10 @@ export class CollabMessagesChat extends StateLitElement {
             delete cloned.context;
             delete cloned.isLoading;
             delete cloned.lastChanged;
-
-            // if (oldContextCreateAt) this.isSystemChangeScroll = true;
-
+            if (oldContextCreateAt) this.isSystemChangeScroll = true;
             this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
             await addMessage(cloned);
+            if (this.actualThread) await this.updateLastMessage(this.actualThread);
             this.requestUpdate();
 
         }
@@ -1798,13 +1779,14 @@ export class CollabMessagesChat extends StateLitElement {
         delete m.isFailed;
         delete m.isFailedError;
         delete m.isSame;
-        if (outputs) m.footers = footerData;
 
+        if (outputs) m.footers = footerData;
         await addMessage(m);
         const messagesInDb = await getMessagesByThreadId(m.threadId, this.messagesLimit, 0);
         this.actualMessages = messagesInDb;
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         this.requestUpdate();
+
     }
 
     private async loadAgent(shortName: string): Promise<IAgent> {
