@@ -3,7 +3,7 @@
 import { html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { getClarification, getClarificationElement } from '/_100554_/l2/aiAgentOrchestration.js';
+import { getClarification, getClarificationElement, continuePoolingTask } from '/_100554_/l2/aiAgentOrchestration.js';
 import { getNextPendentStep, getNextClarificationStep, getInteractionStepId, getStepById } from '/_100554_/l2/aiAgentHelper.js';
 
 import '/_102025_/l2/collabMessagesTaskDetails.js';
@@ -20,6 +20,8 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
     @property() task: mls.msg.TaskData | undefined = undefined;
     @property() message: mls.msg.Message | undefined = undefined;
+    @property() restartPooling: boolean = false;
+
     @property() stepid: string = '';
     @property({ attribute: false }) seen = new Set<string>();
 
@@ -48,6 +50,14 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         if (this.interactionClarification) {
             this.setClarification();
         }
+        if (this.restartPooling && this.message && this.task) {
+            const context: mls.msg.ExecutionContext = {
+                task: this.task,
+                message: this.message,
+                isTest: false
+            }
+            continuePoolingTask(context);
+        }
     }
 
     render() {
@@ -61,8 +71,6 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         }
 
         if (this.isClarificationPending && !this.forceViewRaw) return this.renderDirectClarification();
-
-
 
         return this.renderTab();
     }

@@ -44,11 +44,13 @@ import '/_102025_/l2/collabMessagesTopics.js';
 import '/_102025_/l2/collabMessagesPrompt.js';
 import '/_102025_/l2/collabMessagesAvatar.js';
 import '/_102025_/l2/collabMessagesThreadDetails.js';
-import '/_102025_/l2/collabMessagesRichPreview.js';
 import '/_102025_/l2/collabMessagesUserModal.js';
 import '/_102025_/l2/collabMessagesThreadModal.js';
 import '/_102025_/l2/collabMessagesFilter.js';
 import '/_102025_/l2/collabMessagesAdd.js';
+
+import '/_102025_/l2/collabMessagesRichPreviewText.js';
+
 
 import { IChatPreferences, AGENTDEFAULT } from '/_102025_/l2/collabMessagesHelper.js';
 import { CollabMessagesPrompt } from '/_102025_/l2/collabMessagesPrompt.js';
@@ -431,13 +433,13 @@ export class CollabMessagesChat extends StateLitElement {
     private renderCollabMessagesRichPreview(text: string) {
 
         return html`
-        <collab-messages-rich-preview-102025 
+        <collab-messages-rich-preview-text-102025 
             @mention-hover=${this.onMentionHover}
             @channel-hover=${this.onChannelHover}
             .allUsers=${this.usersAvaliables} 
             .allThreads=${this.allThreads}
             text="${text}"
-        ></collab-messages-rich-preview-102025>`
+        ></collab-messages-rich-preview-text-102025>`
     }
 
     private renderTopics() {
@@ -469,9 +471,9 @@ export class CollabMessagesChat extends StateLitElement {
     private async onMentionHover(ev: CustomEvent) {
 
         this.removeAllUserModal();
-        if (!ev.detail || !ev.detail.value || !ev.detail.element) return;
-        const actualUserModal = this.usersAvaliables.find((user) => user.name === ev.detail.value);
-
+        if (!ev.detail || !ev.detail.userId || !ev.detail.element) return;
+        const actualUserModal = this.usersAvaliables.find((user) => user.userId === ev.detail.userId);
+        if (!actualUserModal) return;
         const rects = (ev.detail.element as HTMLElement).getBoundingClientRect();
         const modal = document.createElement('collab-messages-user-modal-102025');
         (modal as any).user = actualUserModal;
@@ -487,8 +489,9 @@ export class CollabMessagesChat extends StateLitElement {
     private async onChannelHover(ev: CustomEvent) {
 
         this.removeAllUserModal();
-        if (!ev.detail || !ev.detail.value || !ev.detail.element) return;
-        const actualThreadModal = this.allThreads.find((thread) => thread.name === `#${ev.detail.value}`);
+        if (!ev.detail || !ev.detail.threadId || !ev.detail.element) return;
+        const actualThreadModal = this.allThreads.find((thread) => thread.threadId === `${ev.detail.threadId}`);
+        if (!actualThreadModal) return;
         const rects = (ev.detail.element as HTMLElement).getBoundingClientRect();
         const modal = document.createElement('collab-messages-thread-modal-102025');
         (modal as any).thread = actualThreadModal;
