@@ -71,8 +71,6 @@ export async function addMessage(threadId: string, messageContent: string, conte
     }
 
     const agentName = extractAgentName(messageContent) || AGENTDEFAULT;
-
-
     const moduleAgent = await loadAgent(agentName);
     if(!moduleAgent) throw new Error('Invalid Agent')
     await executeBeforePrompt(moduleAgent, context);

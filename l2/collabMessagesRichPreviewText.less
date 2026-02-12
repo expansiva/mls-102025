@@ -1,0 +1,132 @@
+/// <mls fileReference="_102025_/l2/collabMessagesRichPreviewText.less" enhancement="enhancementStyle"/>
+
+collab-messages-rich-preview-text-102025 {
+
+    .collab-md-codeblock-card {
+        margin: 1rem .3rem;
+        font-size: @font-size-12;
+
+        pre {
+            white-space: normal;
+
+            code {
+                white-space: break-spaces;
+            }
+        }
+
+        .collab-md-codeblock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #eaeef2;
+            border-bottom: 1px solid #d0d7de;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #57606a;
+
+            .collab-md-inlinecode-lang,
+            .collab-md-codeblock-lang {
+                font-size: 11px;
+                background: #d0d7de;
+                border-radius: 3px;
+                padding: 1px 4px;
+                color: #24292f;
+            }
+
+            .collab-md-inlinecode-copy,
+            .collab-md-codeblock-copy {
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-size: 14px;
+                color: #57606a;
+                padding: 2px 4px;
+
+                &:hover {
+                    color: #1f2328;
+                }
+            }
+        }
+    }
+
+    .command--valid {
+        color: @active-color;
+        background: @bg-secondary-color-lighter;
+        padding: 0 @space-8;
+        border-radius: @space-8;
+        font-family: monospace;
+    }
+
+    .help--valid {
+        color: @success-color;
+        background: @bg-secondary-color-lighter;
+        padding: 0 @space-8;
+        border-radius: 0.2em;
+    }
+
+    .channel.channel--valid {
+        color: #1976d2; // Slack-like blue for channels
+        background: #e3f0fd;
+        padding: 0 @space-8;
+        border-radius: @space-8;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background @transition-normal, color @transition-normal;
+
+        &:hover {
+            background: #bbdefb;
+            color: #0d47a1;
+        }
+    }
+
+
+    .mention.mention--valid {
+        color: #1565c0;
+        background: #e3f0fd;
+        padding: 0 @space-8;
+        border-radius: 0.3em;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background @transition-normal, color @transition-normal;
+
+        &:hover {
+            background: #bbdefb;
+            color: #0d47a1;
+        }
+    }
+
+    .mention-agent {
+        color: var(--active-color);
+        background-color: transparent;
+        padding: 0 @space-8;
+        border-radius: @space-8;
+        font-weight: @font-weight-bold;
+        cursor: pointer;
+        transition: background @transition-normal;
+
+        &:hover {
+            color: var(--active-color-hover);
+        }
+    }
+
+    .channel-ref {
+        color: #1976d2; // Slack-like blue for channels
+        background: #e3f0fd;
+        padding: 0 @space-8;
+        border-radius: @space-8;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background @transition-normal, color @transition-normal;
+
+        &:hover {
+            background: #bbdefb;
+            color: #0d47a1;
+        }
+    }
+
+
+}
+
+
