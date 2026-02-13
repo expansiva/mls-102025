@@ -2,7 +2,6 @@
 
 // Do not change – automatically generated code. 
 
-
 export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesRichPreviewText.ts",
@@ -11,8 +10,7 @@ export const asis: mls.defs.AsIs = {
     "languages": [
       "en",
       "pt"
-    ],
-    "devFidelity": "final"
+    ]
   },
   "references": {
     "webComponents": [
@@ -20,62 +18,86 @@ export const asis: mls.defs.AsIs = {
     ],
     "imports": [
       {
-        "ref": "/_100554_/l2/stateLitElement.js"
+        "ref": "/_100554_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement",
+            "type": "class"
+          }
+        ]
       },
       {
-        "ref": "/_102025_/l2/collabMessagesTextCode.js"
+        "ref": "/_102025_/l2/collabMessagesTextCode.js",
+        "dependencies": []
       }
     ]
   },
   "codeInsights": {
-    "i18nWarnings": [
-      "title=\"Copiar código\""
-    ]
+    "todos": [],
+    "securityWarnings": [],
+    "unusedImports": [],
+    "deadCodeBlocks": [],
+    "accessibilityIssues": [],
+    "i18nWarnings": [],
+    "performanceHints": []
   },
+  "auth": {},
   "asIs": {
     "semantic": {
-      "generalDescription": "Lit-based web component that renders Slack-style markdown with rich preview support including mentions, channels, commands, code blocks, and formatted text",
+      "generalDescription": "Lit-based web component that renders Slack-style markdown with rich preview capabilities including mentions, channels, commands, code blocks, and formatted text",
       "businessCapabilities": [
         "Render Slack-compatible markdown text with rich formatting",
-        "Display user mentions with validation and interaction events",
-        "Display channel references with validation and interaction events",
-        "Display command references with validation",
-        "Display help references with validation",
-        "Render code blocks with syntax highlighting and copy-to-clipboard functionality",
-        "Render formatted text including bold, italic, strike-through",
-        "Render lists (ordered and unordered) and blockquotes",
-        "Handle internationalization for copy button states"
+        "Display user mentions with validation against user list",
+        "Display channel references with validation against thread list",
+        "Display command references with validation against command list",
+        "Display agent mentions (@@agent syntax)",
+        "Render code blocks with language detection and copy-to-clipboard",
+        "Render formatted text (bold, italic, strike-through)",
+        "Render lists (ordered and unordered)",
+        "Render blockquotes",
+        "Render links (markdown-style and raw URLs)",
+        "Dispatch custom events for interactive elements (mention-click, mention-hover, mention-leave, channel-click, channel-hover, channel-leave, command-click)",
+        "Support internationalization (English and Portuguese)"
       ],
       "technicalCapabilities": [
-        "Parse Slack-style markdown syntax into tokenized AST",
-        "Render tokens as Lit HTML templates",
-        "Dispatch custom events for user interactions (mention-click, mention-hover, mention-leave, channel-click, channel-hover, channel-leave, command-click)",
-        "Support inline code and multi-line code blocks",
-        "Support markdown links and raw URL auto-linking",
-        "Support agent mentions with @@ prefix",
-        "Two-pass parsing: block-level then inline-level",
-        "Clipboard API integration with fallback for older browsers"
+        "Parse Slack markdown syntax into tokenized structure",
+        "Parse inline Slack markdown for formatting",
+        "Parse block-level elements (code blocks, blockquotes, lists)",
+        "Token-based rendering architecture with type-safe SlackToken union type",
+        "State-based message localization using getMessageKey from parent class",
+        "Property-based reactive updates for text, allUsers, allThreads, allCommands, allHelpers",
+        "Event dispatching for UI interactions with CustomEvent",
+        "Clipboard API integration with fallback for older browsers",
+        "Integration with collab-messages-text-code-102025 for syntax-highlighted code display"
       ],
       "implementedFeatures": [
-        "SlackToken type definition for AST nodes",
-        "Block-level parsing for code blocks, blockquotes, lists, and plain text",
-        "Inline parsing for formatting, mentions, channels, commands, help, links, code",
-        "User mention validation against allUsers property",
-        "Channel validation against allThreads property",
-        "Command validation against allCommands property",
-        "Help validation against allHelpers property",
-        "Copy-to-clipboard for code blocks with visual feedback",
-        "Mouse event handling for mentions and channels (click, hover, leave)",
-        "Default sample text demonstrating all formatting features"
+        "SlackToken type definition with 13 token variants",
+        "ParserState type for parsing state machine",
+        "English and Portuguese i18n message dictionaries",
+        "Property decorators for reactive properties",
+        "Custom element registration with @customElement",
+        "render() method with language detection and token parsing",
+        "renderSlackTokens() recursive rendering method",
+        "Individual render methods for each token type (renderText, renderBold, renderItalic, renderStrike, renderInlineCode, renderCodeBlock, renderMention, renderAgent, renderChannel, renderCommand, renderHelp, renderLink, renderRawLink, renderBlockquote, renderList)",
+        "copyToClipboard() with visual feedback",
+        "parseSlackMarkdown() block-level parser",
+        "parseInlineSlackMarkdown() inline parser with state machine",
+        "Validation logic for mentions (against allUsers), channels (against allThreads), commands (against allCommands), help (against allHelpers)",
+        "Event dispatching for mention interactions (click, hover, leave)",
+        "Event dispatching for channel interactions (click, hover, leave)",
+        "Event dispatching for command interactions (click)",
+        "CSS class application based on validation state (valid/invalid)",
+        "External link handling with target=\"_blank\" and rel=\"noopener\""
       ],
       "constraints": [
-        "Mentions require exact case-insensitive name match in allUsers array",
-        "Channels require exact name match (including # prefix) in allThreads array",
-        "Commands must match full command string (including / prefix) in allCommands array",
-        "Help tokens must match full string (including ? prefix) in allHelpers array",
-        "Code blocks limited to single backtick fence syntax",
-        "Raw links auto-detected only for http/https/www prefixes",
-        "Clipboard copy uses deprecated document.execCommand fallback"
+        "Requires StateLitElement base class for state management and i18n",
+        "Requires collab-messages-text-code-102025 component for code block rendering",
+        "Mention validation depends on allUsers property being populated",
+        "Channel validation depends on allThreads property being populated",
+        "Command validation depends on allCommands property being populated",
+        "Help validation depends on allHelpers property being populated",
+        "Clipboard functionality requires navigator.clipboard API or falls back to textarea method",
+        "Link rendering assumes http/https protocols, auto-prefixes www URLs"
       ]
     }
   }

@@ -58,65 +58,7 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
 
     @property() allUsers: mls.msg.User[] = [];
 
-    @property({ type: String }) text = `
-Oi @joao, rode /build em #geral
-
-\`\`\`ts
-const x = \`value=\${y}\`;
-\`\`\`
-
-isso é **bold**, _italic_ e ~~strike~~
-
-acesse [Google](https://google.com)
-
-acesse https://google.com agora
-
-> isso é um blockquote simples
-> com mais de uma linha
-> e mencionando @joao dentro
-
-> agora um blockquote com lista:
-> - item **bold**
-> - item _italic_
-> - item /build
-> - link https://google.com
-
-Lista não ordenada:
-- primeiro item
-- segundo item com **bold**
-- terceiro item com @joao
-- quarto item com [Google](https://google.com)
-
-Lista ordenada:
-1. primeiro passo
-2. segundo passo com _italic_
-3. terceiro passo com ~~strike~~
-4. quarto passo com /deploy
-
-Misturando tudo:
-> blockquote com lista ordenada
-> 1. passo um
-> 2. passo dois
-> 3. passo três com **bold**
-
-\`\`\`js
-https://google.com
-[Google](https://google.com)
-\`\`\`
-
-link em codigo \`https://google.com\`
-
-/command1
-
-/command
-
-?help
-
-?help2
-
-@@agent test
-
-`;
+    @property({ type: String }) text = ``;
 
     render() {
         const lang = this.getMessageKey(messages);

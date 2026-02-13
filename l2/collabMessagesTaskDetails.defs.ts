@@ -2,45 +2,14 @@
 
 // Do not change – automatically generated code. 
 
-
 export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesTaskDetails.ts",
-    "componentType": "organism",
+    "componentType": "molecule",
     "componentScope": "appFrontEnd"
   },
   "references": {
     "imports": [
-      {
-        "ref": "lit",
-        "dependencies": [
-          {
-            "name": "html",
-            "type": "function"
-          },
-          {
-            "name": "TemplateResult",
-            "type": "type"
-          }
-        ]
-      },
-      {
-        "ref": "lit/decorators.js",
-        "dependencies": [
-          {
-            "name": "customElement",
-            "type": "function"
-          },
-          {
-            "name": "property",
-            "type": "function"
-          },
-          {
-            "name": "query",
-            "type": "function"
-          }
-        ]
-      },
       {
         "ref": "/_100554_/l2/stateLitElement.js",
         "dependencies": [
@@ -110,52 +79,64 @@ export const asis: mls.defs.AsIs = {
           }
         ]
       }
+    ],
+    "webComponents": [
+      "collab-messages-task-details-102025"
     ]
   },
   "codeInsights": {
+    "todos": [],
     "securityWarnings": [
-      "Dynamic script execution in executeHTMLClarificationScript method may pose XSS risk if clarification content is not properly sanitized"
+      "executeHTMLClarificationScript() dynamically creates and executes script elements from clarification content, which could lead to XSS if clarification content is not properly sanitized",
+      "renderClarification() contains a debugger statement"
     ],
-    "unusedImports": [
-      "getTemporaryContext",
-      "IAgent"
-    ]
+    "unusedImports": [],
+    "deadCodeBlocks": [],
+    "accessibilityIssues": [],
+    "i18nWarnings": [
+      "Tipo de resultado desconhecido."
+    ],
+    "performanceHints": []
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "LitElement web component for displaying AI task details including execution steps, interactions, clarifications, and results",
+      "generalDescription": "Lit-based web component that renders detailed task information for AI agent interactions including clarifications, results, and step-by-step execution traces",
       "businessCapabilities": [
-        "Display AI task details and metadata",
-        "Show task execution cost",
-        "Render task execution steps (agent, tool, clarification, result, flexible)",
-        "Handle interactive clarifications",
-        "Display raw task JSON with syntax highlighting",
-        "Show long memory information",
-        "Render task interaction payloads recursively",
-        "Handle task change events for real-time updates"
+        "Display task details and status",
+        "Render AI agent execution steps and interactions",
+        "Show cost information for AI operations",
+        "Handle clarification requests from AI agents",
+        "Render JSON-formatted task data with syntax highlighting",
+        "Display long memory context from AI agents"
       ],
       "technicalCapabilities": [
-        "LitElement-based web component implementation",
-        "Event-driven architecture with task-change listener",
-        "Dynamic HTML injection and script execution for clarifications",
-        "JSON syntax highlighting",
-        "Recursive template rendering for nested payloads",
+        "Lit element lifecycle management",
+        "Custom event handling for task changes",
+        "Dynamic script execution for clarification content",
+        "Recursive rendering of nested AI payload structures",
+        "Syntax highlighting for JSON display",
         "Conditional rendering based on task status"
       ],
       "implementedFeatures": [
-        "Task short info display (PK, status, cost)",
-        "Collapsible task details section",
-        "Raw JSON view with syntax highlighting",
-        "Task info rendering (excluding compressed data)",
-        "Long memory display",
-        "Direct result rendering for completed tasks",
-        "Direct clarification rendering for pending steps",
-        "Agent step rendering with details",
-        "Tool step rendering with JSON payload",
-        "Clarification step rendering with JSON display",
-        "Flexible result step rendering",
-        "Interaction rendering with inputs, trace, and nested payloads",
-        "Script execution for clarification HTML content"
+        "Task header with PK, status and cost display",
+        "Collapsible raw JSON view with syntax highlighting",
+        "Task info rendering excluding compressed IA data",
+        "Long memory display from iaCompressed",
+        "Recursive step/interaction rendering for agent, tool, clarification, result and flexible types",
+        "Direct result rendering when task is done",
+        "Direct clarification rendering when pending",
+        "Agent payload rendering with agent name",
+        "Tool payload rendering with JSON details",
+        "Clarification details with JSON display",
+        "Flexible result display",
+        "Interaction rendering with inputs, trace and nested payloads",
+        "Dynamic script tag recreation for clarification HTML",
+        "Task change event listener for live updates"
+      ],
+      "constraints": [
+        "Requires task data with specific mls.msg.TaskData structure",
+        "Depends on window event 'task-change' for updates",
+        "Uses global mls namespace for type definitions",
       ]
     }
   }

@@ -2,52 +2,14 @@
 
 // Do not change – automatically generated code. 
 
-
 export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesTaskInfo.ts",
-    "componentType": "organism",
-    "componentScope": "appFrontEnd",
-    "devFidelity": "final"
+    "componentType": "molecule",
+    "componentScope": "appFrontEnd"
   },
   "references": {
-    "webComponents": [
-      "collab-messages-task-details-102025",
-      "collab-messages-task-preview-102025",
-      "collab-messages-task-log-preview-102025",
-      "collab-messages-chat-102025"
-    ],
     "imports": [
-      {
-        "ref": "lit",
-        "dependencies": [
-          {
-            "name": "html",
-            "type": "function"
-          }
-        ]
-      },
-      {
-        "ref": "lit/decorators.js",
-        "dependencies": [
-          {
-            "name": "customElement",
-            "type": "?"
-          },
-          {
-            "name": "property",
-            "type": "?"
-          },
-          {
-            "name": "query",
-            "type": "?"
-          },
-          {
-            "name": "state",
-            "type": "?"
-          }
-        ]
-      },
       {
         "ref": "/_100554_/l2/stateLitElement.js",
         "dependencies": [
@@ -104,58 +66,51 @@ export const asis: mls.defs.AsIs = {
       {
         "ref": "/_102025_/l2/collabMessagesTaskLogPreview.js"
       }
-    ]
-  },
-  "codeInsights": {
-    "securityWarnings": [
-      "Dynamic script injection in executeHTMLClarificationScript method"
     ],
-    "i18nWarnings": [
-      "No task.",
-      "Todo",
-      "Step",
-      "Raw",
-      "Workflow",
-      "Clarification",
-      "View raw",
-      "Processing...",
-      "Invalid task",
-      "No found parentInteraction",
-      "on task:",
-      "Invalid interaction id:",
-      "Invalid agent name for step id:"
+    "webComponents": [
+      "collab-messages-task-details-102025",
+      "collab-messages-task-preview-102025",
+      "collab-messages-task-log-preview-102025"
     ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "LitElement component for displaying AI task information with tabbed interface and clarification handling",
+      "generalDescription": "Lit-based web component that displays AI task information with tabbed interface for workflow, step, raw data and todo views, handling clarification steps with dynamic content injection",
       "businessCapabilities": [
-        "Display task workflow status",
-        "Render task clarification requests",
-        "Manage task information tabs",
-        "Handle task change events",
-        "Execute clarification scripts"
+        "Display AI task execution status and details",
+        "Present task workflow visualization",
+        "Show task step preview",
+        "Render raw task data",
+        "Display task todo/log information",
+        "Handle clarification interactions with users",
+        "Manage tab-based navigation for task information views"
       ],
       "technicalCapabilities": [
-        "LitElement web component implementation",
+        "Lit reactive property binding",
+        "State management via StateLitElement base class",
+        "Dynamic tab switching between workflow/step/raw/todo views",
+        "Clarification step detection and rendering",
+        "Dynamic HTML content injection with script execution",
+        "Event-driven task updates via window events",
         "Conditional rendering based on task state",
-        "DOM event handling",
-        "Dynamic script injection",
-        "Parent component width management"
+        "Parent element width manipulation"
       ],
       "implementedFeatures": [
-        "Tabbed navigation (workflow, step, raw, todo)",
-        "Direct clarification rendering",
-        "Task pooling continuation",
-        "Task change event listening",
-        "Raw task data view",
-        "Step preview rendering",
-        "Todo log preview"
+        "Tabbed interface with workflow/step/raw/todo tabs",
+        "Direct clarification view for pending clarification steps",
+        "Force raw view toggle for clarification override",
+        "Dynamic task details rendering via web components",
+        "Task change event listening for live updates",
+        "Clarification content injection with script execution support",
+        "Pooling task continuation on initialization"
       ],
       "constraints": [
-        "Requires parent element collab-messages-chat-102025 for full functionality",
-        "Dependent on task data structure (mls.msg.TaskData)",
-        "Clarification rendering requires specific task state"
+        "Requires task data (mls.msg.TaskData) to render",
+        "Requires message data (mls.msg.Message) for full functionality",
+        "Depends on parent collab-messages-chat-102025 element for width styling",
+        "Clarification rendering requires DOM query for .direct-clarification .content",
+        "Script execution in clarification content uses innerHTML replacement",
+        "Task change events filtered by PK match"
       ]
     }
   }

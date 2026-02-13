@@ -15,7 +15,6 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
     private elParent: HTMLElement | undefined;
     private forceViewRaw = false;
-    private isClarificationPending = false;
     private hasTodo = true;
 
     @property() task: mls.msg.TaskData | undefined = undefined;
@@ -30,6 +29,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     @query('.direct-clarification .content') directClarificationContent: HTMLElement | undefined;
 
     @state() private activeTab: 'workflow' | 'step' | 'raw' | 'todo' = 'todo';
+    @state() isClarificationPending = false;
 
     connectedCallback() {
         super.connectedCallback();
@@ -42,6 +42,12 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         if (this.elParent) this.elParent.style.width = '';
         window.removeEventListener('task-change', this.onTaskChange.bind(this));
 
+    }
+
+    async updated(changedProperties: Map<PropertyKey, unknown>) {
+        if (changedProperties.has('isClarificationPending') && this.isClarificationPending) {
+            this.setClarification();
+        }
     }
 
     async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
@@ -134,6 +140,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     }
 
     renderDirectClarification() {
+
         if (!this.task) throw new Error('Invalid task');
         const payload = getNextClarificationStep(this.task);
         if (!payload) return html``;
@@ -168,7 +175,11 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         if (!this.directClarificationContent || !this.task || !this.message) return;
         let clarification: HTMLElement | null = null;
         if (this.task.iaCompressed?.queueFrontEnd) {
-            clarification = await getClarificationElement({ message: this.message, task: this.task, isTest: false });
+            try {
+                clarification = await getClarificationElement({ message: this.message, task: this.task, isTest: false });
+            } catch {
+                return;
+            }
 
         } else clarification = await getClarification(this.task.PK);
 

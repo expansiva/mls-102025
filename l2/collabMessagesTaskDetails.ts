@@ -10,12 +10,11 @@ import {
     getNextClarificationStep,
     getInteractionStepId,
     getStepById,
-    getTotalCost, getTemporaryContext
+    getTotalCost
 } from '/_100554_/l2/aiAgentHelper.js';
 
 import { getClarification } from '/_100554_/l2/aiAgentOrchestration.js';
 import { collab_money } from '/_102025_/l2/collabMessagesIcons.js';
-import { IAgent } from '/_100554_/l2/aiAgentBase.js';
 
 @customElement('collab-messages-task-details-102025')
 export class CollabMessagesTaskDetails extends StateLitElement {
@@ -49,6 +48,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
             const nextStepPending = getNextPendentStep(this.task);
             if (nextStepPending?.type === 'clarification') isClarificationPending = true;
         }
+
         return html`
 
             <div class="task-short-info">
