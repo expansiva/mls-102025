@@ -18,6 +18,16 @@ export class CollabMessagesTextCode extends StateLitElement {
   @query('.code') codeBlock: HTMLElement | undefined;
   @query('select') select: HTMLSelectElement | undefined;
 
+  private _resolveRendered!: () => void;
+
+  private markRendered() {
+    this._resolveRendered?.();
+  }
+
+  whenRendered = new Promise<void>((resolve) => {
+    this._resolveRendered = resolve;
+  });
+
   updated(changedProperties: Map<string | number | symbol, unknown>) {
 
     if (changedProperties.has('language')) {
@@ -99,12 +109,14 @@ export class CollabMessagesTextCode extends StateLitElement {
       that.codeBlock.removeAttribute("data-highlighted");
       (window as any).hljs.highlightElement(that.codeBlock, { language: that.language });
       that.codeBlock.innerHTML = res.value;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          this.markRendered();
+        });
+      });
     });
 
-  }
-
-  firstUpdated() {
-    this.setCode();
   }
 
   render() {

@@ -2,7 +2,6 @@
 
 // Do not change – automatically generated code. 
 
-
 export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesTextCode.ts",
@@ -10,16 +9,14 @@ export const asis: mls.defs.AsIs = {
     "componentScope": "appFrontEnd"
   },
   "references": {
-    "webComponents": [
-      "collab-messages-text-code-102025"
-    ],
     "imports": [
       {
         "ref": "/_100554_/l2/stateLitElement.js",
         "dependencies": [
           {
             "name": "StateLitElement",
-            "type": "class"
+            "type": "class",
+            "purpose": "base class for stateful Lit elements"
           }
         ]
       },
@@ -28,11 +25,13 @@ export const asis: mls.defs.AsIs = {
         "dependencies": [
           {
             "name": "html",
-            "type": "function"
+            "type": "function",
+            "purpose": "template literal tag for Lit templates"
           },
           {
             "name": "css",
-            "type": "function"
+            "type": "function",
+            "purpose": "template literal tag for Lit styles"
           }
         ]
       },
@@ -41,15 +40,18 @@ export const asis: mls.defs.AsIs = {
         "dependencies": [
           {
             "name": "customElement",
-            "type": "function"
+            "type": "function",
+            "purpose": "Lit decorator to define custom element"
           },
           {
             "name": "property",
-            "type": "function"
+            "type": "function",
+            "purpose": "Lit decorator for reactive properties"
           },
           {
             "name": "query",
-            "type": "function"
+            "type": "function",
+            "purpose": "Lit decorator for querying DOM elements"
           }
         ]
       }
@@ -61,59 +63,64 @@ export const asis: mls.defs.AsIs = {
   "codeInsights": {
     "todos": [],
     "securityWarnings": [
-      "Dynamic script injection loading highlight.js from external CDN (cdnjs.cloudflare.com)",
-      "Uses innerHTML assignment with unescaped HTML content",
-      "ignoreUnescapedHTML: true bypasses HTML escaping protection"
+      "Dynamic script injection from CDN (cdnjs.cloudflare.com) without integrity check",
+      "innerHTML assignment with unescaped content from highlight.js",
+      "window as any type casting bypasses TypeScript safety",
+      "ignoreUnescapedHTML: true in hljs.configure disables XSS protection"
     ],
-    "unusedImports": [],
+    "unusedImports": [
+      "css is imported but not used in the code block shown"
+    ],
     "deadCodeBlocks": [],
     "accessibilityIssues": [
-      "No aria-label or role attributes for code block",
-      "select element referenced but not rendered in template"
+      "No aria-label or role for code block",
+      "No keyboard navigation support for language selection",
+      "Missing lang attribute on code element"
     ],
-    "i18nWarnings": [],
+    "i18nWarnings": [
+      "Console error message 'Error on load highlight.js. please try again' is hardcoded in English"
+    ],
     "performanceHints": [
-      "Loads highlight.js from CDN on demand",
-      "Repeated highlightElement call after manual highlight may be redundant",
-      "waitForLoadIfNeeded uses polling with setTimeout instead of Promise-based approach"
+      "Highlight.js loaded from CDN on demand, no preloading",
+      "Double requestAnimationFrame for marking rendered state",
+      "Polling with setTimeout for script load detection (waitForLoadIfNeeded)"
     ]
   },
   "auth": {
     "view": [],
     "edit": [],
-    "use": []
+    "use": [],
+    "restrictReason": ""
   },
   "asIs": {
     "semantic": {
       "generalDescription": "Lit-based web component for syntax-highlighted code display using highlight.js",
       "businessCapabilities": [
-        "Display formatted code blocks with syntax highlighting",
+        "Display code with syntax highlighting",
         "Support multiple programming languages",
-        "Dynamic language switching"
+        "Allow language switching via property"
       ],
       "technicalCapabilities": [
-        "Integrate with highlight.js library",
-        "Unescape HTML entities in code content",
-        "Dynamic script loading from CDN",
-        "Lit reactive property updates",
-        "DOM querying for code elements"
+        "Dynamic highlight.js loading from CDN",
+        "HTML unescaping for code content",
+        "Promise-based render completion notification",
+        "Reactive property updates for language and text"
       ],
       "implementedFeatures": [
         "Syntax highlighting via highlight.js",
         "Language property with reflection",
-        "Text content property with HTML unescaping",
+        "Text content property",
         "Languages array property",
-        "Dynamic CDN script loading with load state tracking",
-        "waitForLoadIfNeeded polling mechanism",
-        "unescapeHtml helper for entity decoding",
-        "setCode method for applying highlighting",
-        "firstUpdated lifecycle integration"
+        "Code block DOM querying",
+        "Render completion promise",
+        "Unescape HTML utility for code content"
       ],
       "constraints": [
-        "Requires highlight.js CDN availability",
-        "Depends on global window.hljs object",
-        "Polling-based load detection with 10s timeout",
-        "ignoreUnescapedHTML enabled (security consideration)"
+        "Requires highlight.js from CDN (cdnjs.cloudflare.com)",
+        "Depends on global window.hljsLoaded flag",
+        "TypeScript-only language default",
+        "10 second timeout for script loading",
+        "Polling-based load detection with 100ms intervals"
       ]
     }
   }
