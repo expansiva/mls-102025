@@ -195,14 +195,7 @@ export class CollabMessagesChat extends StateLitElement {
         }
 
         if (changedProperties.has('actualMessagesParsed') && this.actualMessagesParsed !== undefined) {
-            if (this.messageContainer && (this.isSystemChangeScroll)) {
-                await this.updateComplete;
-                const target = this.unreadEl;
-                let offset = this.messageContainer.scrollHeight;
-                if (target) target.scrollIntoView({ block: 'center' })
-                else this.messageContainer.scrollTop = offset;
-                this.isSystemChangeScroll = false;
-            }
+            await this.verifyChatScroll();
         }
     }
 
@@ -1865,6 +1858,7 @@ export class CollabMessagesChat extends StateLitElement {
     private async restoreScrollPosition() {
         if (this.messageContainer) {
             await this.updateComplete;
+            await this.waitingForRenderCodesWebComponents();
             this.messageContainer.scrollTop = this.savedScrollTop;
         }
     }
@@ -1945,6 +1939,27 @@ export class CollabMessagesChat extends StateLitElement {
         if (this.activeScenerie === 'details') {
             this.checkNotificationsUnreadMessages();
         }
+    }
+
+    private async verifyChatScroll() {
+        if (this.messageContainer && (this.isSystemChangeScroll)) {
+            await this.updateComplete;
+            const target = this.unreadEl;
+            let offset = this.messageContainer.scrollHeight;
+            await this.waitingForRenderCodesWebComponents();
+            if (target) target.scrollIntoView({ block: 'center' })
+            else this.messageContainer.scrollTop = offset;
+            this.isSystemChangeScroll = false;
+        }
+    }
+
+    private async waitingForRenderCodesWebComponents() {
+        if (!this.messageContainer) return;
+        const allCodes = Array.from(this.messageContainer.querySelectorAll('collab-messages-text-code-102025'));
+        await Promise.all(
+            Array.from(allCodes)
+                .map(el => (el as any).whenRendered)
+        );
     }
 
 }
