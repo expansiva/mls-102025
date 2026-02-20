@@ -254,7 +254,7 @@ export class ServiceCollabMessages extends ServiceBase {
             if (!message) continue;
             try {
                 const context: mls.msg.ExecutionContext = { message, task, isTest: false };
-                await continuePoolingTask(context);
+                // await continuePoolingTask(context);
             } catch (err) {
                 deletePooling(task.PK);
             }
