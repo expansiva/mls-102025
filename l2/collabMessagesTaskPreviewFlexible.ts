@@ -2,7 +2,7 @@
 
 
 import { html, repeat } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property, state, query } from 'lit/decorators.js';
 import { CollabLitElement } from '/_100554_/l2/collabLitElement.js';
 
 @customElement('collab-messages-task-preview-flexible-102025')
@@ -12,6 +12,15 @@ export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
     @property({ type: Object }) task: mls.msg.TaskData | null = null;
     @property({ type: Object }) step: mls.msg.AIFlexibleResultStep | null = null;
     @state() private mode: string = 'flexible';
+
+    @query('mls-editor-100529') editor: IHTMLEditorElement | undefined;
+    private _ed1: monaco.editor.IStandaloneCodeEditor | undefined;
+    get confE() { return `task_flexible`; }
+
+    async firstUpdated() {
+        this.createEditor();
+
+    }
 
     render() {
 
@@ -60,7 +69,7 @@ export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
         return html`
         <div class="containerinputs">
             <details open>
-                <summary> ${this.renderSummary('Flexible '+aux)} </summary>
+                <summary> ${this.renderSummary('Flexible ' + aux)} </summary>
                 <ul>
                     <li>
                         #${this.step.stepId} - ${this.step.type} - ${this.step.status} - $${this.step.interaction ? this.step.interaction.cost : '0'}
@@ -139,10 +148,12 @@ export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
                 `
             }
 
-                
+
         }
 
-        return html`<pre>${JSON.stringify(this.step.result, null, 2)}</pre>`
+        setTimeout(() => { if (this._ed1) this._ed1.getModel()?.setValue(JSON.stringify(this.step?.result, null, 2)) }, 500);
+        //return html`<pre>${JSON.stringify(this.step.result, null, 2)}</pre>`
+        return html`<mls-editor-100529 style="width:100%; height:100%"></mls-editor-100529>`
 
     }
 
@@ -168,6 +179,21 @@ export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
 
     //------IMPLEMENTATION----------
 
+    private createEditor(): void {
+        if (!this.editor || this._ed1) return;
+        this._ed1 = monaco.editor.create(this.editor, {
+            ...mls.editor.conf[this.confE] as monaco.editor.IEditorOptions,
+            automaticLayout: true,
+            minimap: { enabled: false },
+            language: 'javascript',
+        });
+        monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+            noImplicitAny: true
+        });
+        this._ed1.updateOptions({ readOnly: true });
+        this.editor.mlsEditor = this._ed1;
+    }
+
 
     private selectTabFlexible() {
         this.mode = 'flexible';
@@ -181,4 +207,8 @@ export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
         this.mode = 'result';
     }
 
+}
+
+interface IHTMLEditorElement extends HTMLElement {
+    mlsEditor: monaco.editor.IStandaloneCodeEditor
 }
