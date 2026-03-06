@@ -1801,13 +1801,33 @@ export class CollabMessagesChat extends StateLitElement {
 
     }
 
+    private async delay(ms: number) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    private nextFrame(): Promise<void> {
+        return new Promise(resolve => requestAnimationFrame(() => resolve()));
+    }
+
     private async waitingForRenderCodesWebComponents() {
+
+        await this.nextFrame();
         if (!this.messageContainer) return;
+        
         const allMessages = Array.from(this.messageContainer.querySelectorAll('collab-messages-chat-message-102025'));
         await Promise.all(
             Array.from(allMessages)
                 .map(el => (el as LitElement).updateComplete)
         );
+        await this.nextFrame();
+
+        const allRichPreviews = Array.from(this.messageContainer.querySelectorAll('collab-messages-rich-preview-text-102025'));
+        await Promise.all(
+            Array.from(allRichPreviews)
+                .map(el => (el as LitElement).updateComplete)
+        );
+
+        await this.nextFrame();
 
         const allCodes = Array.from(this.messageContainer.querySelectorAll('collab-messages-text-code-102025'));
         await Promise.all(
