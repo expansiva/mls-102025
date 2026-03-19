@@ -3,7 +3,7 @@
 import { getUserId, loadNotificationDeviceId, loadNotificationPreferencesAudio } from "/_102025_/l2/collabMessagesHelper.js";
 import { getThread, updateThread, getMessage, addMessages, getAllThreads, addThread, getCompactUTC, updateMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
-import { changeFavIcon } from "/_100554_/l2/libCommom.js";
+import { changeFavIcon } from "/_102027_/l2/libCommom.js";
 import { notifyThreadChange, notifyMessageChange } from '/_100554_/l2/aiAgentHelper.js';
 
 export const threadSyncMap = new Map<string, boolean>();
