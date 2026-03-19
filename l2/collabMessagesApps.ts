@@ -3,9 +3,9 @@
 
 import { html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { getProjectConfig } from '/_100554_/l2/libCommom.js';
-import { CollabLitElement } from '/_100554_/l2/collabLitElement.js';
-import { collabImport } from '/_100554_/l2/collabImport.js';
+import { getProjectConfig } from '/_102027_/l2/libCommom.js';
+import { CollabLitElement } from '/_102027_/l2/collabLitElement.js';
+import { collabImport } from '/_102027_/l2/collabImport.js';
 import { getPath } from '/_102027_/l2/utils.js';
 import '/_102025_/l2/collabMessagesAppsMenu.js'; 
 

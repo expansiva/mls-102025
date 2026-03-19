@@ -24,7 +24,7 @@ import {
     loadLastAlertTime
 } from "/_102025_/l2/collabMessagesHelper.js";
 
-import { openService, changeFavIcon } from "/_100554_/l2/libCommom.js";
+import { openService, changeFavIcon } from "/_102027_/l2/libCommom.js";
 import { continuePoolingTask } from "/_100554_/l2/aiAgentOrchestration.js";
 import { checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
