@@ -5,8 +5,6 @@ import { customElement, property, state, query } from 'lit/decorators.js';
 import { collab_chevron_left, collab_gear, collab_translate, collab_circle_exclamation, collab_plus, collab_folder_tree, collab_bell } from '/_102025_/l2/collabMessagesIcons.js';
 import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { openElementInServiceDetails, clearServiceDetails, changeFavIcon } from '/_102027_/l2/libCommom.js';
-
-
 import {
     getTemporaryContext,
     formatTimestamp,
