@@ -29,6 +29,9 @@ const message_pt = {
     delete: 'Apagar',
     edit: 'Editar',
     you: 'Você',
+    reactions: 'reações',
+    reaction: 'reação',
+    clickToRemove: 'Clique para remover',
 }
 
 const message_en = {
@@ -39,6 +42,10 @@ const message_en = {
     delete: 'Delete',
     edit: 'Edit',
     you: 'You',
+    reactions: 'reactions',
+    reaction: 'reaction',
+    clickToRemove: 'Click to remove',
+
 }
 
 type MessageType = typeof message_en;
@@ -61,8 +68,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @property({ attribute: false }) reactionPickerTarget?: HTMLElement;
     @property() openedMenuFor?: string;
     @property() messageMenuTarget?: HTMLElement;
+    @property() openedReactionListMessageId?: string;
+    @property() reactionListTarget?: HTMLElement;
+
     @state() userPreferenceChat?: IChatPreferences;
     @state() private messageMenuPlacement: 'top' | 'bottom' = 'bottom';
+    @state() private reactionListPlacement: 'top' | 'bottom' = 'top';
 
     public onTaskClick?: Function;
     private msg: MessageType = messages['en'];
@@ -82,6 +93,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         this.positionMessageMenu();
         this.animateReactionPicker();
         this.updateMessageMenuPlacement();
+        // this.positionReactionListPopup();
+        this.updateReactionListPlacement();
+
     }
 
 
@@ -413,27 +427,154 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private renderReactions(message: IMessage) {
         if (!message.reactions) return nothing;
 
+        const totalReactions = Object.values(message.reactions).reduce((acc, users) => acc + users.length, 0);
+        if (totalReactions === 0) return nothing;
+
         return html`
         <div class="message-reactions">
-            ${Object.entries(message.reactions).map(([name, users]) => {
-            const emoji = this.reactionEmojis[name as string];
-            if (!emoji) return nothing;
-
-            const reacted =
-                this.userId && users.includes(this.userId);
-
-            return html`
-                    <button
-                        class="reaction ${reacted ? 'active' : ''}"
-                        @click=${() => this.onReactionClick(message, name)}
-                    >
-                        <span>${emoji}</span>
-                        <span>${users.length}</span>
-                    </button>
-                `;
+            <button 
+                class="reactions-summary"
+                @click=${(ev: Event) => this.openReactionList(message, ev)}
+            >
+                ${Object.entries(message.reactions).map(([name, users]) => {
+            const emoji = this.reactionEmojis[name];
+            if (!emoji || users.length === 0) return nothing;
+            return html`<span class="reaction-emoji">${emoji}</span>`;
         })}
+                <span class="reaction-count">${totalReactions}</span>
+            </button>
+            ${this.renderReactionListPopup(message)}
         </div>
     `;
+    }
+
+    private renderReactionListPopup(message: IMessage) {
+        if (this.openedReactionListMessageId !== message.createAt) return nothing;
+        if (!message.reactions) return nothing;
+
+        const allReactions: Array<{ userId: string; emoji: string; reactionName: string }> = [];
+
+        Object.entries(message.reactions).forEach(([name, users]) => {
+            const emoji = this.reactionEmojis[name];
+            if (emoji) {
+                users.forEach(userId => {
+                    allReactions.push({ userId, emoji, reactionName: name });
+                });
+            }
+        });
+
+        allReactions.sort((a, b) => {
+            if (a.userId === this.userId) return -1;
+            if (b.userId === this.userId) return 1;
+            return 0;
+        });
+
+        const totalCount = allReactions.length;
+        const reactionWord = totalCount === 1 ? this.msg.reaction : this.msg.reactions;
+
+        return html`
+        <div class="reaction-list-popup ${this.reactionListPlacement}">
+            <div class="reaction-list-header">
+                ${totalCount} ${reactionWord}
+            </div>
+            <div class="reaction-list-divider"></div>
+            <div class="reaction-list-content">
+                ${allReactions.map(({ userId, emoji, reactionName }) => {
+
+            const user = this.findUser(userId);
+            const userName = user?.name || userId;
+            const userAvatar = user?.avatar_url || '';
+            const isCurrentUser = userId === this.userId;
+
+            return html`
+                        <div 
+                            class="reaction-list-item ${isCurrentUser ? 'current-user' : ''}"
+                            @click=${() => isCurrentUser ? this.removeReactionFromList(message, reactionName) : null}
+                        >
+                            <div class="reaction-list-user">
+                                <collab-messages-avatar-102025 
+                                    avatar=${userAvatar}
+                                ></collab-messages-avatar-102025>
+                                <div class="reaction-list-detail">
+                                    <span class="reaction-list-name">
+                                        ${isCurrentUser ? this.msg.you : userName}
+                                    </span>
+                                    ${isCurrentUser ? html`<small class="reaction-list-small">${this.msg.clickToRemove}</small>` : nothing}
+                                </div>
+
+                            </div>
+                            <span class="reaction-list-emoji">${emoji}</span>
+                        </div>
+                    `;
+        })}
+            </div>
+        </div>
+    `;
+    }
+
+    private findUser(userId: string): mls.msg.User | undefined {
+        return [
+            ...this.usersAvaliables,
+            ...(this.actualThread?.users || [])
+        ].find(user => user.userId === userId);
+    }
+
+    private openReactionList(message: IMessage, ev: Event) {
+        ev.stopPropagation();
+
+        if (this.openedReactionListMessageId === message.createAt) {
+            this.closeReactionList();
+            return;
+        }
+
+        this.closeAllPopups();
+        this.openedReactionListMessageId = message.createAt;
+        this.reactionListTarget = ev.currentTarget as HTMLElement;
+
+        this.updateReactionListPlacement();
+    }
+
+    private updateReactionListPlacement() {
+        if (!this.reactionListTarget) return;
+
+        const popup = this.renderRoot.querySelector(
+            '.reaction-list-popup'
+        ) as HTMLElement | null;
+
+        if (!popup) return;
+
+        const targetRect = this.reactionListTarget.getBoundingClientRect();
+        const popupRect = popup.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - targetRect.bottom;
+        const spaceAbove = targetRect.top;
+        const shouldOpenTop = spaceBelow < popupRect.height && spaceAbove > spaceBelow;
+
+        this.reactionListPlacement = shouldOpenTop ? 'top' : 'bottom';
+
+        requestAnimationFrame(() => {
+            popup.classList.add('open');
+        });
+    }
+
+    private removeReactionFromList(message: IMessage, reactionName: string) {
+        if (!this.userId) return;
+
+        const updated = this.toggleReaction(message, reactionName, this.userId);
+        this.message = updated;
+
+        const totalReactions = updated.reactions
+            ? Object.values(updated.reactions).reduce((acc, users) => acc + users.length, 0)
+            : 0;
+
+        if (totalReactions === 0) {
+            this.closeReactionList();
+        }
+    }
+
+    private closeReactionList() {
+        this.openedReactionListMessageId = undefined;
+        this.reactionListTarget = undefined;
     }
 
     private renderReactionButtonAdd(message: IMessage) {
@@ -446,13 +587,6 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             </button>
         `
     }
-
-    private onReactionClick(message: IMessage, emoji: string) {
-        if (!this.userId) return;
-        const updated = this.toggleReaction(message, emoji, this.userId);
-        this.message = updated;
-    }
-
 
     private renderReactionPicker(message: IMessage) {
         if (this.openedReactionMessageId !== message.createAt) return nothing;
@@ -531,7 +665,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private async updateReactionOnDb(message: IMessage, reaction: string) {
-    
+
         if (!this.actualThread?.thread.threadId) throw new Error('Invalid thread id');
         if (!this.userId) throw new Error('Invalid user id');
 
@@ -640,25 +774,19 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
         const btnRect = this.messageMenuTarget.getBoundingClientRect();
         const pickerRect = submenu.getBoundingClientRect();
-
         const parent = submenu.offsetParent as HTMLElement;
         const parentRect = parent.getBoundingClientRect();
-
         const GAP = 8;
 
         const spaceBelow = window.innerHeight - btnRect.bottom;
-        const spaceAbove = btnRect.top;
-
         let top: number;
 
         if (spaceBelow >= pickerRect.height + GAP) {
-            // abrir para baixo
             top =
                 btnRect.bottom -
                 parentRect.top +
                 GAP;
         } else {
-            // abrir para cima
             top =
                 btnRect.top -
                 parentRect.top -
@@ -722,6 +850,8 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             item.reactionPickerTarget = undefined;
             item.openedMenuFor = undefined;
             item.messageMenuTarget = undefined;
+            item.openedReactionListMessageId = undefined;
+            item.reactionListTarget = undefined;
         });
 
     }

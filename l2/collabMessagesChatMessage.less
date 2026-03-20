@@ -162,7 +162,7 @@ collab-messages-chat-message-102025 {
                 }
             }
 
-            collab-messages-avatar-102025 {
+            > collab-messages-avatar-102025 {
                 position: absolute;
                 top: -3px;
                 left: -40px;
@@ -183,8 +183,179 @@ collab-messages-chat-message-102025 {
         bottom: -15px;
         right: 10px;
 
+        .reactions-summary {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: #fff;
+            border: 1px solid @grey-color-dark;
+            cursor: pointer;
+            font-size: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            transition: background 0.15s ease;
+
+            &:hover {
+                background: @grey-color-lighter;
+            }
+
+            .reaction-emoji {
+                font-size: 14px;
+                line-height: 1;
+            }
+
+            .reaction-count {
+                color: @text-primary-color-lighter;
+                font-size: 12px;
+                margin-left: 2px;
+            }
+        }
+
         .active {
             box-shadow: 0 1px #00000012, 0 0 3px #0000000a;
+        }
+    }
+
+    .reaction-list-popup {
+        position: absolute;
+            min-width: 230px;
+        max-width: 240px;
+        background: var(--bg-primary-color, #fff);
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        z-index: 40;
+
+        opacity: 0;
+        transform: scale(0.95);
+        pointer-events: none;
+        transition: opacity 150ms ease, transform 150ms ease;
+
+        &.open {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        &.top {
+            bottom: calc(100% + 8px);
+            left: 0;
+            transform-origin: bottom left;
+        }
+
+        &.bottom {
+            top: calc(100% + 8px);
+            left: 0;
+            transform-origin: top left;
+        }
+
+        .reaction-list-header {
+            padding: 10px 12px 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: @text-primary-color;
+        }
+
+        .reaction-list-divider {
+            height: 1px;
+            background: @grey-color;
+            margin: 0 12px;
+        }
+
+        .reaction-list-content {
+            padding: 8px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .reaction-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            font-size: 14px;
+            color: @text-primary-color;
+            transition: background 0.15s ease;
+
+            &.current-user {
+                cursor: pointer;
+
+                &:hover {
+                    background: @grey-color-lighter;
+                }
+
+                .reaction-list-name {
+                    color: @active-color;
+                    font-weight: 500;
+                }
+            }
+
+            .reaction-list-user {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex: 1;
+                min-width: 0;
+
+                collab-messages-avatar-102025 {
+                    flex-shrink: 0;
+                    width: 30px;
+                    height: 30px;
+                }
+            }
+
+            .reaction-list-detail{
+                display: flex;
+                flex-direction: column;
+                gap: .2rem;
+            }
+
+            .reaction-list-name {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .reaction-list-small {
+                color: @grey-color-darker;
+            }
+
+            .reaction-list-emoji {
+                font-size: 16px;
+                margin-left: 8px;
+                flex-shrink: 0;
+            }
+        }
+    }
+
+    .message.system .message-reactions {
+        left: 10px;
+        right: auto;
+    }
+
+    .message.system .reaction-list-popup {
+        &.top {
+            left: 0;
+            right: auto;
+        }
+
+        &.bottom {
+            left: 0;
+            right: auto;
+        }
+    }
+
+    .message.user .reaction-list-popup {
+        &.top {
+            right: 0;
+            left: auto;
+            transform-origin: bottom right;
+        }
+
+        &.bottom {
+            right: 0;
+            left: auto;
+            transform-origin: top right;
         }
     }
 

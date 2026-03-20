@@ -1814,6 +1814,8 @@ export class CollabMessagesChat extends StateLitElement {
             item.reactionPickerTarget = undefined;
             item.openedMenuFor = undefined;
             item.messageMenuTarget = undefined;
+            item.openedReactionListMessageId = undefined;
+            item.reactionListTarget = undefined;
         });
     };
 
