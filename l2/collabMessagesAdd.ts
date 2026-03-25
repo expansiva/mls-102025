@@ -12,6 +12,7 @@ import { getUserId, getDmThreadByUsers, addMessage, createThreadDM } from '/_102
 import { CollabMessagesInputTag } from '/_102025_/l2/collabMessagesInputTag.js';
 import '/_102025_/l2/collabMessagesInputTag.js';
 
+
 /// **collab_i18n_start** 
 const message_pt = {
     loading: 'Carregando...',

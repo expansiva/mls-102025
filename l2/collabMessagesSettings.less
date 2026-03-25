@@ -13,11 +13,32 @@ collab-messages-settings-102025 {
     padding: 1rem;
 
     .section {
-        background-color: @bg-primary-color-lighter;
-        padding: 2rem 0.75rem;
+        padding: 1rem 0.75rem;
         border-radius: 10px;
-        box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+        box-shadow: #d2d2d2 0px 1px 4px;
         margin-bottom: 3rem;
+
+        h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            margin-block-start: 0;
+            padding-bottom: .4rem;
+            border-bottom: 1px solid #d2d2d2;
+
+            svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        .info-message {
+            width: 100%;
+            font-size: 12px;
+            color: @text-primary-color-lighter;
+            border-radius: 6px;
+        }
 
         .loader {
             display: inline-block;
@@ -45,6 +66,37 @@ collab-messages-settings-102025 {
             font-size: @font-size-12;
         }
 
+        .form-field {
+            margin-bottom: 1rem;
+
+            label {
+                display: block;
+                font-size: @font-size-12;
+                margin-bottom: 0.3rem;
+            }
+
+            .avatar-input-group {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+
+                input {
+                    flex: 1;
+                }
+            }
+        }
+
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 0.75rem;
+
+            margin-top: 2.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid @grey-color;
+        }
+
         input,
         select {
             display: flex;
@@ -57,8 +109,8 @@ collab-messages-settings-102025 {
             border-radius: 0.25rem;
             transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
             outline: none;
-            height: 25px;
-
+            max-height: 30px;
+            height: 30px;
         }
 
         button {
@@ -79,15 +131,137 @@ collab-messages-settings-102025 {
             color: #ffffff;
             cursor: pointer;
 
+
+            white-space: nowrap; // evita quebrar texto estranho
+            flex-shrink: 0; // não esmagar
+
+            svg {
+                flex-shrink: 0;
+            }
+
             &:hover {
                 background-color: @info-color-hover;
             }
-        }
 
+            svg {
+                fill: currentColor;
+            }
+
+            // Button variants
+            &.btn-icon {
+                width: 32px;
+                height: 32px;
+                padding: 0.25rem;
+                border-radius: 6px;
+                background-color: @bg-secondary-color;
+                color: @text-primary-color;
+
+                &:hover {
+                    background-color: @bg-secondary-color-hover;
+                }
+
+                svg {
+                    width: 16px;
+                    height: 16px;
+                }
+
+                &.btn-danger {
+                    background-color: transparent;
+                    color: @error-color;
+
+                    &:hover {
+                        background-color: fade(@error-color, 10%);
+                    }
+
+                    svg {
+                        fill: @error-color;
+                    }
+                }
+
+                &.copied {
+                    background-color: @success-color;
+                    color: white;
+
+                    svg {
+                        fill: white;
+                    }
+                }
+            }
+
+            &.btn-small {
+                height: 32px;
+                font-size: @font-size-12;
+                padding: 0.25rem 0.5rem;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+
+                svg {
+                    width: 14px;
+                    height: 14px;
+                }
+            }
+
+            &.btn-secondary {
+                background-color: @bg-secondary-color;
+                color: @text-primary-color;
+
+                &:hover {
+                    background-color: @bg-secondary-color-hover;
+                }
+            }
+
+            &.btn-primary {
+                background-color: @info-color;
+                color: white;
+
+                &:hover {
+                    background-color: @info-color-hover;
+                }
+            }
+
+            &.btn-danger-outline {
+                background-color: transparent !important;
+                ;
+                color: @error-color  !important;
+                border: 1px solid @error-color  !important;
+                ;
+
+                &:hover {
+                    background-color: fade(@error-color, 10%) !important;
+                    ;
+                }
+
+                svg {
+                    width: 16px;
+                    height: 16px;
+                    fill: @error-color;
+                }
+            }
+
+            &.btn-back {
+                width: 32px;
+                height: 32px;
+                padding: 0.25rem;
+                border-radius: 6px;
+                background-color: transparent;
+                color: @text-primary-color;
+                box-shadow: none;
+                margin-right: 0.5rem;
+
+                &:hover {
+                    background-color: @bg-secondary-color;
+                }
+
+                svg {
+                    width: 20px;
+                    height: 20px;
+                }
+            }
+        }
     }
 
     .user {
-
         .user-details {
             display: flex;
             align-items: center;
@@ -95,16 +269,9 @@ collab-messages-settings-102025 {
             gap: 1rem;
         }
 
-
-
         .user-info-item {
             margin-bottom: .4rem;
 
-            label {
-                display: inline;
-                margin-right: .6rem;
-                font-weight: @font-weight-bold;
-            }
 
             &.action {
                 display: flex;
@@ -129,7 +296,6 @@ collab-messages-settings-102025 {
                 }
             }
         }
-
 
         img {
             width: 80px;
@@ -163,8 +329,6 @@ collab-messages-settings-102025 {
                 }
             }
         }
-
-
     }
 
     .notification-preferences {
@@ -203,9 +367,7 @@ collab-messages-settings-102025 {
     }
 
     .chat-preferences {
-
         .chat-config-item {
-
             display: flex;
             flex-direction: column;
             gap: .3rem;
@@ -215,19 +377,323 @@ collab-messages-settings-102025 {
                 display: flex;
                 justify-content: end;
                 align-items: end;
+            }
+        }
+    }
+
+    // OpenClaw Integrations Styles
+    .integrations {
+        .no-items {
+            color: @text-primary-color-lighter;
+            font-style: italic;
+            margin: 0.5rem 0;
+        }
+
+        .integrations-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 1rem 0;
+        }
+
+        .integration-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background-color: @bg-secondary-color-lighter;
+            border: 1px solid @grey-color;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+
+            .integration-info {
+                display: flex;
+                flex-direction: column;
+                gap: 0.2rem;
+
+                .integration-name {
+                    font-weight: @font-weight-bold;
+                }
+
+                .integration-meta {
+                    font-size: @font-size-12;
+                    color: @text-primary-color-lighter;
+                }
+            }
+        }
+
+        .integration-actions {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 1rem;
+        }
+
+        .btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+
+            svg {
+                width: 16px;
+                height: 16px;
+            }
+        }
+    }
+
+    // Integration Details View
+    .integration-details {
+
+        svg {
+            fill: currentColor;
+        }
+
+        .form-field {
+            margin-bottom: 1rem;
+
+            input[type="url"],
+            input[type="text"] {
+                width: 100%;
+                padding: 0.5rem;
+                height: auto;
+                box-sizing: border-box;
+            }
+
+            .token-field {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+
+                input {
+                    flex: 1;
+                    font-family: monospace;
+                    font-size: @font-size-12;
+                }
+            }
+        }
+
+        .agents-section {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid @grey-color;
+
+            .agents-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.75rem;
 
             }
 
+            .agents-list {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid @grey-color;
+        }
+
+        .delete-confirmation {
+            width: 100%;
+            animation: slideDown 0.2s ease;
+
+            @keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-8px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
             label {
-                display: inline-flex;
-                margin-right: 0.6rem;
-                font-weight: var(--font-weight-bold);
-                align-items: center;
+                display: block;
+                font-size: @font-size-12;
+                color: @text-primary-color;
+                margin-top: 1rem;
+                margin-bottom: 0.25rem;
+            }
+
+            .confirm-name {
+                display: block;
+                font-size: @font-size-12;
+                color: @text-primary-color-lighter;
+                font-family: monospace;
+                margin-bottom: 0.5rem;
+            }
+
+            input {
+                width: 100%;
+                padding: 0.5rem;
+                height: auto !important;
+                max-height: none !important;
+                box-sizing: border-box;
+            }
+
+            .delete-actions {
+                display: flex;
+                justify-content: flex-end;
+                gap: 0.5rem;
+                margin-top: 0.75rem;
+
+                button {
+                    height: 32px;
+                    font-size: @font-size-12;
+                    padding: 0 0.75rem;
+                    box-shadow: none;
+                }
+
+                .btn-cancel {
+                    background: transparent;
+                    color: @text-primary-color;
+                    border: 1px solid @grey-color-dark;
+
+                    &:hover {
+                        background: @bg-secondary-color;
+                    }
+                }
+
+                .btn-confirm {
+                    background: @error-color;
+                    color: white;
+
+                    &:hover:not(:disabled) {
+                        background: @error-color-hover;
+                    }
+
+                    &:disabled {
+                        background: @grey-color-dark;
+                        color: @text-primary-color-lighter;
+                        cursor: not-allowed;
+                    }
+                }
             }
         }
 
     }
 
+    .agent-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background-color: @bg-primary-color;
+        border: 1px solid @grey-color-light;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+
+        min-width: 0; // 🔥 importante para ellipsis funcionar
+
+        .agent-avatar {
+            flex-shrink: 0; // não deixa encolher
+
+            img {
+                max-height: 40px;
+            }
+        }
+
+        .agent-info {
+            flex: 1;
+            min-width: 0; // 🔥 necessário para truncar texto
+
+            display: flex;
+            flex-direction: column;
+
+            .agent-name {
+                font-weight: @font-weight-bold;
+                font-size: @font-size-16;
+
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .agent-sender-id {
+                font-family: monospace;
+                font-size: @font-size-12;
+                color: @text-primary-color-lighter;
+
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+
+        .btn-icon {
+            flex-shrink: 0;
+        }
+    }
+
+    // Add Agent Form
+    .add-agent-form {
+        .integration-context {
+            color: @text-secondary-color;
+            font-size: @font-size-12;
+            margin-bottom: 1rem;
+        }
+
+        .agent-preview {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background-color: @bg-secondary-color-lighter;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+
+            .preview-avatar {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+
+            .preview-avatar-placeholder {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                background-color: @grey-color;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                svg {
+                    width: 30px;
+                    height: 30px;
+                    color: @text-primary-color-lighter;
+                }
+            }
+
+            .preview-info {
+                display: flex;
+                flex-direction: column;
+
+                .preview-name {
+                    font-weight: @font-weight-bold;
+                    font-size: @font-size-20;
+                }
+
+                .preview-sender-id {
+                    font-family: monospace;
+                    font-size: @font-size-12;
+                    color: @text-primary-color-lighter;
+                }
+            }
+        }
+
+
+    }
 
 }
 

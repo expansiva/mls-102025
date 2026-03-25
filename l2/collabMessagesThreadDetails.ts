@@ -4,10 +4,10 @@ import { html, repeat, ifDefined } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 
 import { updateThread, getUser, deleteAllMessagesFromThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
-import { collab_triangle_exclamation } from '/_102025_/l2/collabMessagesIcons.js';
+import { collab_triangle_exclamation, collab_plus } from '/_102025_/l2/collabMessagesIcons.js';
 import { notifyThreadChange } from '/_100554_/l2/aiAgentHelper.js';
 import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { addMessage } from "/_102025_/l2/collabMessagesHelper.js";
+import { addMessage, loadOpenClawIntegrations, IOpenClawIntegration, IOpenClawAgent, generateUUIDv7 } from "/_102025_/l2/collabMessagesHelper.js";
 
 import '/_102025_/l2/collabMessagesInputTag.js';
 import '/_102025_/l2/collabMessagesAddParticipant.js';
@@ -30,9 +30,11 @@ const message_pt = {
     topicsDefault: 'Tópicos',
     welcomeMessage: 'Mensagem de boas-vindas',
     remove: 'Remover',
-    disable: 'Desalibitar',
+    disable: 'Desabilitar',
+    active: 'Ativar',
     users: 'Usuários',
     bots: 'Bots',
+    agents: 'Agents',
     group: 'Grupo',
     details: 'Detalhes',
     languages: 'Tradução automática nos idiomas',
@@ -43,22 +45,34 @@ const message_pt = {
     successSaving: 'Alterações salvas com sucesso!',
     noChanges: 'Nenhuma alteração detectada.',
     addParticipant: 'Adicionar participante',
+    addAgent: 'Adicionar Agent',
     labelUserId: 'Nome do usuario ou Id',
     labelPermission: 'Autoridade:',
     errorFieldsAddParticipant: 'Preencha todos os campos!',
     errorRemoveUser: 'Erro ao remover usuário',
-    successAddParticipant: 'Usuário adicionado com sucesso',
+    errorRemoveAgent: 'Erro ao remover agent',
+    successAddAgent: 'Agent adicionado com sucesso',
+    successRemoveAgent: 'Agent removido com sucesso',
     threadDetails: 'Detalhes da sala',
     changeAvatar: 'Alterar avatar',
     errorSaveThreadDeletStatus: 'A thread não pode ser alterada enquanto status "deleting"',
     threadNameInvalid: 'The name must start with #',
+    selectIntegration: 'Selecione a integração',
+    selectAgent: 'Selecione o agent',
+    noIntegrations: 'Nenhuma integração encontrada',
+    noAgentsInIntegration: 'Nenhum agent nesta integração',
+    allAgentsAdded: 'Todos os agents já foram adicionados',
+    agentAlreadyAdded: 'Já adicionado',
+    cancel: 'Cancelar',
+    save: 'Salvar',
+    noAgents: 'Nenhum agent adicionado',
 }
 
 const message_en = {
     loading: 'Loading...',
     threadName: 'Thread name',
     visibility: 'Visibility',
-    visibilityPublic: 'Plubic',
+    visibilityPublic: 'Public',
     visibilityPrivate: 'Private',
     visibilityCompany: 'Company',
     visibilityTeam: 'Team',
@@ -67,32 +81,45 @@ const message_en = {
     statusArchived: 'Archived',
     statusDeleted: 'Deleted',
     statusDeleting: 'Deleting',
-    topicsDefault: 'Tópicos',
+    topicsDefault: 'Topics',
     welcomeMessage: 'Welcome message',
     remove: 'Remove',
     disable: 'Disable',
+    active: 'Active',
     group: 'Group',
     users: 'Users',
     bots: 'Bots',
+    agents: 'Agents',
     languages: 'Automatic translation in multiple languages',
     details: 'Details',
     languagesHint: 'For each message, the language will be detected and translated into the languages above. Leave blank to avoid spending credits.',
     validateFormError: 'Please fill in all required fields.',
     userError: 'Invalid user ID.',
     btnSave: 'Save changes',
-    successSaving: 'Saving sucessfully',
+    successSaving: 'Saved successfully',
     noChanges: 'No changes.',
     addParticipant: 'Add Participant',
+    addAgent: 'Add Agent',
     labelUserId: 'User id or name',
     labelPermission: 'Auth:',
     errorFieldsAddParticipant: 'Fill in all fields!',
     errorRemoveUser: 'Error on remove user',
-    successAddParticipant: 'User added sucessfully',
+    errorRemoveAgent: 'Error on remove agent',
+    successAddAgent: 'Agent added successfully',
+    successRemoveAgent: 'Agent removed successfully',
     threadDetails: 'Thread details',
     changeAvatar: 'Change avatar',
     errorSaveThreadDeletStatus: 'The thread cannot be changed when status is "deleting"',
-    threadNameInvalid: 'O nome deve começar com #',
-
+    threadNameInvalid: 'The name must start with #',
+    selectIntegration: 'Select integration',
+    selectAgent: 'Select agent',
+    noIntegrations: 'No integrations found',
+    noAgentsInIntegration: 'No agents in this integration',
+    allAgentsAdded: 'All agents already added',
+    agentAlreadyAdded: 'Already added',
+    cancel: 'Cancel',
+    save: 'Save',
+    noAgents: 'No agents added',
 }
 
 type MessageType = typeof message_en;
@@ -117,6 +144,8 @@ export class CollabMessagesThreadDetails extends StateLitElement {
     @property() labelError: string = '';
     @property() labelErrorRemoveUser: string = '';
     @property() labelErrorRemoveBoot: string = '';
+    @property() labelErrorAgent: string = '';
+    @property() labelOkAgent: string = '';
 
     @state() private isLoading: boolean = false;
     @state() private editedThreadDetails?: IThreadDetails;
@@ -125,9 +154,26 @@ export class CollabMessagesThreadDetails extends StateLitElement {
     @state() private isChannel?: boolean = false;
     @state() private isFileChannel?: boolean = false;
 
+    // Agent states
+    @state() private showAgentForm: boolean = false;
+    @state() private integrations: IOpenClawIntegration[] = [];
+    @state() private selectedIntegrationId: string = '';
+    @state() private selectedAgentId: string = '';
+    @state() private isLoadingAgents: boolean = false;
+
     async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
         super.firstUpdated(changedProperties);
         this.editedThreadDetails = JSON.parse(JSON.stringify(this.threadDetails));
+        this.loadIntegrations();
+    }
+
+    private async loadIntegrations() {
+        try {
+            this.integrations = loadOpenClawIntegrations();
+        } catch (err: any) {
+            console.error('Error loading integrations:', err.message);
+            this.integrations = [];
+        }
     }
 
     async updated(changedProperties: Map<string, any>) {
@@ -152,7 +198,28 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                 }
             }
         }
+    }
 
+    private getAddedAgentIds(): Set<string> {
+        const integrations: mls.msg.ThreadIntegration[] = this.editedThreadDetails?.thread.integrations || [];
+        const addedIds = new Set<string>();
+        for (const integration of integrations) {
+            if (integration.config?.agentId && integration.status === 'active') {
+                addedIds.add(integration.config.agentId);
+            }
+        }
+        return addedIds;
+    }
+
+    private getAvailableAgents(integrationId: string): { agent: IOpenClawAgent; isAdded: boolean }[] {
+        const integration = this.integrations.find(i => i.id === integrationId);
+        if (!integration) return [];
+
+        const addedIds = this.getAddedAgentIds();
+        return integration.agents.map(agent => ({
+            agent,
+            isAdded: addedIds.has(agent.id)
+        }));
     }
 
     render() {
@@ -162,7 +229,6 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         this.isDirectMessage = this.threadDetails?.thread?.name?.startsWith('@');
         this.isChannel = this.threadDetails?.thread?.name?.startsWith('#');
         this.isFileChannel = this.threadDetails?.thread?.name?.startsWith('_');
-
 
         return html`
         <div class="content">
@@ -202,10 +268,10 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                     .disabled=${['deleting'].includes(this.editedThreadDetails?.thread.status || '')}
                     .value=${this.editedThreadDetails?.thread.status}
                     @change=${(e: Event) => {
-                    if (this.editedThreadDetails) {
-                        this.editedThreadDetails.thread.status =
-                            (e.target as HTMLSelectElement).value as mls.msg.ThreadStatus;
-                    }
+                if (this.editedThreadDetails) {
+                    this.editedThreadDetails.thread.status =
+                        (e.target as HTMLSelectElement).value as mls.msg.ThreadStatus;
+                }
             }}
                 >
                     <option value="active">${this.msg.statusActive}</option>
@@ -278,6 +344,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
 
         </div>
         ${this.renderUsers()}
+        ${this.renderAgents()}
         ${this.renderBots()}
 
       </div>
@@ -332,6 +399,317 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             
         </div>
         `
+    }
+
+    private renderAgents() {
+        const threadIntegrations: mls.msg.ThreadIntegration[] = this.editedThreadDetails?.thread.integrations || [];
+        // const activeIntegrations = threadIntegrations.filter(i => i.status === 'active');
+
+        return html`
+        <div class="agents">
+            <h3>${this.msg.agents}</h3>
+            <ul>
+                ${threadIntegrations.length === 0
+                ? html`<li class="empty-list"><small>${this.msg.noAgents}</small></li>`
+                : repeat(
+                    threadIntegrations,
+                    ((integration: mls.msg.ThreadIntegration) => integration.integrationId) as any,
+                    ((integration: mls.msg.ThreadIntegration) => {
+                        const agentInfo = this.findAgentInfo(integration.config?.agentId || '');
+                        const agentName = agentInfo?.agent?.name || integration.config?.agentId || 'Unknown';
+                        const integrationName = agentInfo?.integrationName || 'OpenClaw';
+                        const avatarUrl = agentInfo?.agent?.avatarUrl || this.generateAgentAvatar(agentName);
+
+                        return html`
+                                <li>
+                                    <img src="${avatarUrl}" 
+                                         alt="${agentName}" 
+                                         width="32" 
+                                         height="32" />
+                                    <div class="agent-info">
+                                        <small class="agent-name">${agentName}</small>
+                                        <small class="agent-integration">${integrationName} <b>(${integration.status})</b></small>
+                                    </div>
+                                    <div class="agent-actions">
+                                        <button
+                                            class=${integration?.status === 'active' ? 'remove' : 'activate'}
+                                            @click=${(e: MouseEvent) => this.updateStatusAgent(
+                            e,
+                            integration.integrationId,
+                            integration.status === 'active' ? 'disabled' : 'active'
+                        )}
+                                            >
+                                            ${integration?.status === 'active' ? this.msg.disable : this.msg.active}
+                                            </button>
+                                    </div>
+                                </li>
+                            `;
+                    }) as any
+                )
+            }
+            </ul>
+            
+            ${this.labelErrorAgent ? html`<small class="saving-error">${collab_triangle_exclamation} ${this.labelErrorAgent}</small>` : ''}
+            ${this.labelOkAgent ? html`<small class="saving-ok">${this.labelOkAgent}</small>` : ''}
+            ${this.showAgentForm
+                ? this.renderAgentForm()
+                : html`
+                    <button class="btn-add-agent" @click=${this.openAgentForm}>
+                        ${collab_plus} ${this.msg.addAgent}
+                    </button>
+                `
+            }
+        </div>
+        `;
+    }
+
+    private findAgentInfo(agentId: string): { agent: IOpenClawAgent; integrationName: string } | null {
+        for (const integration of this.integrations) {
+            const agent = integration.agents.find(a => a.id === agentId);
+            if (agent) {
+                return { agent, integrationName: integration.name };
+            }
+        }
+        return null;
+    }
+
+    private renderAgentForm() {
+
+        const availableAgents = this.selectedIntegrationId
+            ? this.getAvailableAgents(this.selectedIntegrationId)
+            : [];
+
+        const threadIntegrations = this.threadDetails?.thread?.integrations || [];
+        const hasAvailableAgents = availableAgents.some(agent => !threadIntegrations.some(ti => ti.config.agentId === agent.agent.id));
+
+        return html`
+        <div class="agent-form">
+            <h4>${this.msg.addAgent}</h4>
+            
+            <label>${this.msg.selectIntegration}
+                <select 
+                    .value=${this.selectedIntegrationId}
+                    @change=${(e: Event) => {
+                this.selectedIntegrationId = (e.target as HTMLSelectElement).value;
+                this.selectedAgentId = '';
+            }}
+                >
+                    <option value="">${this.msg.selectIntegration}</option>
+                    ${this.integrations.length === 0
+                ? html`<option value="" disabled>${this.msg.noIntegrations}</option>`
+                : this.integrations.map(integration => html`
+                            <option value="${integration.id}">${integration.name}</option>
+                        `)
+            }
+                </select>
+            </label>
+
+            ${this.selectedIntegrationId ? html`
+                <label>${this.msg.selectAgent}
+                    <select 
+                        .value=${this.selectedAgentId}
+                        @change=${(e: Event) => {
+                    this.selectedAgentId = (e.target as HTMLSelectElement).value;
+                }}
+                    >
+                        <option value="">${this.msg.selectAgent}</option>
+                        ${availableAgents.length === 0
+                    ? html`<option value="" disabled>${this.msg.noAgentsInIntegration}</option>`
+                    : !hasAvailableAgents
+                        ? html`<option value="" disabled>${this.msg.allAgentsAdded}</option>`
+                        : availableAgents.map(({ agent, isAdded }) => html`
+                                    <option 
+                                        value="${agent.id}" 
+                                        ?disabled=${isAdded}
+                                    >
+                                        ${agent.name}${isAdded ? ` (${this.msg.agentAlreadyAdded})` : ''}
+                                    </option>
+                                `)
+                }
+                    </select>
+                </label>
+
+                ${this.selectedAgentId ? html`
+                    <div class="agent-preview">
+                        ${(() => {
+                        const agentData = availableAgents.find(a => a.agent.id === this.selectedAgentId);
+                        if (!agentData) return '';
+                        const { agent } = agentData;
+                        return html`
+                                <img src="${agent.avatarUrl || this.generateAgentAvatar(agent.name)}" 
+                                     alt="${agent.name}" 
+                                     width="48" 
+                                     height="48" />
+                                <div>
+                                    <strong>${agent.name}</strong>
+                                    <small>ID: ${agent.senderId}</small>
+                                </div>
+                            `;
+                    })()}
+                    </div>
+                ` : ''}
+            ` : ''}
+
+            <div class="form-actions">
+                <button class="btn-cancel" @click=${this.closeAgentForm}>
+                    ${this.msg.cancel}
+                </button>
+                <button 
+                    class="btn-save" 
+                    @click=${this.saveAgent}
+                    ?disabled=${!this.selectedIntegrationId || !this.selectedAgentId || this.isLoadingAgents}
+                >
+                    ${this.isLoadingAgents ? html`<span class="loader"></span>` : this.msg.save}
+                </button>
+            </div>
+        </div>
+        `;
+    }
+
+    private generateAgentAvatar(name: string): string {
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+        const colorIndex = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+        const bgColor = colors[colorIndex];
+        const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+        return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="${bgColor}"/><text x="40" y="40" font-family="Arial" font-size="28" fill="white" text-anchor="middle" dy=".35em">${initials}</text></svg>`)}`;
+    }
+
+    private openAgentForm() {
+        this.showAgentForm = true;
+        this.selectedIntegrationId = '';
+        this.selectedAgentId = '';
+        this.labelErrorAgent = '';
+        this.labelOkAgent = '';
+    }
+
+    private closeAgentForm() {
+        this.showAgentForm = false;
+        this.selectedIntegrationId = '';
+        this.selectedAgentId = '';
+    }
+
+    private async saveAgent() {
+        this.labelErrorAgent = '';
+        this.labelOkAgent = '';
+
+        if (!this.selectedIntegrationId || !this.selectedAgentId) return;
+        if (!this.editedThreadDetails || !this.threadDetails || !this.userId) return;
+
+        const integration = this.integrations.find(i => i.id === this.selectedIntegrationId);
+        const agent = integration?.agents.find(a => a.id === this.selectedAgentId);
+
+        if (!integration || !agent) return;
+
+        // Check if agent is already added
+        const addedIds = this.getAddedAgentIds();
+        if (addedIds.has(agent.id)) {
+            this.labelErrorAgent = this.msg.agentAlreadyAdded;
+            return;
+        }
+
+        this.isLoadingAgents = true;
+
+        try {
+            // Generate unique inboundToken (UUIDv7) for this agent/thread combination
+            const inboundToken = generateUUIDv7();
+            const integrationId = generateUUIDv7();
+
+            // Create ThreadIntegration config
+            const threadIntegration: mls.msg.ThreadIntegration = {
+                integrationId,
+                type: 'openclaw',
+                status: 'active',
+                config: {
+                    url: integration.url,
+                    bearerToken: integration.bearerToken,
+                    inboundToken,
+                    agentId: agent.id,
+                    sessionId: undefined
+                },
+                triggers: []
+            };
+
+            const response = await mls.api.msgAddOrUpdateThreadIntegration({
+                threadId: this.threadDetails.thread.threadId,
+                userId: this.userId,
+                ...threadIntegration
+            });
+
+            if (response.statusCode !== 200) {
+                throw new Error(response.msg || 'Error adding agent');
+            }
+
+            // Update local state with the response
+            if (response.thread) {
+                this.editedThreadDetails.thread = { ...response.thread };
+                const threadCache = await updateThread(response.thread.threadId, response.thread);
+                notifyThreadChange(threadCache);
+            }
+
+            this.labelOkAgent = this.msg.successAddAgent;
+            this.closeAgentForm();
+            this.requestUpdate();
+
+        } catch (err: any) {
+            this.labelErrorAgent = err.message;
+        } finally {
+            this.isLoadingAgents = false;
+        }
+    }
+
+    private async updateStatusAgent(e: MouseEvent, integrationId: string, status: "active" | "disabled") {
+        this.labelErrorAgent = '';
+        this.labelOkAgent = '';
+
+        if (!this.editedThreadDetails || !this.threadDetails || !this.userId) return;
+
+        if (['deleting'].includes(this.editedThreadDetails?.thread.status || '')) {
+            this.labelErrorAgent = this.msg.errorSaveThreadDeletStatus;
+            return;
+        }
+
+        const button = (e.target as HTMLElement).closest('button');
+
+        try {
+            button?.classList.add('loading');
+
+            const currentIntegrations: mls.msg.ThreadIntegration[] = this.editedThreadDetails.thread.integrations || [];
+            const integrationToUpdate = currentIntegrations.find(i => i.integrationId === integrationId);
+
+            if (!integrationToUpdate) {
+                throw new Error('Integration not found');
+            }
+
+            const updatedIntegration: mls.msg.ThreadIntegration = {
+                ...integrationToUpdate,
+                status,
+            };
+
+            const response = await mls.api.msgAddOrUpdateThreadIntegration({
+                threadId: this.threadDetails.thread.threadId,
+                userId: this.userId,
+                ...updatedIntegration
+            });
+
+            if (response.statusCode !== 200) {
+                throw new Error(response.msg || 'Error update status integration agent');
+            }
+
+            // Update local state
+            if (response.thread) {
+                this.editedThreadDetails.thread = { ...response.thread };
+                const threadCache = await updateThread(response.thread.threadId, response.thread);
+                notifyThreadChange(threadCache);
+            }
+
+            this.labelOkAgent = this.msg.successRemoveAgent;
+            this.requestUpdate();
+
+        } catch (err: any) {
+            this.labelErrorAgent = this.msg.errorRemoveAgent + ': ' + err.message;
+        } finally {
+            button?.classList.remove('loading');
+        }
     }
 
     private renderBots() {

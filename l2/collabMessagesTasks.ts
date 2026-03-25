@@ -101,7 +101,6 @@ export class CollabMessagesTasks extends StateLitElement {
 
   private _openTaskDetails(task: any) {
     this.selectedTask = task;
-    console.info('aq')
     this.view = 'details';
   }
 

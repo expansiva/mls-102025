@@ -238,6 +238,47 @@ export function saveChatPreferences(chatPreferences: IChatPreferences) {
     saveLocalStorage(dataLocal);
 }
 
+export function getOrgDetails(orgIndex: number) {
+    const actualOrgName = Object.keys(mls.stor.orgs)[orgIndex];
+    const actualOrgDetails = mls.stor.orgs[actualOrgName];
+    return actualOrgDetails;
+}
+
+export function loadOpenClawIntegrations(): IOpenClawIntegration[] {
+
+    if (mls.l5.actualOrg === undefined) return [];
+    const actualOrgDetails = getOrgDetails(mls.l5.actualOrg);
+    if (!actualOrgDetails || !actualOrgDetails.value) return [];
+    try {
+        const data = JSON.parse(actualOrgDetails.value);
+        return data.integrations || []
+
+    } catch (err: any) {
+        throw new Error(err.message)
+    }
+
+}
+
+export async function saveOpenClawIntegrations(integrations: IOpenClawIntegration[]) {
+
+    if (mls.l5.actualOrg === undefined) throw new Error(`Invalid org actual: ${mls.l5.actualOrg}`);
+
+    const actualOrgDetails = getOrgDetails(mls.l5.actualOrg);
+    if (!actualOrgDetails) throw new Error(`Invalid org details: ${mls.l5.actualOrg}`);
+    try {
+        let data: any = {};
+        if (actualOrgDetails.value) {
+            data = JSON.parse(actualOrgDetails.value);
+        }
+        data = { ...data, integrations };
+        await mls.api.cbeAddOrUpdateOrgValue(actualOrgDetails.sett.name, JSON.stringify(data))
+
+    } catch (err: any) {
+        throw new Error(err.message)
+    }
+
+}
+
 function saveLocalStorage(data: CollabMessagesLS) {
     try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
@@ -276,7 +317,6 @@ function extractAgentName(str: string) {
     return 'agent' + name[0].toUpperCase() + name.slice(1);
 }
 
-
 export async function checkThreadAlreadyExist(threadName: string) {
     const userId = getUserId();
     if (!userId) throw new Error('No find user id');
@@ -296,7 +336,6 @@ export async function getDmThreadByUsers(userId1: string, userId2: string): Prom
         return userIds.includes(userId1) && userIds.includes(userId2);
     });
 }
-
 
 export async function createThread(threadName: string, languages: string[], visibility: mls.msg.ThreadVisibility, avatar_url: string = ''): Promise<mls.msg.ThreadPerformanceCache | undefined> {
 
@@ -372,6 +411,24 @@ export async function createThreadDM(threadName: string, dmUser: string, group: 
     }
 }
 
+export function generateUUIDv7(): string {
+    const timestamp = Date.now();
+    const timestampHex = timestamp.toString(16).padStart(12, '0');
+    const randomBytes = new Uint8Array(10);
+    crypto.getRandomValues(randomBytes);
+    randomBytes[0] = (randomBytes[0] & 0x0f) | 0x70;
+    randomBytes[2] = (randomBytes[2] & 0x3f) | 0x80;
+    const randomHex = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `${timestampHex.slice(0, 8)}-${timestampHex.slice(8, 12)}-${randomHex.slice(0, 4)}-${randomHex.slice(4, 8)}-${randomHex.slice(8, 20)}`;
+}
+
+export function generateAgentAvatar(name: string): string {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+    const colorIndex = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+    const bgColor = colors[colorIndex];
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="${bgColor}"/><text x="40" y="40" font-family="Arial" font-size="28" fill="white" text-anchor="middle" dy=".35em">${initials}</text></svg>`)}`;
+}
 
 export type TranslateMode = "none" | "icon" | "text" | "iconText" | "trace"
 
@@ -416,3 +473,20 @@ export interface IThreadInfo {
     messages?: mls.msg.Message[] | undefined
 }
 
+// Interfaces para Integrações
+export interface IOpenClawAgent {
+    id: string;
+    name: string;
+    avatarUrl: string;
+    senderId: string;
+    createdAt: string;
+}
+
+export interface IOpenClawIntegration {
+    id: string;
+    name: string;
+    url: string;
+    bearerToken: string;
+    agents: IOpenClawAgent[];
+    createdAt: string;
+}
