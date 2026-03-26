@@ -4,7 +4,6 @@ import { html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { collab_arrow_up_long, collab_bell, collab_circle_exclamation, collab_link, collab_bug_x12, collab_magnifying_glass } from '/_102025_/l2/collabMessagesIcons.js';
-
 import '/_102025_/l2/collabMessagesTabMenu.js'
 
 @customElement('collab-menu-test-102025')
