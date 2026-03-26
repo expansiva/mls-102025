@@ -1,12 +1,66 @@
 /// <mls fileReference="_102025_/l2/collabMessagesHelper.ts" enhancement="_blank" />
 
+/// **collab_i18n_start** 
+const message_pt = {
+    updatedToday: 'atualizado hoje',
+    updated: 'atualizado',
+    on: 'em',
+    days: 'dias',
+    day: 'dia',
+    ago: 'atrás',
+    jan: 'Jan',
+    feb: 'Fev',
+    mar: 'Mar',
+    apr: 'Abr',
+    may: 'Mai',
+    june: 'Jun',
+    july: 'Jul',
+    aug: 'Ago',
+    sept: 'Set',
+    oct: 'Out',
+    nov: 'Nov',
+    dec: 'Dez',
+}
+
+const message_en = {
+    updatedToday: 'updated today',
+    updated: 'updated',
+    on: 'on',
+    days: 'days',
+    day: 'day',
+    ago: 'ago',
+    jan: 'Jan',
+    feb: 'Feb',
+    mar: 'Mar',
+    apr: 'Apr',
+    may: 'May',
+    june: 'June',
+    july: 'July',
+    aug: 'Aug',
+    sept: 'Sept',
+    oct: 'Oct',
+    nov: 'Nov',
+    dec: 'Dec',
+}
+
+type MessageType = typeof message_en;
+
+const messages: { [key: string]: MessageType } = {
+    'en': message_en,
+    'pt': message_pt
+}
+/// **collab_i18n_end**
+
+const lang = getMessageKey(messages)
+const msg: MessageType = messages[lang];
+
+import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
+
 import {
-    getTemporaryContext,
     notifyMessageSendChange,
     notifyThreadChange,
     notifyThreadCreate,
-} from '/_100554_/l2/aiAgentHelper.js';
-import { loadAgent, executeBeforePrompt } from '/_100554_/l2/aiAgentOrchestration.js';
+} from '/_102025_/l2/collabMessagesEvents.js';
 
 import { addThread, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
@@ -411,6 +465,121 @@ export async function createThreadDM(threadName: string, dmUser: string, group: 
     }
 }
 
+export function formatTimestamp(timestamp: string) {
+    if (!timestamp || timestamp.length < 14) {
+        return;
+    }
+    const year = timestamp.slice(0, 4);
+    const month = timestamp.slice(4, 6);
+    const day = timestamp.slice(6, 8);
+    const hour = timestamp.slice(8, 10);
+    const minute = timestamp.slice(10, 12);
+    const second = timestamp.slice(12, 14);
+    const utcDate = new Date(Date.UTC(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+        parseInt(hour),
+        parseInt(minute),
+        parseInt(second)
+    ));
+
+    const localYear = utcDate.getFullYear();
+    const localMonth = (utcDate.getMonth() + 1).toString().padStart(2, '0');
+    const localDay = utcDate.getDate().toString().padStart(2, '0');
+    const localHour = utcDate.getHours().toString().padStart(2, '0');
+    const localMinute = utcDate.getMinutes().toString().padStart(2, '0');
+    const localSecond = utcDate.getSeconds().toString().padStart(2, '0');
+
+    const date = `${localYear}-${localMonth}-${localDay}`;
+    const time = `${localHour}:${localMinute}:${localSecond}`;
+    const timeShort = `${localHour}:${localMinute}`;
+
+    const dateFull = `${date} ${time}`;
+    return { dateFull, date, time, timeShort };
+}
+
+export function getDateFormated(dt: string): string {
+
+    let lastUpdated: string;
+
+    const dateToday = new Date();
+    const dtLastWrite = new Date(dt);
+    const _MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+    // a and b are javascript Date objects
+    function dateDiffInDays(a: Date, b: Date) {
+        // Discard the time and time-zone information.
+        const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+        const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+        return Math.floor((utc2 - utc1) / _MS_PER_DAY);
+    }
+
+    const diffDays = dateDiffInDays(dtLastWrite, dateToday);
+    const moreThanTwoDays = diffDays > 1;
+
+    if (diffDays === 0) {
+
+        lastUpdated = msg.updatedToday;
+
+    } else if (diffDays < 30) {
+
+        lastUpdated = `${msg.updated} ${diffDays} ${moreThanTwoDays ? msg.days : msg.day} ${msg.ago}`;
+
+    } else {
+
+        const lastWriteYear = dtLastWrite.getFullYear();
+        const lastWriteMounth = dtLastWrite.getMonth();
+        const lastWriteDay = dtLastWrite.getDate();
+        const mounthFilter: any = {
+            0: msg.jan,
+            1: msg.feb,
+            2: msg.mar,
+            3: msg.apr,
+            4: msg.may,
+            5: msg.june,
+            6: msg.july,
+            7: msg.aug,
+            8: msg.sept,
+            9: msg.oct,
+            10: msg.nov,
+            11: msg.dec,
+        };
+
+        lastUpdated = `${msg.updated} ${msg.on} ${lastWriteYear}, ${lastWriteDay} ${mounthFilter[lastWriteMounth]} `;
+
+    }
+
+    return lastUpdated;
+
+}
+
+export const getTemporaryContext = (threadId: string, userId: string, prompt: string): mls.msg.ExecutionContext => {
+    // create temporary context
+
+    const now = new Date();
+    const formattedDate = now.getFullYear().toString()
+        + String(now.getMonth() + 1).padStart(2, '0')
+        + String(now.getDate()).padStart(2, '0')
+        + String(now.getHours() + 3).padStart(2, '0')
+        + String(now.getMinutes()).padStart(2, '0')
+        + String(now.getSeconds()).padStart(2, '0')
+        + "." + Math.floor(1000 + Math.random() * 9000);
+
+    const context: mls.msg.ExecutionContext = {
+        task: undefined,
+        message: {
+            threadId: threadId,
+            orderAt: "",
+            createAt: formattedDate,
+            senderId: userId,
+            content: prompt.trim(),
+        },
+        isTest: false
+    };
+    return context;
+};
+
 export function generateUUIDv7(): string {
     const timestamp = Date.now();
     const timestampHex = timestamp.toString(16).padStart(12, '0');
@@ -429,6 +598,68 @@ export function generateAgentAvatar(name: string): string {
     const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="${bgColor}"/><text x="40" y="40" font-family="Arial" font-size="28" fill="white" text-anchor="middle" dy=".35em">${initials}</text></svg>`)}`;
 }
+
+export async function changeFavIcon(notification: boolean) {
+
+    const link: HTMLLinkElement | null = document.querySelector("[rel~='icon']");
+    if (!link) return;
+
+    if (!notification) {
+        link.href = link.dataset.original || link.href;
+        return;
+    }
+
+    if (!link.dataset.original) {
+        link.dataset.original = link.href;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    img.src = link.dataset.original;
+
+    await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+    });
+
+    const size = 64;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(img, 0, 0, size, size);
+    const radius = size * 0.2;
+
+    ctx.beginPath();
+    ctx.arc(size - radius, radius, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#FF0000";
+    ctx.fill();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#FFF";
+    ctx.stroke();
+
+    const newIcon = canvas.toDataURL("image/png");
+
+    link.href = newIcon;
+}
+
+function getMessageKey(messages: any): string {
+    const keys = Object.keys(messages);
+    if (!keys || keys.length < 1) throw new Error('Error Message not valid for international');
+    const firstKey = keys[0];
+    const lang = (document.documentElement.lang || '').toLowerCase();
+    if (!lang) return firstKey;
+    if (messages.hasOwnProperty(lang)) return lang;
+    const similarLang = keys.find((key: string) => lang.substring(0, 2) === key);
+    if (similarLang) return similarLang;
+    return firstKey;
+}
+
 
 export type TranslateMode = "none" | "icon" | "text" | "iconText" | "trace"
 

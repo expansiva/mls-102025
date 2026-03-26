@@ -2,14 +2,23 @@
 
 import { html, css } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { notifyThreadChange, notifyThreadCreate, getTemporaryContext } from '/_100554_/l2/aiAgentHelper.js';
-import { loadAgent, executeBeforePrompt } from '/_100554_/l2/aiAgentOrchestration.js';
-import { IAgent } from '/_100554_/l2/aiAgentBase.js'
-import { addThread, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
-import { getUserId, getDmThreadByUsers, addMessage, createThreadDM } from '/_102025_/l2/collabMessagesHelper.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
+import { notifyThreadChange, notifyThreadCreate } from '/_102025_/l2/collabMessagesEvents.js';
+import { addThread, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import {
+    getUserId,
+    getDmThreadByUsers,
+    addMessage,
+    createThreadDM,
+    getTemporaryContext
+} from '/_102025_/l2/collabMessagesHelper.js';
+
+import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
+
+import { IAgent } from '/_102029_/l2/aiAgentBase.js'
 import { CollabMessagesInputTag } from '/_102025_/l2/collabMessagesInputTag.js';
+
 import '/_102025_/l2/collabMessagesInputTag.js';
 
 
@@ -107,7 +116,7 @@ const messages: { [key: string]: MessageType } = { en: message_en, pt: message_p
 
 type ThreadType = 'dm' | 'channel';
 
-const agentName = 'agentGenerateAvatarSvg';
+const agentName = '_102025_/l2/agents/agentGenerateAvatarSvg';
 
 @customElement('collab-messages-add-102025')
 export class CollabMessagesAdd extends StateLitElement {

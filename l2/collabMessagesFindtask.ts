@@ -2,12 +2,9 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { ServiceBase } from '/_100554_/l2/serviceBase.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { getUserId } from "/_102025_/l2/collabMessagesHelper.js";
-
 import '/_102025_/l2/collabMessagesTaskDetails.js';
-
 
 /// **collab_i18n_start** 
 const message_pt = {
@@ -31,12 +28,14 @@ const messages: { [key: string]: MessageType } = {
 export class CollabMessagesFindTask extends StateLitElement {
 
     private msg: MessageType = messages['en'];
-    private serviceBase: ServiceBase | undefined;
 
     @state() threadId?: string;
     @state() taskId?: string;
+    @state() error?: string;
 
     @property() actualTask: mls.msg.TaskData | undefined;
+    @property() actualMessage: mls.msg.Message | undefined = undefined;
+    
     @property() isLoading: boolean = false;
 
     async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
@@ -54,7 +53,6 @@ export class CollabMessagesFindTask extends StateLitElement {
     }
 
     private renderSearch() {
-
 
         return html`
             <div class="section">
@@ -79,11 +77,12 @@ export class CollabMessagesFindTask extends StateLitElement {
                 >
                     ${this.isLoading ? html`<span class="loader"></span>` : this.msg.find}
                 </button>
+                <small class="error">${this.error}</small>
             </div>
             </div>
             
 
-            <collab-messages-task-details-102025 .task=${this.actualTask} taskId=${this.actualTask?.PK}></collab-messages-task-details-102025>
+            <collab-messages-task-details-102025 .task=${this.actualTask} .message=${this.actualMessage} taskId=${this.actualTask?.PK}></collab-messages-task-details-102025>
         
         `
     }
@@ -110,8 +109,9 @@ export class CollabMessagesFindTask extends StateLitElement {
             });
             this.actualTask = rc.task;
         } catch (err: any) {
+            const message = err instanceof Error ? err.message : String(err);
             this.actualTask = undefined;
-            this.serviceBase?.setError(err.message)
+            this.error = message;
         } finally {
             this.isLoading = false;
         }

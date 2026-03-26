@@ -5,9 +5,11 @@ import { customElement, property, state, query } from 'lit/decorators.js';
 
 import { updateThread, getUser, deleteAllMessagesFromThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { collab_triangle_exclamation, collab_plus } from '/_102025_/l2/collabMessagesIcons.js';
-import { notifyThreadChange } from '/_100554_/l2/aiAgentHelper.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { addMessage, loadOpenClawIntegrations, IOpenClawIntegration, IOpenClawAgent, generateUUIDv7 } from "/_102025_/l2/collabMessagesHelper.js";
+import { notifyThreadChange } from '/_102025_/l2/collabMessagesEvents.js';
+import { addMessage, loadOpenClawIntegrations, generateUUIDv7 } from "/_102025_/l2/collabMessagesHelper.js";
+
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { IOpenClawIntegration, IOpenClawAgent } from "/_102025_/l2/collabMessagesHelper.js";
 
 import '/_102025_/l2/collabMessagesInputTag.js';
 import '/_102025_/l2/collabMessagesAddParticipant.js';

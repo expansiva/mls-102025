@@ -1,8 +1,8 @@
-/// <mls fileReference="_102025_/l2/collabMessagesTaskDetails.ts" enhancement="_blank" />
+/// <mls fileReference="_102025_/l2/collabMessagesTaskDetails.ts" enhancement="_102027_/l2/enhancementLit" />
 
 import { html, TemplateResult } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 import {
     getNextResultStep,
@@ -11,15 +11,16 @@ import {
     getInteractionStepId,
     getStepById,
     getTotalCost
-} from '/_100554_/l2/aiAgentHelper.js';
+} from '/_102029_/l2/aiAgentHelper.js';
 
-import { getClarification } from '/_100554_/l2/aiAgentOrchestration.js';
+import { getClarificationElement } from '/_102029_/l2/aiAgentOrchestration.js';
 import { collab_money } from '/_102025_/l2/collabMessagesIcons.js';
 
 @customElement('collab-messages-task-details-102025')
 export class CollabMessagesTaskDetails extends StateLitElement {
 
     @property() task: mls.msg.TaskData | undefined = undefined;
+    @property() message: mls.msg.Message | undefined = undefined;
     @property() stepid: string = '';
     @property({ attribute: false }) seen = new Set<string>();
 
@@ -340,8 +341,8 @@ export class CollabMessagesTaskDetails extends StateLitElement {
     }
 
     private async setClarification(): Promise<void> {
-        if (!this.directClarificationContent || !this.task) return;
-        const clarification = await getClarification(this.task.PK);
+        if (!this.directClarificationContent || !this.task || !this.message ) return;
+        const clarification = await getClarificationElement({ message: this.message, task: this.task, isTest: false });
         if (!clarification) return;
         this.directClarificationContent.innerHTML = '';
         this.directClarificationContent.appendChild(clarification);

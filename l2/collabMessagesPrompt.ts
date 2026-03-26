@@ -2,15 +2,13 @@
 
 import { html, ifDefined, nothing } from 'lit';
 import { customElement, property, state, query, } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { IAgent } from '/_100554_/l2/aiAgentBase.js'
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { IAgent } from '/_102029_/l2/aiAgentBase.js'
 
 import { collab_arrow_up_long } from '/_102025_/l2/collabMessagesIcons.js';
 import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
-
 import '/_102025_/l2/collabMessagesAvatar.js';
-
 
 /// **collab_i18n_start**
 const message_pt = {

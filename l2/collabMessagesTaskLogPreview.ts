@@ -2,11 +2,10 @@
 
 import { html, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { getRootAgent } from '/_100554_/l2/aiAgentHelper.js';
-import { IAgent, IAgentAsync } from '/_100554_/l2/aiAgentBase.js';
-import { loadAgent } from '/_100554_/l2/aiAgentOrchestration.js';
-import { collabImport } from '/_102027_/l2/collabImport.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { getRootAgent } from '/_102029_/l2/aiAgentHelper.js';
+import { IAgent, IAgentAsync } from '/_102029_/l2/aiAgentBase.js';
+import { loadAgent } from '/_102029_/l2/aiAgentOrchestration.js';
 
 @customElement('collab-messages-task-log-preview-102025')
 export class CollabMessagesTaskLogPreview extends StateLitElement {
@@ -53,8 +52,8 @@ export class CollabMessagesTaskLogPreview extends StateLitElement {
     const agentName = firstAgent.agentName;
     const agent: IAgent | IAgentAsync | undefined = await loadAgent(agentName);
     if (!agent || !agent.getFeedBack) {
-      await collabImport({ folder: '', project: 100554, shortName: 'aiAgentDefaultFeedback', extension: '.ts' })
-      this.template = html`<ai-agent-default-feedback-100554 .task=${this.task} .message=${this.message}></ai-agent-default-feedback-100554>`
+      await import('/_102029_/l2/aiAgentDefaultFeedback.js');
+      this.template = html`<ai-agent-default-feedback-102029 .task=${this.task} .message=${this.message}></ai-agent-default-feedback-102029>`
       return;
     }
     const html2 = await agent.getFeedBack(this.task);

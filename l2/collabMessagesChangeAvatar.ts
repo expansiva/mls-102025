@@ -2,11 +2,9 @@
 
 import { html, unsafeHTML } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { IAgent } from '/_100554_/l2/aiAgentBase.js';
-import { getTemporaryContext } from '/_100554_/l2/aiAgentHelper.js';
-import { loadAgent, executeBeforePrompt } from '/_100554_/l2/aiAgentOrchestration.js';
-import { defaultThreadImage } from '/_102025_/l2/collabMessagesHelper.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
+import { defaultThreadImage, getTemporaryContext } from '/_102025_/l2/collabMessagesHelper.js';
 
 /// **collab_i18n_start** 
 const message_pt = {
@@ -42,7 +40,7 @@ const messages: { [key: string]: MessageType } = {
 }
 /// **collab_i18n_end**
 
-const agentName = '_102025_agentGenerateAvatarSvg';
+const agentName = '_102025_/l2/agents/agentGenerateAvatarSvg';
 
 @customElement("collab-messages-change-avatar-102025")
 export class CollabChangeAvatar extends StateLitElement {

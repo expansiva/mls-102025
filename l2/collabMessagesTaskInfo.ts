@@ -2,12 +2,10 @@
 
 import { html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { getClarification, getClarificationElement, continuePoolingTask } from '/_100554_/l2/aiAgentOrchestration.js';
-import { getNextPendentStep, getNextClarificationStep, getInteractionStepId, getStepById } from '/_100554_/l2/aiAgentHelper.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { getClarificationElement, continuePoolingTask } from '/_102029_/l2/aiAgentOrchestration.js';
+import { getNextPendentStep, getNextClarificationStep, getInteractionStepId, getStepById } from '/_102029_/l2/aiAgentHelper.js';
 
-import '/_102025_/l2/collabMessagesTaskDetails.js';
-import '/_102025_/l2/collabMessagesTaskPreview.js';
 import '/_102025_/l2/collabMessagesTaskLogPreview.js';
 
 @customElement('collab-messages-task-info-102025')
@@ -29,7 +27,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     @query('.direct-clarification') directClarification: HTMLElement | undefined;
     @query('.direct-clarification .content') directClarificationContent: HTMLElement | undefined;
 
-    @state() private activeTab: 'workflow' | 'step' | 'raw' | 'todo' = 'todo';
+    @state() private activeTab: 'todo' = 'todo';
     @state() isClarificationPending = false;
 
     connectedCallback() {
@@ -95,19 +93,6 @@ export class CollabMessagesTaskInfo extends StateLitElement {
             <div style="height: calc(100% - 3rem);">
                 <div class="tabs">
                     ${aux}
-                    <div
-                        class="tab ${this.activeTab === 'step' ? 'active' : ''}"
-                        @click=${() => this.setTab('step')}
-                    >Step</div>
-                    <div
-                        class="tab ${this.activeTab === 'raw' ? 'active' : ''}"
-                        @click=${() => this.setTab('raw')}
-                    >Raw</div>
-                    <div
-                        class="tab ${this.activeTab === 'workflow' ? 'active' : ''}"
-                        @click=${() => this.setTab('workflow')}
-                    >Workflow</div>
-
                 </div>
                 <div class="content">
                     ${this.renderTabContent()}
@@ -120,21 +105,11 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
     renderTabContent() {
         switch (this.activeTab) {
-            case 'workflow': return html`workflow`;
-            case 'step': return this.renderStep();
-            case 'raw': return this.renderRaw();
             case 'todo': return this.renderTodo();
             default: return html`workflow`;
         }
     }
 
-    renderRaw() {
-        return html`<collab-messages-task-details-102025 .task=${this.task} taskId=${this.task?.PK}></collab-messages-task-details-102025>`
-    }
-
-    renderStep() {
-        return html`<collab-messages-task-preview-102025 .message=${this.message} .task=${this.task}></collab-messages-task-preview-102025>`
-    }
 
     renderTodo() {
         return html`<collab-messages-task-log-preview-102025 .message=${this.message} .task=${this.task}></collab-messages-task-log-preview-102025>`
@@ -175,14 +150,12 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     private async setClarification(): Promise<void> {
         if (!this.directClarificationContent || !this.task || !this.message) return;
         let clarification: HTMLElement | null = null;
-        if (this.task.iaCompressed?.queueFrontEnd) {
-            try {
-                clarification = await getClarificationElement({ message: this.message, task: this.task, isTest: false });
-            } catch {
-                return;
-            }
 
-        } else clarification = await getClarification(this.task.PK);
+        try {
+            clarification = await getClarificationElement({ message: this.message, task: this.task, isTest: false });
+        } catch {
+            return;
+        }
 
         if (!clarification) return;
         this.directClarificationContent.innerHTML = '';
@@ -213,7 +186,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     }
 
 
-    private setTab(tab: 'workflow' | 'step' | 'raw' | 'todo') {
+    private setTab(tab: 'todo') {
         this.activeTab = tab;
     }
 

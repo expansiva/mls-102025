@@ -2,9 +2,8 @@
 
 import { html, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { updateUsers, listThreads } from '/_102025_/l2/collabMessagesIndexedDB.js';
-import { ServiceBase } from '/_100554_/l2/serviceBase.js';
 
 import {
     loadChatPreferences,
@@ -17,7 +16,8 @@ import {
     saveOpenClawIntegrations,
     loadOpenClawIntegrations,
     generateUUIDv7,
-    generateAgentAvatar
+    generateAgentAvatar,
+
 } from '/_102025_/l2/collabMessagesHelper.js';
 
 import {
@@ -43,7 +43,8 @@ import {
     collab_chevron_left,
     collab_edit,
     collab_xmark,
-    collab_floppy_disk
+    collab_floppy_disk,
+    collab_check
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 
@@ -68,6 +69,12 @@ const message_pt = {
     notificationStatusFailed: 'Não foi possivel ativar as notificações, verificar permissões no browser',
     btnEnableNotifications: 'Ativar notificações',
     soundEnable: 'Ativar som nas notificações',
+    // Avatar
+    changeAvatar: 'Alterar',
+    editAvatar: 'Editar Avatar',
+    avatarUrl: 'URL do Avatar',
+    avatarUrlPlaceholder: 'https://exemplo.com/imagem.png',
+    invalidAvatarUrl: 'URL inválida ou imagem não encontrada',
     // OpenClaw Integration
     integrationsTitle: 'Integrações - OpenClaw',
     addIntegration: 'Adicionar',
@@ -127,6 +134,12 @@ const message_en = {
     btnEnableNotifications: 'Enable notifications',
     notificationStatusFailed: 'Unable to enable notifications, check browser permissions',
     soundEnable: 'Enable sound for notifications',
+    // Avatar
+    changeAvatar: 'Change',
+    editAvatar: 'Edit Avatar',
+    avatarUrl: 'Avatar URL',
+    avatarUrlPlaceholder: 'https://example.com/image.png',
+    invalidAvatarUrl: 'Invalid URL or image not found',
     // OpenClaw Integration
     integrationsTitle: 'Integrations - OpenClaw',
     addIntegration: 'Add',
@@ -173,13 +186,12 @@ const messages: { [key: string]: MessageType } = {
 }
 /// **collab_i18n_end**
 
-type ViewMode = 'main' | 'integrationDetails' | 'addAgent';
+type ViewMode = 'main' | 'integrationDetails' | 'addAgent' | 'editAvatar';
 
 @customElement('collab-messages-settings-102025')
-export class CollabMessagesSettings100554 extends StateLitElement {
+export class CollabMessagesSettings extends StateLitElement {
 
     private msg: MessageType = messages['en'];
-    private serviceBase: ServiceBase | undefined;
     private list: mls.msg.ThreadPerformanceCache[] = [];
 
     @state() userPerfil: mls.msg.User | undefined;
@@ -191,6 +203,11 @@ export class CollabMessagesSettings100554 extends StateLitElement {
 
     @state() notificationPreferences?: NotificationPermission | null;
     @state() audioEnabled: boolean = false;
+
+    // Avatar edit states
+    @state() tempAvatarUrl: string = '';
+    @state() avatarUrlValid: boolean = true;
+    @state() avatarLoading: boolean = false;
 
     // OpenClaw Integration states
     @state() integrations: IOpenClawIntegrationLocal[] = [];
@@ -242,6 +259,10 @@ export class CollabMessagesSettings100554 extends StateLitElement {
         const lang = this.getMessageKey(messages);
         this.msg = messages[lang];
 
+        if (this.viewMode === 'editAvatar') {
+            return this.renderEditAvatarView();
+        }
+
         if (this.viewMode === 'integrationDetails') {
             return this.renderIntegrationDetailsView();
         }
@@ -269,45 +290,104 @@ export class CollabMessagesSettings100554 extends StateLitElement {
         const icon = iconByStatus[this.userPerfil?.status || '']
 
         return html`
-         <div >
-        <div class="section user">
-            <h4>${collab_user} ${this.msg.userTitle}</h4>
+        <div>
+            <div class="section user">
+                <h4>${collab_user} ${this.msg.userTitle}</h4>
 
-          <div class="user-details">
-            <div class="avatar">
-                ${avatarUrl
-                ? html`<img src="${avatarUrl}" alt="Avatar" />`
-                : html`<div class="avatar-placeholder">${collab_user}</div>`}
-                <a @click=${(e: MouseEvent) => { e.preventDefault(); this.refreshAvatar(); }} href="#"> Atualizar</a>
+                <div class="user-content">
+                    <div class="avatar-section">
+                        <div class="avatar">
+                            ${avatarUrl
+                                ? html`<img src="${avatarUrl}" alt="Avatar" />`
+                                : html`<div class="avatar-placeholder">${collab_user}</div>`}
+                        </div>
+                        <button class="btn-small btn-secondary" @click=${this.handleOpenEditAvatar}>
+                            ${collab_edit} ${this.msg.changeAvatar}
+                        </button>
+                    </div>
+
+                    <div class="user-info">
+                        <div class="user-info-item">
+                            <label>${this.msg.username}</label>
+                            <input
+                                .value=${this.userPerfil?.name ?? ''} 
+                                type="text" 
+                                @input=${this.handleNameInput}
+                            />
+                        </div>
+                        <div class="user-info-row">
+                            <div class="user-info-item">
+                                <label>${this.msg.userid}</label>
+                                <span class="user-id">${this.userPerfil?.userId ?? ''}</span>
+                            </div>
+                            <div class="user-info-item status">
+                                <label>${this.msg.status}</label>
+                                <span class=${this.userPerfil?.status}>${this.userPerfil?.status ?? 'N/A'} ${icon}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button @click=${this.handleSave} ?disabled=${this.isSavingUser}>
+                        ${this.isSavingUser ? html`<span class="loader"></span>` : html`${collab_floppy_disk} ${this.msg.save}`}
+                    </button>
+                </div>
+                ${this.labelOk ? html`<small class="saving-ok">${this.labelOk}</small>` : ''}
+                ${this.labelError ? html`<small class="saving-error">${this.labelError}</small>` : ''}      
             </div>
-            <div class="user-info">
-                <div class="user-info-item">
-                    <label>${this.msg.username}</label>
-                    <input
-                        .value=${this.userPerfil?.name ?? ''} 
-                        type="text" 
-                        @input=${this.handleNameInput}
-                    />
+        </div>
+        `
+    }
+
+    private renderEditAvatarView() {
+        const previewUrl = this.tempAvatarUrl || this.userPerfil?.avatar_url || '';
+
+        return html`
+        <div>
+            <div class="section edit-avatar">
+                <h4>
+                    <button class="btn-back" @click=${this.handleCancelEditAvatar}>
+                        ${collab_chevron_left}
+                    </button>
+                    ${collab_user} ${this.msg.editAvatar}
+                </h4>
+
+                <div class="avatar-edit-content">
+                    <div class="avatar-preview-small">
+                        ${this.avatarLoading 
+                            ? html`<div class="avatar-loading"><span class="loader"></span></div>`
+                            : previewUrl && this.avatarUrlValid
+                                ? html`<img src="${previewUrl}" alt="Preview" @error=${this.handleAvatarError} />`
+                                : html`<div class="avatar-placeholder">${collab_user}</div>`
+                        }
+                    </div>
+                    <div class="avatar-url-field">
+                        <label>${this.msg.avatarUrl}</label>
+                        <input 
+                            type="url" 
+                            .value=${this.tempAvatarUrl}
+                            @input=${this.handleAvatarUrlInput}
+                            placeholder="${this.msg.avatarUrlPlaceholder}"
+                        />
+                        ${!this.avatarUrlValid && this.tempAvatarUrl 
+                            ? html`<small class="saving-error">${this.msg.invalidAvatarUrl}</small>` 
+                            : ''
+                        }
+                    </div>
                 </div>
-                <div class="user-info-item">
-                    <label>${this.msg.userid}</label>
-                    <span> ${this.userPerfil?.userId ?? ''}  </span>
-                </div>
-                <div class="user-info-item status">
-                    <label>${this.msg.status}</label>
-                    <span class=${this.userPerfil?.status}> ${this.userPerfil?.status ?? 'N/A'} ${icon} </span>
+
+                <div class="form-actions">
+                    <button class="btn-secondary" @click=${this.handleCancelEditAvatar}>
+                        ${collab_xmark} ${this.msg.cancel}
+                    </button>
+                    <button @click=${this.handleSaveAvatar} ?disabled=${!this.avatarUrlValid || this.avatarLoading}>
+                        ${collab_check} ${this.msg.changeAvatar}
+                    </button>
                 </div>
             </div>
         </div>
-            <div class="user-info-item action">
-                <button @click=${this.handleSave} ?disabled=${this.isSavingUser}>
-                    ${this.isSavingUser ? html`<span class="loader"></span>` : html`${collab_floppy_disk} ${this.msg.save}`}
-                </button>
-            </div>
-            ${this.labelOk ? html`<small class="saving-ok">${this.labelOk}<small>` : ''}
-            ${this.labelError ? html`<small class="saving-error">${this.labelError}<small>` : ''}      
-      </div>
-        `
+        `;
     }
 
     private renderChatPreferences() {
@@ -637,6 +717,65 @@ export class CollabMessagesSettings100554 extends StateLitElement {
         `
     }
 
+    // Avatar edit handlers
+    private handleOpenEditAvatar() {
+        this.tempAvatarUrl = this.userPerfil?.avatar_url || '';
+        this.avatarUrlValid = true;
+        this.avatarLoading = false;
+        this.viewMode = 'editAvatar';
+    }
+
+    private handleCancelEditAvatar() {
+        this.tempAvatarUrl = '';
+        this.avatarUrlValid = true;
+        this.avatarLoading = false;
+        this.viewMode = 'main';
+    }
+
+    private handleAvatarUrlInput(e: Event) {
+        const input = e.target as HTMLInputElement;
+        this.tempAvatarUrl = input.value;
+        
+        if (!this.tempAvatarUrl) {
+            this.avatarUrlValid = true;
+            return;
+        }
+
+        // Validate URL format
+        try {
+            new URL(this.tempAvatarUrl);
+        } catch {
+            this.avatarUrlValid = false;
+            return;
+        }
+
+        // Test if image loads
+        this.avatarLoading = true;
+        const img = new Image();
+        img.onload = () => {
+            this.avatarLoading = false;
+            this.avatarUrlValid = true;
+        };
+        img.onerror = () => {
+            this.avatarLoading = false;
+            this.avatarUrlValid = false;
+        };
+        img.src = this.tempAvatarUrl;
+    }
+
+    private handleAvatarError() {
+        this.avatarUrlValid = false;
+    }
+
+    private handleSaveAvatar() {
+        if (!this.avatarUrlValid || this.avatarLoading) return;
+        
+        if (this.userPerfil) {
+            this.userPerfil = { ...this.userPerfil, avatar_url: this.tempAvatarUrl };
+        }
+        this.viewMode = 'main';
+    }
+
     // Delete confirmation handlers
     private handleToggleDeleteConfirmation() {
         this.showDeleteConfirmation = !this.showDeleteConfirmation;
@@ -878,13 +1017,7 @@ export class CollabMessagesSettings100554 extends StateLitElement {
     }
 
     private refreshAvatar() {
-        const collabInit = document.querySelector('collab-init-100554')
-        if (!collabInit) return;
-        const url = collabInit.getAttribute('avatarUrl');
-        if (url && this.userPerfil) {
-            this.userPerfil.avatar_url = url;
-            this.requestUpdate();
-        }
+        // Deprecated - now using handleOpenEditAvatar
     }
 
     private async getUserPerfil() {
@@ -892,7 +1025,7 @@ export class CollabMessagesSettings100554 extends StateLitElement {
             const response = await mls.api.msgGetUserUpdate({ userId: "" });
             return response.user;
         } catch (err: any) {
-            this.serviceBase?.setError(err.message);
+            // TODO: show error message
             throw new Error(err.message);
         }
     }

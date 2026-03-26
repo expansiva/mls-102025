@@ -2,9 +2,9 @@
 
 import { html, repeat, unsafeHTML } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { CollabLitElement } from '/_100554_/l2/collabLitElement.js';
-import { getTemporaryContext } from '/_100554_/l2/aiAgentHelper.js';
-import { loadAgent, executeBeforePrompt } from '/_100554_/l2/aiAgentOrchestration.js';
+import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
+import { getTemporaryContext } from '/_102029_/l2/aiAgentHelper.js';
+import { loadAgent } from '/_102029_/l2/aiAgentOrchestration.js';
 
 @customElement('collab-messages-task-preview-agent-102025')
 export class CollabMessageTaskPreviewAgent extends CollabLitElement {
@@ -16,13 +16,10 @@ export class CollabMessageTaskPreviewAgent extends CollabLitElement {
     @state() private prompts: mls.msg.IAMessageInputType[] = [];
     @state() private mode: string = 'info';
 
-
     private lastKey: number = -1;
 
     firstUpdated() {
-
         this.init();
-
     }
 
     update(changedProperties: any) {

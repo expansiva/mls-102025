@@ -11,7 +11,8 @@ collab-messages-settings-102025 {
     color: @text-primary-color;
     background-color: @bg-primary-color;
     padding: 1rem;
-
+    height: calc(100% - 41px);
+    
     .section {
         padding: 1rem 0.75rem;
         border-radius: 10px;
@@ -92,7 +93,7 @@ collab-messages-settings-102025 {
             justify-content: flex-end;
             gap: 0.75rem;
 
-            margin-top: 2.5rem;
+            margin-top: 1.5rem;
             padding-top: 1rem;
             border-top: 1px solid @grey-color;
         }
@@ -132,8 +133,8 @@ collab-messages-settings-102025 {
             cursor: pointer;
 
 
-            white-space: nowrap; // evita quebrar texto estranho
-            flex-shrink: 0; // não esmagar
+            white-space: nowrap;
+            flex-shrink: 0;
 
             svg {
                 flex-shrink: 0;
@@ -261,30 +262,97 @@ collab-messages-settings-102025 {
         }
     }
 
+    // ========== USER SECTION - IMPROVED ==========
     .user {
-        .user-details {
+        .user-content {
             display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+
+            @media (max-width: @breakpoint-medium) {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        .avatar-section {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .avatar {
+            img {
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid @grey-color;
+            }
+
+            .avatar-placeholder {
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                background-color: @grey-color;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid @grey-color-dark;
+
+                svg {
+                    width: 36px;
+                    height: 36px;
+                    color: @text-primary-color-lighter;
+                }
+            }
+        }
+
+        .user-info {
+            flex: 1;
+            min-width: 0;
+            width: 100%;
+
+            @media (max-width: @breakpoint-medium) {
+                width: 100%;
+            }
         }
 
         .user-info-item {
-            margin-bottom: .4rem;
+            margin-bottom: 1rem;
 
+            label {
+                display: block;
+                font-size: @font-size-12;
+                color: @text-primary-color-lighter;
+                margin-bottom: 0.25rem;
+            }
 
-            &.action {
+            input {
+                width: 100%;
+                padding: 0.5rem;
+                height: auto;
+                max-height: none;
+                box-sizing: border-box;
+            }
+
+            span {
                 display: flex;
-                justify-content: end;
+                align-items: center;
+                gap: 0.5rem;
+                font-size: @font-size-16;
+            }
+
+            .user-id {
+                font-family: monospace;
+                font-size: @font-size-12;
+                color: @text-primary-color-lighter;
+                word-break: break-all;
             }
 
             &.status {
-                >span {
-                    display: flex;
-                    align-items: center;
-                    gap: .5rem;
-                }
-
                 .blocked svg {
                     color: @error-color;
                     fill: @error-color;
@@ -297,36 +365,97 @@ collab-messages-settings-102025 {
             }
         }
 
-        img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
+        .user-info-row {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+
+            .user-info-item {
+                flex: 1;
+                min-width: 120px;
+            }
+        }
+    }
+
+    // ========== EDIT AVATAR VIEW ==========
+    .edit-avatar {
+        .avatar-edit-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+
+            @media (max-width: @breakpoint-small) {
+                flex-direction: column;
+                align-items: center;
+            }
         }
 
-        .avatar {
-            display: flex;
-            flex-direction: column;
-            gap: .4rem;
-            align-items: center;
-            width: 150px;
+        .avatar-preview-small {
+            flex-shrink: 0;
+
+            img {
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid @grey-color;
+            }
 
             .avatar-placeholder {
                 width: 80px;
                 height: 80px;
                 border-radius: 50%;
-                background-color: #ccc;
+                background-color: @grey-color;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 40px;
-                color: white;
-                cursor: pointer;
+                border: 2px solid @grey-color-dark;
 
                 svg {
-                    width: 30px;
-                    height: 50px;
+                    width: 36px;
+                    height: 36px;
+                    color: @text-primary-color-lighter;
                 }
+            }
+
+            .avatar-loading {
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                background-color: @grey-color-light;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid @grey-color;
+            }
+        }
+
+        .avatar-url-field {
+            flex: 1;
+            min-width: 0;
+
+            @media (max-width: @breakpoint-small) {
+                width: 100%;
+            }
+
+            label {
+                display: block;
+                font-size: @font-size-12;
+                color: @text-primary-color-lighter;
+                margin-bottom: 0.25rem;
+            }
+
+            input {
+                width: 100%;
+                padding: 0.5rem;
+                height: auto;
+                max-height: none;
+                box-sizing: border-box;
+            }
+
+            .saving-error {
+                display: block;
+                margin-top: 0.25rem;
             }
         }
     }
@@ -593,10 +722,10 @@ collab-messages-settings-102025 {
         border-radius: 6px;
         padding: 0.5rem 0.75rem;
 
-        min-width: 0; // 🔥 importante para ellipsis funcionar
+        min-width: 0;
 
         .agent-avatar {
-            flex-shrink: 0; // não deixa encolher
+            flex-shrink: 0;
 
             img {
                 max-height: 40px;
@@ -605,7 +734,7 @@ collab-messages-settings-102025 {
 
         .agent-info {
             flex: 1;
-            min-width: 0; // 🔥 necessário para truncar texto
+            min-width: 0;
 
             display: flex;
             flex-direction: column;

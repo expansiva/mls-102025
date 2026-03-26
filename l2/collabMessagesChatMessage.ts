@@ -13,10 +13,9 @@ import {
     collab_delete
 } from '/_102025_/l2/collabMessagesIcons.js';
 
-import { formatTimestamp } from '/_100554_/l2/aiAgentHelper.js';
-import { loadChatPreferences } from '/_102025_/l2/collabMessagesHelper.js';
+import { loadChatPreferences, formatTimestamp } from '/_102025_/l2/collabMessagesHelper.js';
 import { getMessage, updateMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { IChatPreferences, IMessage, IThreadInfo } from '/_102025_/l2/collabMessagesHelper.js';
 
 /// **collab_i18n_start**

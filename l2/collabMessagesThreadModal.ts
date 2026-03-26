@@ -2,10 +2,10 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { getDateFormated } from '/_102027_/l2/libCommom.js';
-import { formatTimestamp } from '/_100554_/l2/aiAgentHelper.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { collab_clock_static, collab_users } from '/_102025_/l2/collabMessagesIcons.js';
+import { getDateFormated, formatTimestamp } from '/_102025_/l2/collabMessagesHelper.js';
+
 import '/_102025_/l2/collabMessagesAvatar.js';
 
 /// **collab_i18n_start**

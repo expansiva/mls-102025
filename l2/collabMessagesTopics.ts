@@ -2,7 +2,7 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { collab_chevron_down, collab_chevron_right } from '/_102025_/l2/collabMessagesIcons.js';
 
 @customElement('collab-messages-topics-102025')

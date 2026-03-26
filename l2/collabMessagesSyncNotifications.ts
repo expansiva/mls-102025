@@ -1,10 +1,19 @@
 /// <mls fileReference="_102025_/l2/collabMessagesSyncNotifications.ts" enhancement="_102027_/l2/enhancementLit" />
 
 import { getUserId, loadNotificationDeviceId, loadNotificationPreferencesAudio } from "/_102025_/l2/collabMessagesHelper.js";
-import { getThread, updateThread, getMessage, addMessages, getAllThreads, addThread, getCompactUTC, updateMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import {
+    getThread,
+    updateThread,
+    getMessage,
+    addMessages,
+    getAllThreads,
+    addThread,
+    getCompactUTC,
+    updateMessage
+} from '/_102025_/l2/collabMessagesIndexedDB.js';
 
-import { changeFavIcon } from "/_102027_/l2/libCommom.js";
-import { notifyThreadChange, notifyMessageChange } from '/_100554_/l2/aiAgentHelper.js';
+import { notifyThreadChange, notifyMessageChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
+import { changeFavIcon } from '/_102025_/l2/collabMessagesHelper.js';
 
 export const threadSyncMap = new Map<string, boolean>();
 let hasNotificationMessages: boolean = false;
@@ -50,36 +59,36 @@ export async function listenToThreadEvents() {
         threadId = parts[0];
 
         await enqueueThreadForSync(reference);
-
         let isThreadOpened: boolean = false;
-        if (mls.services['102025_serviceCollabMessages_left']) {
-            const chat = mls.services['102025_serviceCollabMessages_left'].querySelector('collab-messages-chat-102025');
-            const actualThreadId = chat?.actualThread?.thread?.threadId;
-            if (actualThreadId === threadId) {
-                isThreadOpened = true;
-            }
-        }   
 
-        if (typeNotification === 'thread-update' && (!isThreadOpened || (isThreadOpened && document.visibilityState === 'hidden')
-            && hasNotificationMessages)
-        
-        ) {
-            changeFavIcon(true);
-            mls.services['102025_serviceCollabMessages_left']?.toogleBadge(true, '_102025_serviceCollabMessages');
-            const audioEnabled = loadNotificationPreferencesAudio();
-            if (audioEnabled) {
-                notificationSound.currentTime = 0;
-                notificationSound.play().catch(err => console.warn('Erro on play notification audio:', err));
-            }
+
+        const chat = document.querySelector('collab-messages-102025')?.querySelector('collab-messages-chat-102025') as any;
+        const actualThreadId = chat?.actualThread?.thread?.threadId;
+        if (actualThreadId === threadId) {
+            isThreadOpened = true;
         }
+    
+        if (typeNotification === 'thread-update' && (!isThreadOpened || (isThreadOpened && document.visibilityState === 'hidden')
+        && hasNotificationMessages)
 
-        hasNotificationMessages = false;
+    ) {
+        changeFavIcon(true);
+        
+        notifyThreadNotification(true);
+        const audioEnabled = loadNotificationPreferencesAudio();
+        if (audioEnabled) {
+            notificationSound.currentTime = 0;
+            notificationSound.play().catch(err => console.warn('Erro on play notification audio:', err));
+        }
+    }
+
+    hasNotificationMessages = false;
 
 
-    });
+});
 
-    if ((mls as any).isTraceNotification) console.info('[NOTIFICATION] : sendRequestMissed');
-    await mls.stor.cache.sendRequestMissed();
+if ((mls as any).isTraceNotification) console.info('[NOTIFICATION] : sendRequestMissed');
+await mls.stor.cache.sendRequestMissed();
 
 }
 
@@ -170,9 +179,6 @@ async function updateThreadInBackground(threadId: string, userId: string, device
 
         if (response.threadsPending) {
             for (let threadsPending of response.threadsPending) {
-                // let threadId: string = '';
-                // const parts = threadsPending.split(':');
-                // threadId = parts[0];
                 await enqueueThreadForSync(threadsPending);
             }
         }

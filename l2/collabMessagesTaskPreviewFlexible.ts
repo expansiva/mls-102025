@@ -3,7 +3,7 @@
 
 import { html, repeat } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { CollabLitElement } from '/_100554_/l2/collabLitElement.js';
+import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 
 @customElement('collab-messages-task-preview-flexible-102025')
 export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
@@ -21,7 +21,6 @@ export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
 
     async firstUpdated() {
         this.createEditor();
-
     }
 
     updated(changedProps: Map<string, any>) {
@@ -41,9 +40,7 @@ export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
         if (model) {
             model.setValue(value);
         }
-
     }
-
 
     render() {
 
@@ -83,7 +80,6 @@ export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
         }
 
     }
-
 
     renderInfo() {
 

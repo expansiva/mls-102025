@@ -1,0 +1,53 @@
+/// <mls fileReference="_102025_/l2/collabMessages.less" enhancement="enhancementStyle"/>
+
+collab-messages-102025 {
+
+    display: block;
+    position: relative;
+    overflow: hidden !important;
+    width: 375px;
+    
+    .section-add {
+        padding: 1rem;
+    }
+
+    .alert-notification {
+        position: relative;
+        width: calc(100% - 2rem - 2px);
+        z-index: 999999;
+        background: #e8f9e8;
+        color: #111;
+        border: 1px solid #b4e2b4;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+
+
+        >div {
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            flex-direction: column;
+        }
+
+        >svg {
+            width: 50px;
+            height: 50px;
+            fill: currentColor;
+        }
+
+        button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+        }
+    }
+
+}
+
+

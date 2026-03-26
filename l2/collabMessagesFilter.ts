@@ -2,7 +2,7 @@
 
 import { html, classMap } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { collab_magnifying_glass } from '/_102025_/l2/collabMessagesIcons.js'
 
 @customElement('collab-messages-filter-102025')

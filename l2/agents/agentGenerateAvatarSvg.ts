@@ -1,81 +1,149 @@
-/// <mls fileReference="_102025_/l2/agents/agentGenerateAvatarSvg.ts" enhancement="_blank" />
+/// <mls fileReference="_102025_/l2/agents/agentGenerateAvatarSvg.ts" enhancement="_102027_/l2/enhancementAgent" />
 
-import { IAgent, svg_agent } from '/_100554_/l2/aiAgentBase';
-import { getPromptByHtml } from '/_100554_/l2/aiPrompts';
-import {
-    getAgentStepByAgentName,
-    getNextInProgressStepByAgentName,
-    updateStepStatus,
-    updateTaskTitle,
-} from "/_100554_/l2/aiAgentHelper";
 
-import { startNewAiTask, executeNextStep } from "/_100554_/l2/aiAgentOrchestration";
+import { IAgentAsync, IAgentMeta } from '/_102029_/l2/aiAgentBase.js';
+import { getAgentStepByAgentName } from '/_102029_/l2/aiAgentHelper.js';
 
-const agentName = "agentGenerateAvatarSvg";
-
-export function createAgent(): IAgent {
+export function createAgent(): IAgentAsync {
     return {
-        agentName,
-        avatar_url: svg_agent,
-        agentDescription: "Responsavel por criar svg avatar",
-        visibility: "private",
-        scope: [],
-        async beforePrompt(context: mls.msg.ExecutionContext): Promise<void> {
-            return _beforePrompt(context);
-        },
-        async afterPrompt(context: mls.msg.ExecutionContext): Promise<void> {
-            return _afterPrompt(context);
-        },
-    }
-};
-
-const _beforePrompt = async (context: mls.msg.ExecutionContext): Promise<void> => {
-
-    const taskTitle = "Creating";
-    if (!context || !context.message) throw new Error("Invalid context");
-    if (!context.task) {
-        const inputs = await getPrompts(context.message.content);
-        await startNewAiTask(
-            agentName,
-            taskTitle,
-            context.message.content,
-            context.message.threadId,
-            context.message.senderId,
-            inputs,
-            context,
-            _afterPrompt
-        ).catch((err) => {
-            throw new Error(err.message)
-        });
-    }
-}
-
-const _afterPrompt = async (context: mls.msg.ExecutionContext): Promise<void> => {
-    if (!context || !context.message || !context.task) throw new Error("Invalid context");
-    const step: mls.msg.AIAgentStep | null = getNextInProgressStepByAgentName(context.task, agentName);
-    if (!step) throw new Error(`[${agentName}] afterPrompt: No pending interaction found.`);
-    context = await updateStepStatus(context, step.stepId, "completed");
-    if (!context.task) throw new Error("Invalid context task");
-    context.task = await updateTaskTitle(context.task, "Svg created");
-    await executeNextStep(context);
-}
-
-
-async function getPrompts(data: string): Promise<mls.msg.IAMessageInputType[]> {
-    const dataPrompt = {
-        userPrompt: JSON.stringify(data)
+        agentName: "agentGenerateAvatarSvg",
+        agentProject: 102025,
+        agentFolder: "agents",
+        agentDescription: "Responsible for creating SVG avatars.",
+        visibility: "public",
+        beforePromptImplicit,
+        afterPromptStep
     };
-    const rc = await getPromptByHtml({ folder: 'agents', project: 102025, shortName: agentName, data: dataPrompt });
-    return rc;
+}
+
+async function beforePromptImplicit(
+    agent: IAgentMeta,
+    context: mls.msg.ExecutionContext,
+    userPrompt: string,
+): Promise<mls.msg.AgentIntent[]> {
+
+    if (!userPrompt || userPrompt.length < 5) throw new Error('invalid prompt');
+
+    const addMessageAI: mls.msg.AgentIntentAddMessageAI = {
+        type: "add-message-ai",
+        request: {
+            action: 'addMessageAI',
+            agentName: agent.agentName,
+            inputAI: [{
+                type: "system",
+                content: system1,
+            }, {
+                type: "human",
+                content: context.message.content
+            }],
+            taskTitle: `Test 1`,
+            threadId: context.message.threadId,
+            userMessage: context.message.content,
+        }
+    };
+    return [addMessageAI];
+
+}
+
+async function afterPromptStep(
+    agent: IAgentMeta,
+    context: mls.msg.ExecutionContext,
+    parentStep: mls.msg.AIAgentStep,
+    step: mls.msg.AIAgentStep,
+    hookSequential: number,
+): Promise<mls.msg.AgentIntent[]> {
+
+    if (!agent || !context || !step) throw new Error(`[afterPromptStep] invalid params, agent:${!!agent}, context:${!!context}, step:${!!step}`);
+
+    const payload = (step.interaction?.payload?.[0]) as Output;
+    if (!payload || !payload.type) throw new Error(`Payload invalid`);
+    if (payload?.type !== 'flexible' || !payload.result) throw new Error(`[afterPromptStep] invalid payload: ${payload}`)
+
+    let status: mls.msg.AIStepStatus = 'completed';
+
+    const updateStatus: mls.msg.AgentIntentUpdateStatus = {
+        type: 'update-status',
+        hookSequential,
+        messageId: context.message.orderAt,
+        threadId: context.message.threadId,
+        taskId: context.task?.PK || '',
+        parentStepId: parentStep.stepId,
+        stepId: step.stepId,
+        status
+    };
+
+    return [updateStatus];
+
 }
 
 export function getPayload(context: mls.msg.ExecutionContext): string {
-    if (!context || !context.task) throw new Error(`[${agentName}] [getPayload] Invalid context`);
-    const agentStep = getAgentStepByAgentName(context.task, agentName); // Only one agent execution must exist in this task
-    if (!agentStep) throw new Error(`[${agentName}] [getPayload] no agent found`);
+    if (!context || !context.task) throw new Error(`[getPayload] Invalid context`);
+    const agentStep = getAgentStepByAgentName(context.task, 'agentGenerateAvatarSvg'); // Only one agent execution must exist in this task
+    if (!agentStep) throw new Error(`[getPayload] no agent found`);
     const resultStep = agentStep.interaction?.payload?.[0];
-    if (!resultStep || resultStep.type !== "flexible" || !resultStep.result) throw new Error(`[${agentName}] [getPayload] No step flexible found for this agent.`);
+    if (!resultStep || resultStep.type !== "flexible" || !resultStep.result) throw new Error(`[getPayload] No step flexible found for this agent.`);
     let payload3: string | string = resultStep.result;
     return payload3;
 }
+
+
+const system1 = `
+<!-- modelType: code -->
+<!-- modelTypeList: geminiChat ?/10 , code (grok) ?/10, deepseekchat ?/10, codeflash (gemini) ?/10, deepseekreasoner ?/10, mini (4.1) ou nano (openai) ?/10, codeinstruct (4.1) ?/10, codereasoning(gpt5) ?/10, code2 (kimi 2.5) ?/10 -->
+You are an agent specialized in generating SVG images from natural language descriptions.
+
+You are an agent specialized in generating SVG images from natural language descriptions.
+
+**Objective:**  
+Generate valid, self-contained, responsive SVGs ready for use, accurately representing what the user describes.
+
+**Rules and guidelines:**
+
+1. **Output:** Always return **only the SVG code**, without explanations, comments, or additional text.
+
+2. **Responsiveness:**  
+   - Include 'viewBox="0 0 WIDTH HEIGHT"' matching the original drawing size (use 200x200 if not specified).  
+   - Use 'width="100%" height="100%"' so the SVG adapts to its container.
+
+3. **Supported elements:** '<svg>', '<rect>', '<circle>', '<ellipse>', '<line>', '<polyline>', '<polygon>', '<path>', '<text>', '<defs>', '<linearGradient>', '<radialGradient>'.
+
+4. **Essential attributes:** Use attributes like 'fill', 'stroke', 'stroke-width', 'cx', 'cy', 'x', 'y', 'r', 'points', 'd', etc., as needed.
+
+5. **Colors and transparency:**  
+   - Use valid CSS colors ('red', '#FF0000', 'rgb(255,0,0)', etc.)  
+   - Support 'fill-opacity' and 'stroke-opacity'.
+
+6. **Gradients:** If requested, define them inside '<defs>' and apply with 'fill="url(#gradientId)"' or 'stroke="url(#gradientId)"'.
+
+7. **Position and proportion:**  
+   - Support relative positioning ('center', 'top right corner', 'next to') and proportional sizing ('half the square', 'twice the circle').  
+   - Maintain drawing order as described (first described elements are rendered underneath).
+
+8. **Text:**  
+   - Use '<text>' with 'font-family="sans-serif"', 'font-size="16"' by default, and 'text-anchor="middle"' if centered.  
+   - Position text according to the description.
+
+9. **Fallback:**  
+   - If the request is vague or lacks clear visual elements, generate at least **one centered gray circle**, maintaining responsiveness.
+
+10. **Validation:**  
+   - The SVG must be self-contained and render without errors.
+
+11. **Output format:**  
+   - Return only the SVG code.
+
+## Output format
+You must return the object strictly as JSON, no spaces, no indent, minified
+\`\`\`json
+{
+  type: "flexible",
+  result: string
+}
+\`\`\`
+`
+
+export type Output = {
+    type: "flexible";
+    result: string;
+};
 

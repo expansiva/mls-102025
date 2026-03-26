@@ -2,9 +2,8 @@
 
 import { html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
-import { getNextPendentStep, getTotalCost } from '/_100554_/l2/aiAgentHelper.js';
-import { executeNextStep } from "/_100554_/l2/aiAgentOrchestration.js";
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { getNextPendentStep, getTotalCost } from '/_102029_/l2/aiAgentHelper.js';
 import { getTask, getMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 import {
@@ -49,7 +48,6 @@ export class CollabMessagesTask extends StateLitElement {
     @state() context: mls.msg.ExecutionContext | undefined;
     @state() private secondsPassed: number = 0;
     @state() private lastStep: number | undefined;
-    @state() continueEnabled: boolean = false;
     
     private timerId: number | undefined;
 
@@ -117,10 +115,6 @@ export class CollabMessagesTask extends StateLitElement {
 
     renderIconTask() {
 
-        if (this.continueEnabled) {
-            return html`<span @click=${this.onContinueClick} class="task-icon">${collab_play}</span>`;
-        }
-
         const taskObj: any = {
             '': html``,
             'pending': collab_clock,
@@ -147,18 +141,7 @@ export class CollabMessagesTask extends StateLitElement {
 
     }
 
-    private onContinueClick(e: MouseEvent) {
-
-        e.stopPropagation();
-        if (this.context) {
-            executeNextStep(this.context);
-            this.continueEnabled = false;
-            this.resetTimer();
-        }
-    }
-
     private resetTimer() {
-        if (this.continueEnabled) return;
         this.secondsPassed = 0;
         if (this.timerId) {
             clearInterval(this.timerId);
@@ -201,9 +184,7 @@ export class CollabMessagesTask extends StateLitElement {
 
                 this.lastChanged = new Date().getTime().toString();
                 const nextPendent = getNextPendentStep(response.task);
-                if (nextPendent && nextPendent.type !== 'clarification') {
-                    this.continueEnabled = true;
-                }
+            
             }
 
         }

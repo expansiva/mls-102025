@@ -2,16 +2,18 @@
 
 import { html, LitElement, unsafeHTML, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { collab_chevron_left, collab_gear, collab_translate, collab_circle_exclamation, collab_plus, collab_folder_tree, collab_bell } from '/_102025_/l2/collabMessagesIcons.js';
-import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
-import { openElementInServiceDetails, clearServiceDetails, changeFavIcon } from '/_102027_/l2/libCommom.js';
 import {
-    getTemporaryContext,
-    formatTimestamp,
-    notifyThreadChange
-} from '/_100554_/l2/aiAgentHelper.js';
+    collab_chevron_left,
+    collab_gear,
+    collab_plus,
+    collab_folder_tree,
+    collab_bell
+} from '/_102025_/l2/collabMessagesIcons.js';
 
-import { loadAgent, executeBeforePrompt } from '/_100554_/l2/aiAgentOrchestration.js';
+import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { notifyThreadChange, dispatchDetailsTaskClick , notifyThreadNotification} from '/_102025_/l2/collabMessagesEvents.js';
+
+import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
 
 import {
     addOrUpdateTask,
@@ -36,9 +38,11 @@ import {
     registerToken,
     loadNotificationPreferences,
     loadNotificationDeviceId,
-    defaultThreadImage
+    defaultThreadImage,
+    getTemporaryContext,
+    formatTimestamp,
+    changeFavIcon
 } from '/_102025_/l2/collabMessagesHelper.js';
-
 
 import '/_102025_/l2/collabMessagesTaskInfo.js';
 import '/_102025_/l2/collabMessagesTask.js';
@@ -57,8 +61,8 @@ import '/_102025_/l2/collabMessagesRichPreviewText.js';
 import { IMessage, IThreadInfo, AGENTDEFAULT } from '/_102025_/l2/collabMessagesHelper.js';
 import { CollabMessagesPrompt } from '/_102025_/l2/collabMessagesPrompt.js';
 import { CollabMessagesChatMessage102025 } from '/_102025_/l2/collabMessagesChatMessage.js';
-import { IAgent } from '/_100554_/l2/aiAgentBase.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { IAgent } from '/_102029_/l2/aiAgentBase.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 
 /// **collab_i18n_start**
@@ -209,7 +213,7 @@ export class CollabMessagesChat extends StateLitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         window.removeEventListener('task-change', this.onTaskChange);
-        window.removeEventListener('task-details-close', this.onTaskDetailsClose);
+        // window.removeEventListener('task-details-close', this.onTaskDetailsClose);
         window.removeEventListener('thread-change', this.onThreadChange.bind(this));
         window.removeEventListener('message-change', this.onMessageChange.bind(this));
         window.removeEventListener('message-send', this.onMessageSend);
@@ -221,7 +225,7 @@ export class CollabMessagesChat extends StateLitElement {
     async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
         super.firstUpdated(changedProperties);
         window.addEventListener('task-change', this.onTaskChange);
-        window.addEventListener('task-details-close', this.onTaskDetailsClose);
+        // window.addEventListener('task-details-close', this.onTaskDetailsClose);
         window.addEventListener('thread-change', this.onThreadChange.bind(this));
         window.addEventListener('message-change', this.onMessageChange.bind(this));
         window.addEventListener('message-send', this.onMessageSend);
@@ -1251,10 +1255,10 @@ export class CollabMessagesChat extends StateLitElement {
         const hasPendingMessages = await checkIfNotificationUnread();
         if (!hasPendingMessages) {
             changeFavIcon(false);
-            mls.services['102025_serviceCollabMessages_left']?.toogleBadge(false, '_102025_serviceCollabMessages');
+            notifyThreadNotification(false);
         }
     }
-
+    
     private alreadyCheckForRegisterToken: boolean = false;
     private async checkForRegisterNotification() {
         if (this.alreadyCheckForRegisterToken) return;
@@ -1630,14 +1634,14 @@ export class CollabMessagesChat extends StateLitElement {
         addOrUpdateTask(task);
         this.actualTask = task;
         this.actualMessage = message;
-        const messageId2 = `${this.actualThread?.thread.threadId}/${this.actualMessage?.createAt}`
-        const el = document.createElement('collab-messages-task-info-102025');
-        el.setAttribute('messageId', messageId2);
-        if (this.actualTask && this.actualTask.PK) el.setAttribute('taskId', this.actualTask.PK);
-        (el as any)['task'] = this.actualTask;
-        (el as any)['message'] = this.actualMessage;
-        openElementInServiceDetails(el);
+        const messageId2 = `${this.actualThread?.thread.threadId}/${this.actualMessage?.createAt}`;
 
+        const collabMessages = this.closest('collab-messages-102025') as HTMLElement;
+        if (collabMessages && collabMessages.getAttribute('mode') === 'collab') {
+            dispatchDetailsTaskClick(messageId2, this.actualTask.PK || '', this.actualTask, this.actualMessage)
+        } else {
+            this.activeScenerie = 'task'
+        }
     }
 
     private onReplyPreviewClick(ev: CustomEvent) {
@@ -1720,7 +1724,7 @@ export class CollabMessagesChat extends StateLitElement {
     };
 
 
-
+    /*
     private onTaskDetailsClose = async (_e: Event) => {
         const taskId = (_e as CustomEvent).detail;
         clearServiceDetails();
@@ -1728,7 +1732,7 @@ export class CollabMessagesChat extends StateLitElement {
             this.taskToOpen = taskId;
             this.openTask();
         }
-    };
+    };*/
 
     private onThreadChange = async (e: Event) => {
 
