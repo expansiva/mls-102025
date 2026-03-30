@@ -29,7 +29,7 @@ import { continuePoolingTask } from "/_100554_/l2/aiAgentOrchestration.js";
 import { checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 import { ServiceBase, IService, IToolbarContent, IServiceMenu } from '/_100554_/l2/serviceBase.js';
-import { ICollabMessageEvent } from '/_102025_/l2/collabMessagesHelper.js';
+import { ICollabMessageEvent } from '/_102025_/l2/collabMessagesEvents.js';
 
 import { collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons.js';
 
@@ -599,27 +599,7 @@ export class ServiceCollabMessages extends ServiceBase {
 
     private async onCollabEventsCollabMessages(ev: mls.events.IEvent) {
 
-        if (!ev.desc) return;
-        this.threadToOpen = '';
-        this.taskToOpen = '';
-
-        try {
-            const data: ICollabMessageEvent = JSON.parse(ev.desc);
-            if (data.type === 'thread-open') {
-                if (!data.threadId) return;
-                const thread = await getThread(data.threadId);
-                if (!thread) return;
-                if (data.taskId) this.taskToOpen = data.taskId;
-
-                openService('_102025_serviceCollabMessages', 'left', ev.level);
-                const group = thread.group;
-                this.threadToOpen = thread.threadId;
-                if (group !== this.activeTab) this.activeTab = group as ITabType;
-            }
-        } catch (err: any) {
-            console.error(err.message)
-        }
-
+    
     }
 
     private onThreadCreate = async (e: Event) => {

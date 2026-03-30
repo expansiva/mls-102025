@@ -1,6 +1,6 @@
 /// <mls fileReference="_102025_/l2/agents/agentGenerateAvatarSvg.ts" enhancement="_102027_/l2/enhancementAgent" />
 
-
+/*
 import { IAgentAsync, IAgentMeta } from '/_102029_/l2/aiAgentBase.js';
 import { getAgentStepByAgentName } from '/_102029_/l2/aiAgentHelper.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
@@ -148,3 +148,4 @@ export type Output = {
     result: string;
 };
 
+*/

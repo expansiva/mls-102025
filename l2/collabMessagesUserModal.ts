@@ -107,7 +107,7 @@ export class CollabMessagesUserModal extends StateLitElement {
     }
 
     private async onClickUserAction() {
-    
+
         if (!this.actualUserId || !this.user) return;
         this.isLoading = true;
         try {
@@ -117,8 +117,8 @@ export class CollabMessagesUserModal extends StateLitElement {
                 thread = await createThreadDM(threadName, this.user.userId, 'CONNECT');
             }
             this.destroy();
-            dispatchThreadOpen(thread?.threadId);
-            
+            if (thread) dispatchThreadOpen(thread?.threadId);
+
         } catch (err: any) {
             this.errorMessage = err.message;
         } finally {
