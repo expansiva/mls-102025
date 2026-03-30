@@ -1,8 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesAdd.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html } from 'lit';
+import { html, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-
 import { notifyThreadChange, notifyThreadCreate } from '/_102025_/l2/collabMessagesEvents.js';
 import { addThread, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import {
@@ -212,6 +211,8 @@ export class CollabMessagesAdd extends StateLitElement {
         const lang = this.getMessageKey(messages);
         this.msg = messages[lang];
 
+        const svgGenerateEnabled = environment.config.generateSvgAvatarEnabled();
+
         return html`
         <div class="section-add-thread">
 
@@ -341,7 +342,7 @@ export class CollabMessagesAdd extends StateLitElement {
                 <div class="section-thread-details">
                     ${this.renderBotsConfig()}
                     ${this.renderInitialMessageConfig()}
-                    ${this.renderIconConfig()}
+                    ${svgGenerateEnabled ? this.renderIconConfig() : nothing}
 
                 </div>
                 <br>

@@ -1,6 +1,6 @@
 /// <mls fileReference="_102025_/l2/collabMessagesChangeAvatar.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, unsafeHTML } from "lit";
+import { html, unsafeHTML, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { defaultThreadImage } from '/_102025_/l2/collabMessagesHelper.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -40,7 +40,6 @@ const messages: { [key: string]: MessageType } = {
 }
 /// **collab_i18n_end**
 
-const agentName = '_102025_/l2/agents/agentGenerateAvatarSvg';
 
 @customElement("collab-messages-change-avatar-102025")
 export class CollabChangeAvatar extends StateLitElement {
@@ -68,6 +67,8 @@ export class CollabChangeAvatar extends StateLitElement {
     const lang = this.getMessageKey(messages);
     this.msg = messages[lang];
 
+    const svgGenerateEnabled = environment.config.generateSvgAvatarEnabled();
+
     return html`
     <div class="avatar-section">
       <div class="preview">
@@ -90,10 +91,10 @@ export class CollabChangeAvatar extends StateLitElement {
           class="hidden-file-input"
           @change=${this.onFileSelect}
         />
-
-        <a href="#" class="btn" @click=${(e: MouseEvent) => { e.preventDefault(); this.isOpen = true }}>
+        ${svgGenerateEnabled ? html`  <a href="#" class="btn" @click=${(e: MouseEvent) => { e.preventDefault(); this.isOpen = true }}>
           ${this.msg.generateButton}
-        </a>
+        </a>` : nothing}
+      
       </div>
     </div>
 
