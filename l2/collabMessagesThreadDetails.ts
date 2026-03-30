@@ -8,8 +8,17 @@ import { collab_triangle_exclamation, collab_plus } from '/_102025_/l2/collabMes
 import { notifyThreadChange } from '/_102025_/l2/collabMessagesEvents.js';
 import { addMessage, loadOpenClawIntegrations, generateUUIDv7 } from "/_102025_/l2/collabMessagesHelper.js";
 
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { IOpenClawIntegration, IOpenClawAgent } from "/_102025_/l2/collabMessagesHelper.js";
+
+import {
+    msgGetThreadUpdates,
+    msgRemoveParticipantFromThread,
+    msgAddOrUpdateThreadIntegration,
+    msgAddOrUpdateThreadBot,
+    msgUpdateThread
+} from '/_102025_/l2/shared/api.js';
 
 import '/_102025_/l2/collabMessagesInputTag.js';
 import '/_102025_/l2/collabMessagesAddParticipant.js';
@@ -203,7 +212,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
     }
 
     private getAddedAgentIds(): Set<string> {
-        const integrations: mls.msg.ThreadIntegration[] = this.editedThreadDetails?.thread.integrations || [];
+        const integrations: msg.ThreadIntegration[] = this.editedThreadDetails?.thread.integrations || [];
         const addedIds = new Set<string>();
         for (const integration of integrations) {
             if (integration.config?.agentId && integration.status === 'active') {
@@ -272,7 +281,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                     @change=${(e: Event) => {
                 if (this.editedThreadDetails) {
                     this.editedThreadDetails.thread.status =
-                        (e.target as HTMLSelectElement).value as mls.msg.ThreadStatus;
+                        (e.target as HTMLSelectElement).value as msg.ThreadStatus;
                 }
             }}
                 >
@@ -293,7 +302,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                 <select name="visibility" required
                     ?disabled=${this.isDirectMessage || this.isFileChannel}
                     .value=${this.editedThreadDetails?.thread.visibility}
-                    @change=${(e: Event) => { if (this.editedThreadDetails && this.isChannel) this.editedThreadDetails.thread.visibility = (e.target as HTMLInputElement).value as mls.msg.ThreadVisibility }}>
+                    @change=${(e: Event) => { if (this.editedThreadDetails && this.isChannel) this.editedThreadDetails.thread.visibility = (e.target as HTMLInputElement).value as msg.ThreadVisibility }}>
                     <option value="public">${this.msg.visibilityPublic}</option>
                     <option value="private">${this.msg.visibilityPrivate}</option>
                     <option value="company">${this.msg.visibilityCompany}</option>
@@ -404,7 +413,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
     }
 
     private renderAgents() {
-        const threadIntegrations: mls.msg.ThreadIntegration[] = this.editedThreadDetails?.thread.integrations || [];
+        const threadIntegrations: msg.ThreadIntegration[] = this.editedThreadDetails?.thread.integrations || [];
         // const activeIntegrations = threadIntegrations.filter(i => i.status === 'active');
 
         return html`
@@ -415,8 +424,8 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                 ? html`<li class="empty-list"><small>${this.msg.noAgents}</small></li>`
                 : repeat(
                     threadIntegrations,
-                    ((integration: mls.msg.ThreadIntegration) => integration.integrationId) as any,
-                    ((integration: mls.msg.ThreadIntegration) => {
+                    ((integration: msg.ThreadIntegration) => integration.integrationId) as any,
+                    ((integration: msg.ThreadIntegration) => {
                         const agentInfo = this.findAgentInfo(integration.config?.agentId || '');
                         const agentName = agentInfo?.agent?.name || integration.config?.agentId || 'Unknown';
                         const integrationName = agentInfo?.integrationName || 'OpenClaw';
@@ -612,12 +621,10 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         this.isLoadingAgents = true;
 
         try {
-            // Generate unique inboundToken (UUIDv7) for this agent/thread combination
             const inboundToken = generateUUIDv7();
             const integrationId = generateUUIDv7();
 
-            // Create ThreadIntegration config
-            const threadIntegration: mls.msg.ThreadIntegration = {
+            const threadIntegration: msg.ThreadIntegration = {
                 integrationId,
                 type: 'openclaw',
                 status: 'active',
@@ -631,41 +638,51 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                 triggers: []
             };
 
-            const response = await mls.api.msgAddOrUpdateThreadIntegration({
+            const result = await msgAddOrUpdateThreadIntegration({
                 threadId: this.threadDetails.thread.threadId,
                 userId: this.userId,
                 ...threadIntegration
             });
 
-            if (response.statusCode !== 200) {
-                throw new Error(response.msg || 'Error adding agent');
+            if (!result.success || !result.response?.thread) {
+                throw new Error(
+                    result.error || 'Failed to add agent to thread.'
+                );
             }
 
-            // Update local state with the response
-            if (response.thread) {
-                this.editedThreadDetails.thread = { ...response.thread };
-                const threadCache = await updateThread(response.thread.threadId, response.thread);
-                notifyThreadChange(threadCache);
-            }
+            // Update local state
+            const thread = result.response.thread;
 
-            this.labelOkAgent = this.msg.successAddAgent;
+            this.editedThreadDetails.thread = { ...thread };
+
+            const threadCache = await updateThread(thread.threadId, thread);
+            notifyThreadChange(threadCache);
+
+            this.labelOkAgent =
+                this.msg.successAddAgent || 'Agent added successfully.';
+
             this.closeAgentForm();
             this.requestUpdate();
 
         } catch (err: any) {
-            this.labelErrorAgent = err.message;
+            this.labelErrorAgent =
+                err?.message || 'An unexpected error occurred while adding the agent.';
         } finally {
             this.isLoadingAgents = false;
         }
     }
 
-    private async updateStatusAgent(e: MouseEvent, integrationId: string, status: "active" | "disabled") {
+    private async updateStatusAgent(
+        e: MouseEvent,
+        integrationId: string,
+        status: "active" | "disabled"
+    ) {
         this.labelErrorAgent = '';
         this.labelOkAgent = '';
 
         if (!this.editedThreadDetails || !this.threadDetails || !this.userId) return;
 
-        if (['deleting'].includes(this.editedThreadDetails?.thread.status || '')) {
+        if (['deleting'].includes(this.editedThreadDetails.thread.status || '')) {
             this.labelErrorAgent = this.msg.errorSaveThreadDeletStatus;
             return;
         }
@@ -675,40 +692,53 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         try {
             button?.classList.add('loading');
 
-            const currentIntegrations: mls.msg.ThreadIntegration[] = this.editedThreadDetails.thread.integrations || [];
-            const integrationToUpdate = currentIntegrations.find(i => i.integrationId === integrationId);
+            const currentIntegrations: msg.ThreadIntegration[] =
+                this.editedThreadDetails.thread.integrations || [];
+
+            const integrationToUpdate = currentIntegrations.find(
+                i => i.integrationId === integrationId
+            );
 
             if (!integrationToUpdate) {
                 throw new Error('Integration not found');
             }
 
-            const updatedIntegration: mls.msg.ThreadIntegration = {
+            const updatedIntegration: msg.ThreadIntegration = {
                 ...integrationToUpdate,
-                status,
+                status
             };
 
-            const response = await mls.api.msgAddOrUpdateThreadIntegration({
+            const result = await msgAddOrUpdateThreadIntegration({
                 threadId: this.threadDetails.thread.threadId,
                 userId: this.userId,
                 ...updatedIntegration
             });
 
-            if (response.statusCode !== 200) {
-                throw new Error(response.msg || 'Error update status integration agent');
+            if (!result.success || !result.response?.thread) {
+                throw new Error(
+                    result.error || 'Failed to update agent status.'
+                );
             }
 
             // Update local state
-            if (response.thread) {
-                this.editedThreadDetails.thread = { ...response.thread };
-                const threadCache = await updateThread(response.thread.threadId, response.thread);
-                notifyThreadChange(threadCache);
-            }
+            const thread = result.response.thread;
 
-            this.labelOkAgent = this.msg.successRemoveAgent;
+            this.editedThreadDetails.thread = { ...thread };
+
+            const threadCache = await updateThread(thread.threadId, thread);
+            notifyThreadChange(threadCache);
+
+            this.labelOkAgent =
+                this.msg.successRemoveAgent ||
+                'Agent status updated successfully.';
+
             this.requestUpdate();
 
         } catch (err: any) {
-            this.labelErrorAgent = this.msg.errorRemoveAgent + ': ' + err.message;
+            this.labelErrorAgent =
+                ('Failed to update agent status') +
+                ': ' +
+                (err?.message || 'Unexpected error');
         } finally {
             button?.classList.remove('loading');
         }
@@ -722,8 +752,8 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             <ul>
                 ${repeat(
             this.editedThreadDetails?.thread.bots || [],
-            ((bot: mls.msg.ThreadBot) => bot.botId) as any,
-            ((bot: mls.msg.ThreadBot) => {
+            ((bot: msg.ThreadBot) => bot.botId) as any,
+            ((bot: msg.ThreadBot) => {
                 return html`
                         <li>
                             <small>${bot?.botId}<b>(${bot.status})</b></small>
@@ -791,10 +821,14 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         }
     }
 
-    private async disableBot(botId: string, threadId: string, userId: string): Promise<mls.msg.Thread> {
+    private async disableBot(
+        botId: string,
+        threadId: string,
+        userId: string
+    ): Promise<msg.Thread> {
 
         try {
-            const rc = await mls.api.msgAddOrUpdateThreadBot({
+            const result = await msgAddOrUpdateThreadBot({
                 botId,
                 llmPrompt: "",
                 status: "disabled",
@@ -802,30 +836,40 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                 userId,
                 config: undefined
             });
-            if (rc.statusCode === 200) {
-                this.threadDetails = JSON.parse(JSON.stringify(this.editedThreadDetails));
-                const threadCache = await updateThread(threadId, rc.thread);
-                notifyThreadChange(threadCache);
-                await addMessage(threadId, `Bot ${botId} disabled OK!`);
-                return rc.thread;
-            };
 
-            throw new Error(`"error on disable bot", ${rc.statusCode} : ${rc.msg}`)
+            if (!result.success || !result.response?.thread) {
+                throw new Error(
+                    result.error || 'Failed to disable bot'
+                );
+            }
+
+            const thread = result.response.thread;
+
+            // Update local state
+            this.threadDetails = JSON.parse(JSON.stringify(this.editedThreadDetails));
+
+            const threadCache = await updateThread(threadId, thread);
+            notifyThreadChange(threadCache);
+
+            await addMessage(threadId, `Bot ${botId} disabled successfully.`);
+
+            return thread;
 
         } catch (err: any) {
-            throw new Error(`"error on disable bot", ${err.message}`)
+            throw new Error(
+                err?.message || 'Unexpected error while disabling bot'
+            );
         }
-
     }
 
-    private getChangedFields(): mls.msg.RequestUpdateThread | undefined {
+    private getChangedFields(): msg.RequestUpdateThread | undefined {
         if (!this.threadDetails || !this.editedThreadDetails) return undefined;
 
         const original = this.threadDetails.thread;
         const edited = this.editedThreadDetails.thread;
 
-        const fields: (keyof mls.msg.ThreadPerformanceCache)[] = ['group', 'languages', 'name', 'status', 'visibility', 'welcomeMessage', 'defaultTopics', 'avatar_url'];
-        const changed: mls.msg.RequestUpdateThread = {
+        const fields: (keyof msg.ThreadPerformanceCache)[] = ['group', 'languages', 'name', 'status', 'visibility', 'welcomeMessage', 'defaultTopics', 'avatar_url'];
+        const changed: msg.RequestUpdateThread = {
             action: 'updateThread',
             threadId: original.threadId,
             userId: this.userId!,
@@ -855,15 +899,17 @@ export class CollabMessagesThreadDetails extends StateLitElement {
 
         this.labelError = '';
         this.labelOk = '';
+
         if (!this.editedThreadDetails || !this.userId) return;
 
-        if (['deleting'].includes(this.editedThreadDetails?.thread.status || '')) {
+        if (['deleting'].includes(this.editedThreadDetails.thread.status || '')) {
             this.labelError = this.msg.errorSaveThreadDeletStatus;
             return;
         }
 
         const changes = this.getChangedFields();
         if (!changes) return;
+
         const needUpdateThread = Object.keys(changes).length > 3;
 
         if (!needUpdateThread) {
@@ -871,81 +917,109 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             return;
         }
 
-        let newThread: mls.msg.Thread | undefined;
         this.isLoading = true;
+
         try {
+            const result = await msgUpdateThread(changes);
 
-            if (needUpdateThread) {
-                const response = await mls.api.msgUpdateThread(changes);
-                if (response.statusCode !== 200) {
-                    this.labelError = `${response.msg}`;
-                    return;
-                }
-                newThread = response.thread;
+            if (!result.success || !result.response?.thread) {
+                this.labelError =
+                    result.error || 'Failed to update thread.';
+                return;
             }
 
-            if (newThread) {
-                const oldStatus = this.threadDetails?.thread.status;
-                this.threadDetails = JSON.parse(JSON.stringify(this.editedThreadDetails));
-                let threadCache: mls.msg.ThreadPerformanceCache;
+            const newThread = result.response.thread;
+            const oldStatus = this.threadDetails?.thread.status;
 
-                if (['deleted', 'archived'].includes(newThread.status) && newThread.status !== oldStatus) {
-                    await deleteAllMessagesFromThread(newThread.threadId);
-                    threadCache = await updateThread(
-                        newThread.threadId,
-                        newThread,
-                        '',
-                        '',
-                        0,
-                        ''
-                    );
-                } else {
-                    threadCache = await updateThread(newThread.threadId, newThread);
-                }
-                notifyThreadChange(threadCache);
+            this.threadDetails = JSON.parse(JSON.stringify(this.editedThreadDetails));
+
+            let threadCache: msg.ThreadPerformanceCache;
+
+            if (
+                ['deleted', 'archived'].includes(newThread.status) &&
+                newThread.status !== oldStatus
+            ) {
+                await deleteAllMessagesFromThread(newThread.threadId);
+
+                threadCache = await updateThread(
+                    newThread.threadId,
+                    newThread,
+                    '',
+                    '',
+                    0,
+                    ''
+                );
+            } else {
+                threadCache = await updateThread(newThread.threadId, newThread);
             }
 
-            this.labelOk = `${this.msg.successSaving}`;
+            notifyThreadChange(threadCache);
+
+            this.labelOk =
+                this.msg.successSaving || 'Thread updated successfully.';
 
         } catch (err: any) {
             console.error(err);
-            this.labelError = err.message;
+            this.labelError =
+                err?.message || 'An unexpected error occurred while saving changes.';
         } finally {
             this.isLoading = false;
         }
     }
 
-    private async removeUserFromThread(threadId: string, userId: string, userIdOrName: string) {
-        const params: mls.msg.RequestRemoveUserInThread = {
-            action: 'removeUserInThread',
-            threadId,
-            userId,
-            userIdOrName
-        };
-
+    private async removeUserFromThread(
+        threadId: string,
+        userId: string,
+        userIdOrName: string
+    ) {
         try {
-            const res = await mls.api.msgUpdateThread(params);
-            return res.thread;
+            const result = await msgRemoveParticipantFromThread({
+                threadId,
+                userId,
+                userIdOrName
+            });
+
+            if (!result.success || !result.response?.thread) {
+                throw new Error(
+                    result.error || 'Failed to remove participant from thread'
+                );
+            }
+
+            return result.response.thread;
+
         } catch (err: any) {
-            throw new Error(err.message);
+            throw new Error(
+                err?.message || 'Unexpected error while removing participant'
+            );
         }
     }
 
-    private async getThreadInfo(threadId: string, userId: string): Promise<IThreadDetails> {
+    private async getThreadInfo(
+        threadId: string,
+        userId: string
+    ): Promise<IThreadDetails> {
         try {
-            const response = await mls.api.msgGetThreadUpdate({
+            const result = await msgGetThreadUpdates({
                 threadId,
-                userId,
+                userId
             });
-            return response;
+
+            if (!result.success || !result.response) {
+                throw new Error(result.error || 'Failed to fetch thread details');
+            }
+
+            return result.response;
+
         } catch (err: any) {
-            throw new Error(err.message)
+            throw new Error(
+                err?.message || 'Unexpected error while fetching thread details'
+            );
         }
     }
 
 }
 
 interface IThreadDetails {
-    thread: mls.msg.ThreadPerformanceCache,
-    users: mls.msg.User[]
+    thread: msg.ThreadPerformanceCache,
+    users: msg.User[]
 }

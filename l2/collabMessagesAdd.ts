@@ -1,8 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesAdd.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 import { notifyThreadChange, notifyThreadCreate } from '/_102025_/l2/collabMessagesEvents.js';
 import { addThread, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
@@ -15,9 +14,18 @@ import {
 } from '/_102025_/l2/collabMessagesHelper.js';
 
 import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
+import {
+    msgGetUsers,
+    msgUpdateThread,
+    msgGetThreadUpdates,
+    msgAddOrUpdateThreadBot,
+    msgAddThread
+} from '/_102025_/l2/shared/api.js';
 
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { IAgent } from '/_102029_/l2/aiAgentBase.js'
 import { CollabMessagesInputTag } from '/_102025_/l2/collabMessagesInputTag.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 import '/_102025_/l2/collabMessagesInputTag.js';
 
@@ -125,8 +133,8 @@ export class CollabMessagesAdd extends StateLitElement {
 
     @state() private threadType: ThreadType = 'dm';
     @state() private threadName: string = '';
-    @state() private visibility: mls.msg.ThreadVisibility = 'private';
-    @state() private group: mls.msg.ThreadGroup = 'CRM';
+    @state() private visibility: msg.ThreadVisibility = 'private';
+    @state() private group: msg.ThreadGroup = 'CRM';
     @state() private languages: string[] = [];
     @state() private isLoading: boolean = false;
     @state() private dmUser: string = ''
@@ -163,9 +171,23 @@ export class CollabMessagesAdd extends StateLitElement {
     private async loadUsersAvaliables() {
         const userId = getUserId();
         if (!userId) return;
-        const res = await mls.api.msgGetUsers({ status: "active", prefixName: "", userId });
-        if (res.statusCode !== 200) return;
-        this.users = res.users.filter((user) => user.userId !== userId);
+
+        const result = await msgGetUsers({
+            status: "active",
+            prefixName: "",
+            userId
+        });
+
+        if (!result.success || !result.response) {
+            console.error(result.error);
+            return;
+        }
+
+        if (!result.response.users) return;
+
+        this.users = result.response.users.filter(
+            (user) => user.userId !== userId
+        );
     }
 
     private async loadAgentsBotsAvaliables() {
@@ -303,7 +325,7 @@ export class CollabMessagesAdd extends StateLitElement {
                     <label> ${this.msg.visibility} </label>   
                     <select name="visibility" required
                         .value=${this.visibility}
-                        @change=${(e: Event) => this.visibility = (e.target as HTMLSelectElement).value as mls.msg.ThreadVisibility}>
+                        @change=${(e: Event) => this.visibility = (e.target as HTMLSelectElement).value as msg.ThreadVisibility}>
                         <option value="public">${this.msg.visibilityPublic}</option>
                         <option value="private">${this.msg.visibilityPrivate}</option>
                         <option value="company">${this.msg.visibilityCompany}</option>
@@ -316,7 +338,7 @@ export class CollabMessagesAdd extends StateLitElement {
                 <label> ${this.msg.group}</label>
                     <select name="group" required
                         .value=${this.group}
-                        @change=${(e: Event) => this.group = (e.target as HTMLSelectElement).value as mls.msg.ThreadGroup}>
+                        @change=${(e: Event) => this.group = (e.target as HTMLSelectElement).value as msg.ThreadGroup}>
                         <option value="CRM">CRM</option>
                         <option value="TASK">TASK</option>
                         <option value="DOCS">DOCS</option>
@@ -503,7 +525,7 @@ export class CollabMessagesAdd extends StateLitElement {
                 avatar_url = botSelected?.avatar_url || ''
             }
 
-            const params: mls.msg.RequestAddThread = {
+            const params: msg.RequestAddThread = {
                 action: 'addThread',
                 name: threadName,
                 group: this.group,
@@ -515,27 +537,33 @@ export class CollabMessagesAdd extends StateLitElement {
                 welcomeMessage: this._initialMessage,
                 defaultTopics: this._topics || [],
             };
-
             try {
-                const response = await mls.api.msgAddThread(params);
-                if (response.thread) {
-                    const thr = await addThread(response.thread);
-                    notifyThreadCreate(thr);
-                    if (this._selectedAgent && this._selectedAgent !== 'none') {
-                        await this.addBot(response.thread.threadId, this.userId);
-                    }
+                const result = await msgAddThread(params);
 
-                    if (this._promptToAvatar) {
-                        await this.generateAvatar(response.thread.threadId, this.userId);
-
-                    }
-                    if (this.onAddSuccess) this.onAddSuccess();
-
+                if (!result.success || !result.response?.thread) {
+                    throw new Error(result.error || 'Failed to create thread');
                 }
+
+                const thread = result.response.thread;
+
+                const thr = await addThread(thread);
+                notifyThreadCreate(thr);
+
+                await Promise.all([
+                    this._selectedAgent && this._selectedAgent !== 'none'
+                        ? this.addBot(thread.threadId, this.userId)
+                        : null,
+                    this._promptToAvatar
+                        ? this.generateAvatar(thread.threadId, this.userId)
+                        : null
+                ]);
+
+                if (this.onAddSuccess) this.onAddSuccess();
 
             } catch (err: any) {
                 console.error(err);
-                this.labelError = err.message;
+                this.labelError =
+                    err?.message || 'An error occurred while creating the thread';
             } finally {
                 this.isLoading = false;
             }
@@ -545,83 +573,104 @@ export class CollabMessagesAdd extends StateLitElement {
     }
 
     private async addBot(threadId: string, userId: string) {
-        const botSelected = this.agentsBots.find((item) => item.id === this._selectedAgent);
+        const botSelected = this.agentsBots.find(
+            (item) => item.id === this._selectedAgent
+        );
+
         if (!botSelected || !botSelected.info) return;
-        await addMessage(threadId, `@@BotInstall {"projectId":${botSelected.info.project}, "shortName":"${botSelected.info.shortName}", "folder":${botSelected.info.folder || '""'}}`);
 
-        if (this._agentConfig) {
+        await addMessage(
+            threadId,
+            `@@BotInstall {"projectId":${botSelected.info.project}, "shortName":"${botSelected.info.shortName}", "folder":${botSelected.info.folder || '""'}}`
+        );
 
-            const threadWithBot = await mls.api.msgGetThreadUpdate({
+        if (!this._agentConfig) return;
+
+        try {
+
+            const threadResult = await msgGetThreadUpdates({
                 threadId,
                 userId
             });
 
-            if (threadWithBot && threadWithBot.thread.bots) {
-                const botInfo = threadWithBot.thread.bots.find((bot) => bot.botId === botSelected.id);
-                if (botInfo) {
-                    const res = await mls.api.msgAddOrUpdateThreadBot({
-                        botId: botSelected.id,
-                        config: { 'agentConfiguration': this._agentConfig },
-                        llmPrompt: botInfo.llmPrompt,
-                        status: 'active',
-                        threadId,
-                        userId
-                    });
-                    notifyThreadChange(res.thread);
-                    if (this.onAddSuccess) this.onAddSuccess();
-                }
-
-            } else {
-                notifyThreadChange(threadWithBot.thread);
-                if (this.onAddSuccess) this.onAddSuccess();
+            if (!threadResult.success || !threadResult.response?.thread) {
+                throw new Error(
+                    threadResult.error || 'Failed to fetch thread after bot install'
+                );
             }
 
+            const thread = threadResult.response.thread;
+            const botInfo = thread.bots?.find(
+                (bot) => bot.botId === botSelected.id
+            );
+
+            if (!botInfo) {
+                notifyThreadChange(thread);
+                if (this.onAddSuccess) this.onAddSuccess();
+                return;
+            }
+
+            const botResult = await msgAddOrUpdateThreadBot({
+                botId: botSelected.id,
+                config: { agentConfiguration: this._agentConfig },
+                llmPrompt: botInfo.llmPrompt,
+                status: 'active',
+                threadId,
+                userId
+            });
+
+            if (!botResult.success || !botResult.response?.thread) {
+                throw new Error(
+                    botResult.error || 'Failed to configure bot'
+                );
+            }
+
+            notifyThreadChange(botResult.response.thread);
+
+            if (this.onAddSuccess) this.onAddSuccess();
+
+        } catch (err: any) {
+            console.error('Error adding bot:', err);
         }
     }
 
     private async generateAvatar(threadId: string, userId: string) {
         try {
-        
             const agent = await loadAgent(agentName);
             if (!agent) throw new Error('Invalid agent');
-            
+
             const context = getTemporaryContext(threadId, userId, this._promptToAvatar);
             await executeBeforePrompt(agent, context);
 
-            if (context.task &&
-                context.task.iaCompressed &&
-                context.task.iaCompressed.nextSteps &&
-                context.task.iaCompressed.nextSteps[0] &&
-                context.task.iaCompressed.nextSteps[0].interaction &&
-                context.task.iaCompressed.nextSteps[0].interaction.payload &&
-                context.task.iaCompressed.nextSteps[0].interaction.payload[0]
+            const svg = this.extractSvgFromContext(context);
+            if (!svg) return;
 
-            ) {
+            const result = await msgUpdateThread({
+                threadId,
+                userId,
+                avatar_url: svg
+            });
 
-                const svg: string = (context.task.iaCompressed?.nextSteps[0]?.interaction?.payload[0] as mls.msg.AIFlexibleResultStep).result
-                if (svg && typeof svg === 'string') {
-                    const args: mls.msg.RequestUpdateThread = {
-                        action: 'updateThread',
-                        threadId,
-                        userId,
-                        avatar_url: svg
-                    };
-                    const response = await mls.api.msgUpdateThread(args);
-                    if (response.statusCode !== 200) {
-                        this.labelError = `${response.msg}`;
-                    } else {
-                        const threadCache = await updateThread(threadId, response.thread)
-                        notifyThreadChange(threadCache);
-                    }
-                }
+            if (!result.success || !result.response) {
+                this.labelError =
+                    result.error || 'Failed to update the thread avatar. Please try again.';
+                return;
             }
 
+            const threadCache = await updateThread(threadId, result.response.thread);
+            notifyThreadChange(threadCache);
+
         } catch (err: any) {
-            console.error("Erro ao gerar avatar via IA", err);
+            console.error('Error generating avatar via AI', err);
+            this.labelError = err?.message || 'An unexpected error occurred.';
         }
     }
-}
 
+    private extractSvgFromContext(context: any): string | null {
+        return context?.task?.iaCompressed?.nextSteps?.[0]?.interaction?.payload?.[0]?.result ?? null;
+    }
+
+}
 interface IAgentsBots {
     id: string,
     name: string,

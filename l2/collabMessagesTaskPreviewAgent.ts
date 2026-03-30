@@ -2,18 +2,20 @@
 
 import { html, repeat, unsafeHTML } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 import { getTemporaryContext } from '/_102029_/l2/aiAgentHelper.js';
 import { loadAgent } from '/_102029_/l2/aiAgentOrchestration.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 
 @customElement('collab-messages-task-preview-agent-102025')
 export class CollabMessageTaskPreviewAgent extends CollabLitElement {
 
-    @property({ type: Object }) message: mls.msg.Message | null = null;
-    @property({ type: Object }) task: mls.msg.TaskData | null = null;
-    @property({ type: Object }) step: mls.msg.AIAgentStep | null = null;
+    @property({ type: Object }) message: msg.Message | null = null;
+    @property({ type: Object }) task: msg.TaskData | null = null;
+    @property({ type: Object }) step: msg.AIAgentStep | null = null;
     @property({ type: String }) agentDescription: string = '';
-    @state() private prompts: mls.msg.IAMessageInputType[] = [];
+    @state() private prompts: msg.IAMessageInputType[] = [];
     @state() private mode: string = 'info';
 
     private lastKey: number = -1;
@@ -128,7 +130,7 @@ export class CollabMessageTaskPreviewAgent extends CollabLitElement {
                         <span>Execute</span>
                         <div style="float: right;">
                             <span>(run again - test)</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" style="transform: rotateY(174deg); z-index:9999;width:15px; cursor:pointer" @click=${(e: MouseEvent) => { e.stopPropagation(); e.preventDefault(); this.replayForSupport(e.currentTarget as HTMLElement, (this.step as mls.msg.AIAgentStep).agentName, (this.step as mls.msg.AIAgentStep).interaction, (this.step as mls.msg.AIAgentStep).stepId) }} viewBox="0 0 576 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M209.4 39.5c-9.1-9.6-24.3-10-33.9-.9L33.8 173.2c-19.9 18.9-19.9 50.7 0 69.6L175.5 377.4c9.6 9.1 24.8 8.7 33.9-.9s8.7-24.8-.9-33.9L66.8 208 208.5 73.4c9.6-9.1 10-24.3 .9-33.9zM352 64c0-12.6-7.4-24.1-19-29.2s-25-3-34.4 5.4l-160 144c-6.7 6.1-10.6 14.7-10.6 23.8s3.9 17.7 10.6 23.8l160 144c9.4 8.5 22.9 10.6 34.4 5.4s19-16.6 19-29.2l0-64 32 0c53 0 96 43 96 96c0 30.4-12.8 47.9-22.2 56.7c-5.5 5.1-9.8 12-9.8 19.5c0 10.9 8.8 19.7 19.7 19.7c2.8 0 5.6-.6 8.1-1.9C494.5 467.9 576 417.3 576 304c0-97.2-78.8-176-176-176l-48 0 0-64z"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" style="transform: rotateY(174deg); z-index:9999;width:15px; cursor:pointer" @click=${(e: MouseEvent) => { e.stopPropagation(); e.preventDefault(); this.replayForSupport(e.currentTarget as HTMLElement, (this.step as msg.AIAgentStep).agentName, (this.step as msg.AIAgentStep).interaction, (this.step as msg.AIAgentStep).stepId) }} viewBox="0 0 576 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M209.4 39.5c-9.1-9.6-24.3-10-33.9-.9L33.8 173.2c-19.9 18.9-19.9 50.7 0 69.6L175.5 377.4c9.6 9.1 24.8 8.7 33.9-.9s8.7-24.8-.9-33.9L66.8 208 208.5 73.4c9.6-9.1 10-24.3 .9-33.9zM352 64c0-12.6-7.4-24.1-19-29.2s-25-3-34.4 5.4l-160 144c-6.7 6.1-10.6 14.7-10.6 23.8s3.9 17.7 10.6 23.8l160 144c9.4 8.5 22.9 10.6 34.4 5.4s19-16.6 19-29.2l0-64 32 0c53 0 96 43 96 96c0 30.4-12.8 47.9-22.2 56.7c-5.5 5.1-9.8 12-9.8 19.5c0 10.9 8.8 19.7 19.7 19.7c2.8 0 5.6-.6 8.1-1.9C494.5 467.9 576 417.3 576 304c0-97.2-78.8-176-176-176l-48 0 0-64z"/></svg>
                             <span class="result"></span>
                         </div>
                     </li>
@@ -166,12 +168,12 @@ export class CollabMessageTaskPreviewAgent extends CollabLitElement {
 
         return html`
         <div class="containerinputs containerdraganddrop">
-            ${repeat(this.prompts, ((key: mls.msg.IAMessageInputType) => key.type + Date.now()) as any, ((p: mls.msg.IAMessageInputType, idx: number) => { return this.renderPrompt(p, idx) }) as any)}
+            ${repeat(this.prompts, ((key: msg.IAMessageInputType) => key.type + Date.now()) as any, ((p: msg.IAMessageInputType, idx: number) => { return this.renderPrompt(p, idx) }) as any)}
         </div>
         `
     }
 
-    renderPrompt(prompt: mls.msg.IAMessageInputType, idx: number) {
+    renderPrompt(prompt: msg.IAMessageInputType, idx: number) {
 
         let pp = prompt.content.trim();
         return html`

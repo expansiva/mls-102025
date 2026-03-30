@@ -1,6 +1,8 @@
 /// <mls fileReference="_102025_/l2/collabMessagesEvents.ts" enhancement="_blank"/>
 
-export function notifyMessageSendChange(context: mls.msg.ExecutionContext): void {
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+
+export function notifyMessageSendChange(context: msg.ExecutionContext): void {
   const scopeWindow = window?.top ? window.top : window;
   const event = new CustomEvent('message-send', {
     detail: { context },
@@ -10,7 +12,7 @@ export function notifyMessageSendChange(context: mls.msg.ExecutionContext): void
   scopeWindow.dispatchEvent(event);
 }
 
-export function notifyTaskChange(context: mls.msg.ExecutionContext, oldContextCreateAt?: string): void {
+export function notifyTaskChange(context: msg.ExecutionContext, oldContextCreateAt?: string): void {
   const scopeWindow = window?.top ? window.top : window;
   const event = new CustomEvent('task-change', {
     detail: { context, oldContextCreateAt },
@@ -20,7 +22,7 @@ export function notifyTaskChange(context: mls.msg.ExecutionContext, oldContextCr
   scopeWindow.dispatchEvent(event);
 }
 
-export function notifyTaskCompleted(context: mls.msg.ExecutionContext, result?: string): void {
+export function notifyTaskCompleted(context: msg.ExecutionContext, result?: string): void {
   const scopeWindow = window?.top ? window.top : window;
   const event = new CustomEvent('task-completed', {
     detail: { context, result },
@@ -30,7 +32,7 @@ export function notifyTaskCompleted(context: mls.msg.ExecutionContext, result?: 
   scopeWindow.dispatchEvent(event);
 }
 
-export function notifyThreadChange(thread: mls.msg.Thread): void {
+export function notifyThreadChange(thread: msg.Thread): void {
   const scopeWindow = window?.top ? window.top : window;
   const event = new CustomEvent('thread-change', {
     detail: thread,
@@ -40,7 +42,7 @@ export function notifyThreadChange(thread: mls.msg.Thread): void {
   scopeWindow.dispatchEvent(event);
 }
 
-export function notifyMessageChange(message: mls.msg.Message): void {
+export function notifyMessageChange(message: msg.Message): void {
   const scopeWindow = window?.top ? window.top : window;
   const event = new CustomEvent('message-change', {
     detail: message,
@@ -62,7 +64,7 @@ export function notifyThreadNotification(show: boolean): void {
 
 
 
-export function notifyThreadCreate(thread: mls.msg.Thread): void {
+export function notifyThreadCreate(thread: msg.Thread): void {
   const scopeWindow = window?.top ? window.top : window;
   const event = new CustomEvent('thread-create', {
     detail: thread,
@@ -82,7 +84,7 @@ export function dispatchDetailsTaskClose(taskId: string): void {
   scopeWindow.dispatchEvent(event);
 }
 
-export function dispatchDetailsTaskClick(messageId: string, taskId: string, task: mls.msg.TaskData, message: mls.msg.MessagePerformanceCache): void {
+export function dispatchDetailsTaskClick(messageId: string, taskId: string, task: msg.TaskData, message: msg.MessagePerformanceCache): void {
   const scopeWindow = window?.top ? window.top : window;
   const event = new CustomEvent('task-details-click', {
     detail: { messageId, taskId, task, message },

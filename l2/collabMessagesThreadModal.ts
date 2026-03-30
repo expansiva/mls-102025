@@ -2,9 +2,12 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { collab_clock_static, collab_users } from '/_102025_/l2/collabMessagesIcons.js';
 import { getDateFormated, formatTimestamp } from '/_102025_/l2/collabMessagesHelper.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 
 import '/_102025_/l2/collabMessagesAvatar.js';
 
@@ -34,7 +37,7 @@ export class CollabMessagesThreadModal extends StateLitElement {
     private msg: MessageType = messages['en'];
 
     @property({ type: Boolean }) open = true;
-    @property() thread?: mls.msg.ThreadPerformanceCache;
+    @property() thread?: msg.ThreadPerformanceCache;
 
     @state() private isLoading: boolean = false;
     @state() private errorMessage: string = '';

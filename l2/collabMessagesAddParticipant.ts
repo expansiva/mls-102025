@@ -2,10 +2,14 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 import { updateThread, updateUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { notifyThreadChange } from '/_102025_/l2/collabMessagesEvents.js';
+import { msgAddParticipantToThread, msgGetThreadUpdates, msgGetUsers } from '/_102025_/l2/shared/api.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 
 /// **collab_i18n_start** 
 const message_pt = {
@@ -44,7 +48,7 @@ export class CollabMessagesAddParticipant extends StateLitElement {
     @property() labelOkAddParticipant: string = '';
     @property() labelErrorAddParticipant: string = '';
     @property() userIdOrName = '';
-    @property() auth: mls.msg.UserAuth = 'write';
+    @property() auth: msg.UserAuth = 'write';
     @property() isAddParticipant: boolean = false;
     @property() actualThread: IThreadActual | undefined;
 
@@ -184,80 +188,101 @@ export class CollabMessagesAddParticipant extends StateLitElement {
 
 
     private async onSubmitAddParticipant() {
-
         this.labelErrorAddParticipant = '';
         this.labelOkAddParticipant = '';
 
-        if (!this.actualThread || !this.userId) {
-            return;
-        }
+        if (!this.actualThread || !this.userId) return;
+
         if (!this.userIdOrName || !this.auth) {
-            this.labelErrorAddParticipant = this.msg.errorFieldsAddParticipant
+            this.labelErrorAddParticipant = 'Please fill in all required fields.';
             return;
         }
 
         this.isAddParticipant = true;
 
         try {
-            const response = await mls.api.msgAddUserInThread({
+
+            debugger;
+
+            const result = await msgAddParticipantToThread({
                 auth: this.auth,
                 userIdOrName: this.userIdOrName.trim(),
-                threadId: this.actualThread?.thread.threadId,
+                threadId: this.actualThread.thread.threadId,
                 userId: this.userId,
             });
 
-            if (response.statusCode !== 200) {
-                this.labelErrorAddParticipant = `${response.msg}`;
-                this.isAddParticipant = false;
+            if (!result.success || !result.response) {
+                this.labelErrorAddParticipant =
+                    result.error || 'Failed to add participant to the thread.';
                 return;
             }
 
-            if (response.thread) {
-                const thr = await updateThread(response.thread.threadId, response.thread);
-                const thrUpdt = await mls.api.msgGetThreadUpdate({
-                    threadId: response.thread.threadId,
-                    userId: this.userId,
-                    lastOrderAt: thr.lastSync || new Date('2000-01-01').toISOString(),
-                });
-                if (thrUpdt && thrUpdt.users) await updateUsers(thrUpdt.users);
-                notifyThreadChange(thrUpdt.thread);
+            const thread = result.response.thread;
 
-                this.dispatchEvent(new CustomEvent('add-participant', {
-                    detail: {
-                        thread: thr,
-                    },
-                    bubbles: true,
-                    composed: true
-                }));
+            // Update local cache
+            const updatedThread = await updateThread(thread.threadId, thread);
+
+            // Sync updates
+            const threadUpdate = await msgGetThreadUpdates({
+                threadId: thread.threadId,
+                userId: this.userId,
+                lastOrderAt: updatedThread.lastSync || new Date('2000-01-01').toISOString(),
+            });
+
+            if (threadUpdate.success && threadUpdate.response?.users) {
+                await updateUsers(threadUpdate.response.users);
             }
 
+            if (threadUpdate.success && threadUpdate.response?.thread) {
+                notifyThreadChange(threadUpdate.response.thread);
+            }
 
-            this.labelOkAddParticipant = `${this.msg.successAddParticipant}`;
+            // Emit event
+            this.dispatchEvent(new CustomEvent('add-participant', {
+                detail: { thread: updatedThread },
+                bubbles: true,
+                composed: true
+            }));
+
+            // Success feedback
+            this.labelOkAddParticipant =
+                this.msg.successAddParticipant || 'Participant added successfully.';
+
             setTimeout(() => {
                 this.labelOkAddParticipant = '';
             }, 3000);
+
+            // Reset form
             this.userIdOrName = '';
             this.auth = 'write';
-            this.isAddParticipant = false;
 
         } catch (error: any) {
-            console.error('Error on add user:', error);
-            this.labelErrorAddParticipant = error.message;
+            console.error('Error adding participant to thread:', error);
+            this.labelErrorAddParticipant =
+                error?.message || 'An unexpected error occurred while adding the participant.';
+        } finally {
             this.isAddParticipant = false;
         }
     }
 
     private async loadUsersAvaliables() {
         if (!this.userId) return;
-        const res = await mls.api.msgGetUsers({ status: "active", prefixName: "", userId: this.userId });
-        if (res.statusCode !== 200) return;
-        this.users = res.users;
+
+        const result = await msgGetUsers({
+            status: "active",
+            prefixName: "",
+            userId: this.userId
+        });
+
+        if (!result.success || !result.response?.users) return;
+
+        this.users = result.response.users;
         this.allUsers = this.users.map((usr) => usr.name);
     }
 
 }
 
 interface IThreadActual {
-    thread: mls.msg.ThreadPerformanceCache,
-    users: mls.msg.User[]
+    thread: msg.ThreadPerformanceCache,
+    users: msg.User[]
 }

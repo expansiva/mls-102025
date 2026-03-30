@@ -2,7 +2,10 @@
 
 import { html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 import '/_102025_/l2/collabMessagesTextCode.js';
 
 export type SlackToken =
@@ -54,9 +57,9 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
 
     @property() allCommands: string[] = ['/command1'];
 
-    @property() allThreads: mls.msg.Thread[] = [];
+    @property() allThreads: msg.Thread[] = [];
 
-    @property() allUsers: mls.msg.User[] = [];
+    @property() allUsers: msg.User[] = [];
 
     @property({ type: String }) text = ``;
 

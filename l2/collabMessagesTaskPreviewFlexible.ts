@@ -3,15 +3,17 @@
 
 import { html, repeat } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 
 @customElement('collab-messages-task-preview-flexible-102025')
 export class CollabMessageTaskPreviewFlexible extends CollabLitElement {
 
     @state() private mode: string = 'flexible';
-    @property({ type: Object }) message: mls.msg.Message | null = null;
-    @property({ type: Object }) task: mls.msg.TaskData | null = null;
-    @property({ type: Object }) step: mls.msg.AIFlexibleResultStep | null = null;
+    @property({ type: Object }) message: msg.Message | null = null;
+    @property({ type: Object }) task: msg.TaskData | null = null;
+    @property({ type: Object }) step: msg.AIFlexibleResultStep | null = null;
 
     @property({ type: String }) msize = '';
     private editor: IHTMLEditorElement | undefined;

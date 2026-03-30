@@ -14,6 +14,8 @@ import {
 
 import { notifyThreadChange, notifyMessageChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 import { changeFavIcon } from '/_102025_/l2/collabMessagesHelper.js';
+import { msgGetMessage, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 
 export const threadSyncMap = new Map<string, boolean>();
 let hasNotificationMessages: boolean = false;
@@ -145,86 +147,150 @@ export async function getThreadUpdateInBackground(reference: string): Promise<vo
 
 }
 
-async function updateMessageInBackground(threadId: string, messageId: string, userId: string, deviceId: string | null) {
+async function updateMessageInBackground(
+	threadId: string,
+	messageId: string,
+	userId: string,
+	deviceId: string | null
+) {
     try {
-        const response = await mls.api.msgGetMessage({
-            messageId: `${threadId}/${messageId}`,
-            threadId,
-            userId
-        });
+		const result = await msgGetMessage({
+			messageId: `${threadId}/${messageId}`,
+			threadId,
+			userId
+		});
 
-        if ((mls as any).isTraceNotification) console.info(`[NOTIFICATION] : getMessageUpdateInBackground: ${response.message}`);
-        await updateMessage(response.message);
-        notifyMessageChange(response.message);
+		if (!result.success || !result.response?.message) {
+			throw new Error(result.error || 'Failed to fetch message');
+		}
 
-    } catch (err: any) {
-        throw new Error(err.message)
-    }
+		if ((mls as any).isTraceNotification) {
+			console.info(
+				`[NOTIFICATION] : getMessageUpdateInBackground: ${result.response.message}`
+			);
+		}
+
+		await updateMessage(result.response.message);
+		notifyMessageChange(result.response.message);
+
+	} catch (err: any) {
+		throw new Error(err?.message || 'Unexpected error while updating message');
+	}
 }
 
-async function updateThreadInBackground(threadId: string, userId: string, deviceId: string | null) {
+async function updateThreadInBackground(
+	threadId: string,
+	userId: string,
+	deviceId: string | null
+) {
+	let threadDB = await getThread(threadId);
+	const lastOrderAt =
+		threadDB?.lastSync || new Date('2000-01-01').toISOString();
 
-    let threadDB = await getThread(threadId);
-    const lastOrderAt = threadDB?.lastSync || new Date('2000-01-01').toISOString();
+	try {
+		const result = await msgGetThreadUpdates({
+			threadId,
+			userId,
+			lastOrderAt,
+			deviceId: deviceId || undefined
+		});
 
-    try {
-        const response = await mls.api.msgGetThreadUpdate({
-            threadId,
-            userId,
-            lastOrderAt,
-            deviceId: deviceId || undefined
-        });
+		if (!result.success || !result.response?.thread) {
+			throw new Error(result.error || 'Failed to fetch thread update');
+		}
 
-        if ((mls as any).isTraceNotification) console.info(`[NOTIFICATION] : getThreadUpdateInBackground threadsPending: ${response.threadsPending}`);
+		const response = result.response;
 
-        if (response.threadsPending) {
-            for (let threadsPending of response.threadsPending) {
-                await enqueueThreadForSync(threadsPending);
-            }
-        }
+		if ((mls as any).isTraceNotification) {
+			console.info(
+				`[NOTIFICATION] : getThreadUpdateInBackground threadsPending: ${response.threadsPending}`
+			);
+		}
 
-        const statusChanged = threadDB && threadDB.status != response.thread.status;
-        const newMessagesFiltered = response.messages?.filter((message) => message.senderId !== userId) || [];
-        const hasNewMessages = newMessagesFiltered.length > 0;
+		if (response.threadsPending) {
+			for (let threadsPending of response.threadsPending) {
+				await enqueueThreadForSync(threadsPending);
+			}
+		}
 
-        if (!statusChanged && !hasNewMessages) return;
+		const statusChanged =
+			threadDB && threadDB.status !== response.thread.status;
 
-        if (statusChanged && !hasNewMessages) {
-            const thread = await updateThread(threadId, response.thread, '', '', 1, getCompactUTC())
-            notifyThreadChange(thread);
-            hasNotificationMessages = true;
-            return;
-        }
+		const newMessagesFiltered =
+			response.messages?.filter(
+				(message) => message.senderId !== userId
+			) || [];
 
-        if (!response.messages) return;
-        const lastMessage = response.messages[response.messages.length - 1];
-        const lastUnreadCount = threadDB && threadDB.unreadCount ? threadDB.unreadCount : 0;
+		const hasNewMessages = newMessagesFiltered.length > 0;
 
-        if (!threadDB) threadDB = await addThread(response.thread);
+		if (!statusChanged && !hasNewMessages) return;
 
-        const lastMessageText = `${lastMessage.senderId}:${lastMessage.content}`;
-        const thread = await updateThread(
-            threadId,
-            response.thread,
-            lastMessageText,
-            lastMessage.createAt,
-            newMessagesFiltered.length + lastUnreadCount,
-            lastMessage.createAt,
-        );
+		if (statusChanged && !hasNewMessages) {
+			const thread = await updateThread(
+				threadId,
+				response.thread,
+				'',
+				'',
+				1,
+				getCompactUTC()
+			);
 
-        const newMessages: mls.msg.MessagePerformanceCache[] = [];
-        for await (let mm of response.messages) {
-            const messageId = `${mm.threadId}/${mm.createAt}`
-            const messageOld = await getMessage(messageId);
-            const tempMessage: mls.msg.MessagePerformanceCache = { ...mm, footers: messageOld?.footers || [] };
-            newMessages.push(tempMessage);
-        }
+			notifyThreadChange(thread);
+			hasNotificationMessages = true;
+			return;
+		}
 
-        await addMessages(newMessages);
-        notifyThreadChange(thread);
-        if (newMessagesFiltered.length > 0) hasNotificationMessages = true;
+		if (!response.messages) return;
 
-    } catch (err: any) {
-        throw new Error(err.message)
-    }
+		const lastMessage =
+			response.messages[response.messages.length - 1];
+
+		const lastUnreadCount =
+			threadDB && threadDB.unreadCount
+				? threadDB.unreadCount
+				: 0;
+
+		if (!threadDB) {
+			threadDB = await addThread(response.thread);
+		}
+
+		const lastMessageText = `${lastMessage.senderId}:${lastMessage.content}`;
+
+		const thread = await updateThread(
+			threadId,
+			response.thread,
+			lastMessageText,
+			lastMessage.createAt,
+			newMessagesFiltered.length + lastUnreadCount,
+			lastMessage.createAt
+		);
+
+		const newMessages: msg.MessagePerformanceCache[] = [];
+
+		for await (let mm of response.messages) {
+			const messageId = `${mm.threadId}/${mm.createAt}`;
+			const messageOld = await getMessage(messageId);
+
+			const tempMessage: msg.MessagePerformanceCache = {
+				...mm,
+				footers: messageOld?.footers || []
+			};
+
+			newMessages.push(tempMessage);
+		}
+
+		await addMessages(newMessages);
+
+		notifyThreadChange(thread);
+
+		if (newMessagesFiltered.length > 0) {
+			hasNotificationMessages = true;
+		}
+
+	} catch (err: any) {
+		throw new Error(
+			err?.message ||
+			'Unexpected error while updating thread in background'
+		);
+	}
 }

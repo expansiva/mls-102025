@@ -1,5 +1,17 @@
 /// <mls fileReference="_102025_/l2/collabMessagesHelper.ts" enhancement="_blank" />
 
+import {
+    msgGetUserUpdate,
+    msgUpdateUserDetails,
+    msgAddMessage,
+    cbeAddOrUpdateOrgValue,
+    msgAddThread,
+    msgAddParticipantToThread
+} from '/_102025_/l2/shared/api.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+
+
 /// **collab_i18n_start** 
 const message_pt = {
     updatedToday: 'atualizado hoje',
@@ -52,7 +64,7 @@ const messages: { [key: string]: MessageType } = {
 /// **collab_i18n_end**
 
 const lang = getMessageKey(messages)
-const msg: MessageType = messages[lang];
+const i18n: MessageType = messages[lang];
 
 import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
 
@@ -71,65 +83,84 @@ export const AGENTDEFAULT = 'agentPlanner1';
 export const defaultThreadImage = "https://images.unsplash.com/photo-1577563908411-5077b6dc7624?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 export async function registerToken() {
+	const token = await mls.events.getFCMTokenForBackend();
+	if (token === null) {
+		saveNotificationPreferences('denied');
+		return token;
+	}
 
-    const token = await mls.events.getFCMTokenForBackend();
-    if (token === null) {
-        saveNotificationPreferences('denied');
-        return token;
-    }
+	const lastToken = loadNotificationToken();
+	if (lastToken === token) return token;
 
-    const lastToken = loadNotificationToken();
-    if (lastToken === token) return token;
+	saveNotificationToken(token);
 
-    saveNotificationToken(token);
-
-    try {
-        const deviceId = crypto.randomUUID();
+	try {
+		const deviceId = crypto.randomUUID();
         saveNotificationDeviceId(deviceId);
+        
+		const userResult = await msgGetUserUpdate({ userId: "" });
+		if (!userResult.success || !userResult.response?.user) {
+			throw new Error(userResult.error || 'Failed to fetch user data');
+		}
 
-        const userResponse = await mls.api.msgGetUserUpdate({ userId: "" });
-        await mls.api.msgUpdateUserDetails({
-            userId: userResponse.user.userId,
-            avatar_url: userResponse.user.avatar_url,
-            name: userResponse.user.name,
-            status: userResponse.user.status,
-            deviceId,
-            notificationToken: token
-        });
+		const user = userResult.response.user;
 
-        saveNotificationPreferences('granted');
-        return token;
-    } catch (err: any) {
-        throw new Error('Error on register token' + err.message);
-    }
+		const updateResult = await msgUpdateUserDetails({
+			userId: user.userId,
+			avatar_url: user.avatar_url,
+			name: user.name,
+			status: user.status,
+			deviceId,
+			notificationToken: token
+		});
 
+		if (!updateResult.success) {
+			throw new Error(updateResult.error || 'Failed to update user details');
+		}
+
+		saveNotificationPreferences('granted');
+		return token;
+
+	} catch (err: any) {
+		throw new Error('Error on register token: ' + err.message);
+	}
 }
 
 export async function addMessage(threadId: string, messageContent: string, contextToBot?: mls.bots.ToolsBeforeSendMessage) {
 
-    const userId = getUserId() || '';
-    if (!userId) throw new Error('Invalid user id');
-    const context = getTemporaryContext(threadId, userId, messageContent);
+	const userId = getUserId() || '';
+	if (!userId) throw new Error('Invalid user id');
 
-    if (!messageContent.startsWith('@@')) {
-        const params: mls.msg.RequestAddMessage = {
-            action: 'addMessage',
-            content: messageContent,
-            threadId: threadId,
-            userId: userId,
-            contextToBot: contextToBot
-        };
-        const res = await mls.api.msgAddMessage(params);
-        notifyMessageSendChange({ message: res.message, task: undefined, isTest: false })
-        return;
-    }
+	const context = getTemporaryContext(threadId, userId, messageContent);
 
-    const agentName = extractAgentName(messageContent) || AGENTDEFAULT;
-    const moduleAgent = await loadAgent(agentName);
-    if (!moduleAgent) throw new Error('Invalid Agent')
-    await executeBeforePrompt(moduleAgent, context);
-    return context;
+	if (!messageContent.startsWith('@@')) {
 
+		const result = await msgAddMessage({
+			content: messageContent,
+			threadId,
+			userId,
+			contextToBot
+		});
+
+		if (!result.success || !result.response?.message) {
+			throw new Error(result.error || 'Failed to send message');
+		}
+
+		notifyMessageSendChange({
+			message: result.response.message,
+			task: undefined,
+			isTest: false
+		});
+
+		return;
+	}
+
+	const agentName = extractAgentName(messageContent) || AGENTDEFAULT;
+	const moduleAgent = await loadAgent(agentName);
+	if (!moduleAgent) throw new Error('Invalid Agent');
+
+	await executeBeforePrompt(moduleAgent, context);
+	return context;
 }
 
 export async function getArgsToBots(): Promise<Record<string, any>> {
@@ -139,7 +170,7 @@ export async function getArgsToBots(): Promise<Record<string, any>> {
     return data
 }
 
-export async function getBotsContext(thread: mls.msg.Thread, prompt: string, context: mls.msg.ExecutionContext): Promise<Record<string, any>> {
+export async function getBotsContext(thread: msg.Thread, prompt: string, context: msg.ExecutionContext): Promise<Record<string, any>> {
 
     const argsToBot = await getArgsToBots();
     const botsVarsBefore = mls.bots.getBotContextVarsBeforeMessageSend(thread, prompt);
@@ -315,22 +346,32 @@ export function loadOpenClawIntegrations(): IOpenClawIntegration[] {
 
 export async function saveOpenClawIntegrations(integrations: IOpenClawIntegration[]) {
 
-    if (mls.l5.actualOrg === undefined) throw new Error(`Invalid org actual: ${mls.l5.actualOrg}`);
+	if (mls.l5.actualOrg === undefined) throw new Error(`Invalid org actual: ${mls.l5.actualOrg}`);
 
-    const actualOrgDetails = getOrgDetails(mls.l5.actualOrg);
-    if (!actualOrgDetails) throw new Error(`Invalid org details: ${mls.l5.actualOrg}`);
-    try {
-        let data: any = {};
-        if (actualOrgDetails.value) {
-            data = JSON.parse(actualOrgDetails.value);
-        }
-        data = { ...data, integrations };
-        await mls.api.cbeAddOrUpdateOrgValue(actualOrgDetails.sett.name, JSON.stringify(data))
+	const actualOrgDetails = getOrgDetails(mls.l5.actualOrg);
+	if (!actualOrgDetails) throw new Error(`Invalid org details: ${mls.l5.actualOrg}`);
 
-    } catch (err: any) {
-        throw new Error(err.message)
-    }
+	try {
+		let data: any = {};
 
+		if (actualOrgDetails.value) {
+			data = JSON.parse(actualOrgDetails.value);
+		}
+
+		data = { ...data, integrations };
+
+		const result = await cbeAddOrUpdateOrgValue(
+			actualOrgDetails.sett.name,
+			JSON.stringify(data)
+		);
+
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to save integrations');
+		}
+
+	} catch (err: any) {
+		throw new Error(err.message);
+	}
 }
 
 function saveLocalStorage(data: CollabMessagesLS) {
@@ -378,7 +419,7 @@ export async function checkThreadAlreadyExist(threadName: string) {
 
 }
 
-export async function getDmThreadByUsers(userId1: string, userId2: string): Promise<mls.msg.ThreadPerformanceCache | undefined> {
+export async function getDmThreadByUsers(userId1: string, userId2: string): Promise<msg.ThreadPerformanceCache | undefined> {
 
     const allThreads = await listThreads();
 
@@ -391,78 +432,100 @@ export async function getDmThreadByUsers(userId1: string, userId2: string): Prom
     });
 }
 
-export async function createThread(threadName: string, languages: string[], visibility: mls.msg.ThreadVisibility, avatar_url: string = ''): Promise<mls.msg.ThreadPerformanceCache | undefined> {
+export async function createThread(
+	threadName: string,
+	languages: string[],
+	visibility: msg.ThreadVisibility,
+	avatar_url: string = ''
+): Promise<msg.ThreadPerformanceCache | undefined> {
 
-    const userId = getUserId();
-    if (!userId) throw new Error('No find user id');
-    const params: mls.msg.RequestAddThread = {
-        action: 'addThread',
-        name: threadName,
-        group: 'CONNECT',
-        languages,
-        userId,
-        visibility,
-        status: 'active',
-        avatar_url
-    };
+	const userId = getUserId();
+	if (!userId) throw new Error('No find user id');
 
-    try {
-        const response = await mls.api.msgAddThread(params);
-        if (response.thread) {
-            const thr = await addThread(response.thread);
-            notifyThreadCreate(thr);
-            return response.thread;
-        }
-    } catch (err: any) {
-        console.error(err);
-        throw new Error(err.message);
-    }
+	try {
+		const result = await msgAddThread({
+			name: threadName,
+			group: 'CONNECT',
+			languages,
+			userId,
+			visibility,
+			status: 'active',
+			avatar_url
+		});
+
+		if (!result.success || !result.response?.thread) {
+			throw new Error(result.error || 'Failed to create thread');
+		}
+
+		const thread = result.response.thread;
+
+		const thr = await addThread(thread);
+		notifyThreadCreate(thr);
+
+		return thread;
+
+	} catch (err: any) {
+		console.error(err);
+		throw new Error(err.message);
+	}
 }
 
-export async function createThreadDM(threadName: string, dmUser: string, group: mls.msg.ThreadGroup) {
 
-    const userId = getUserId();
-    if (!userId) throw new Error('No find user id');
+export async function createThreadDM(
+	threadName: string,
+	dmUser: string,
+	group: msg.ThreadGroup
+) {
+	const userId = getUserId();
+	if (!userId) throw new Error('User not found');
 
-    const alreadyExistThread = await getDmThreadByUsers(userId, dmUser);
-    if (alreadyExistThread) throw new Error('A direct message thread with this user already exists.')
+	const alreadyExistThread = await getDmThreadByUsers(userId, dmUser);
+	if (alreadyExistThread) {
+		throw new Error('A direct message thread with this user already exists.');
+	}
 
-    const params: mls.msg.RequestAddThread = {
-        action: 'addThread',
-        name: threadName,
-        group,
-        languages: [],
-        userId,
-        visibility: 'private',
-        status: 'active',
-        avatar_url: ''
-    };
+	try {
+		// 1. Create thread
+		const threadResult = await msgAddThread({
+			name: threadName,
+			group,
+			languages: [],
+			userId,
+			visibility: 'private',
+			status: 'active',
+			avatar_url: ''
+		});
 
-    try {
-        const response = await mls.api.msgAddThread(params);
-        if (response.thread) {
-            const thr = await addThread(response.thread);
-            notifyThreadCreate(thr);
+		if (!threadResult.success || !threadResult.response?.thread) {
+			throw new Error(threadResult.error || 'Failed to create thread');
+		}
 
-            const responseAddUsuer = await mls.api.msgAddUserInThread({
-                auth: 'admin',
-                userIdOrName: dmUser,
-                threadId: thr.threadId,
-                userId: userId,
-            });
+		const thread = threadResult.response.thread;
 
-            if (responseAddUsuer.thread) {
-                await updateThread(response.thread.threadId, response.thread);
-                notifyThreadChange(responseAddUsuer.thread);
-                return responseAddUsuer.thread;
-            }
+		const thr = await addThread(thread);
+		notifyThreadCreate(thr);
 
-            return response.thread;
-        }
-    } catch (err: any) {
-        console.error(err);
-        throw new Error(err.message);
-    }
+		// 2. Add participant
+		const participantResult = await msgAddParticipantToThread({
+			auth: 'admin',
+			userIdOrName: dmUser,
+			threadId: thr.threadId,
+			userId
+		});
+
+		if (participantResult.success && participantResult.response?.thread) {
+			await updateThread(thread.threadId, thread);
+			notifyThreadChange(participantResult.response.thread);
+			return participantResult.response.thread;
+		}
+
+		// fallback
+		return thread;
+
+	} catch (err: any) {
+		console.error(err);
+		throw new Error(err.message || 'Failed to create DM thread');
+	}
 }
 
 export function formatTimestamp(timestamp: string) {
@@ -520,11 +583,11 @@ export function getDateFormated(dt: string): string {
 
     if (diffDays === 0) {
 
-        lastUpdated = msg.updatedToday;
+        lastUpdated = i18n.updatedToday;
 
     } else if (diffDays < 30) {
 
-        lastUpdated = `${msg.updated} ${diffDays} ${moreThanTwoDays ? msg.days : msg.day} ${msg.ago}`;
+        lastUpdated = `${i18n.updated} ${diffDays} ${moreThanTwoDays ? i18n.days : i18n.day} ${i18n.ago}`;
 
     } else {
 
@@ -532,21 +595,21 @@ export function getDateFormated(dt: string): string {
         const lastWriteMounth = dtLastWrite.getMonth();
         const lastWriteDay = dtLastWrite.getDate();
         const mounthFilter: any = {
-            0: msg.jan,
-            1: msg.feb,
-            2: msg.mar,
-            3: msg.apr,
-            4: msg.may,
-            5: msg.june,
-            6: msg.july,
-            7: msg.aug,
-            8: msg.sept,
-            9: msg.oct,
-            10: msg.nov,
-            11: msg.dec,
+            0: i18n.jan,
+            1: i18n.feb,
+            2: i18n.mar,
+            3: i18n.apr,
+            4: i18n.may,
+            5: i18n.june,
+            6: i18n.july,
+            7: i18n.aug,
+            8: i18n.sept,
+            9: i18n.oct,
+            10: i18n.nov,
+            11: i18n.dec,
         };
 
-        lastUpdated = `${msg.updated} ${msg.on} ${lastWriteYear}, ${lastWriteDay} ${mounthFilter[lastWriteMounth]} `;
+        lastUpdated = `${i18n.updated} ${i18n.on} ${lastWriteYear}, ${lastWriteDay} ${mounthFilter[lastWriteMounth]} `;
 
     }
 
@@ -554,7 +617,7 @@ export function getDateFormated(dt: string): string {
 
 }
 
-export const getTemporaryContext = (threadId: string, userId: string, prompt: string): mls.msg.ExecutionContext => {
+export const getTemporaryContext = (threadId: string, userId: string, prompt: string): msg.ExecutionContext => {
     // create temporary context
 
     const now = new Date();
@@ -566,7 +629,7 @@ export const getTemporaryContext = (threadId: string, userId: string, prompt: st
         + String(now.getSeconds()).padStart(2, '0')
         + "." + Math.floor(1000 + Math.random() * 9000);
 
-    const context: mls.msg.ExecutionContext = {
+    const context: msg.ExecutionContext = {
         task: undefined,
         message: {
             threadId: threadId,
@@ -687,8 +750,8 @@ export interface ICollabMessageEvent {
     taskId?: string,
 }
 
-export interface IMessage extends mls.msg.MessagePerformanceCache {
-    context?: mls.msg.ExecutionContext,
+export interface IMessage extends msg.MessagePerformanceCache {
+    context?: msg.ExecutionContext,
     lastChanged?: number,
     isSame?: boolean,
     isLoading?: boolean,
@@ -697,11 +760,11 @@ export interface IMessage extends mls.msg.MessagePerformanceCache {
 }
 
 export interface IThreadInfo {
-    thread: mls.msg.ThreadPerformanceCache,
+    thread: msg.ThreadPerformanceCache,
     threadsPending?: string[],
-    users: mls.msg.User[],
+    users: msg.User[],
     hasMore?: boolean | undefined,
-    messages?: mls.msg.Message[] | undefined
+    messages?: msg.Message[] | undefined
 }
 
 // Interfaces para Integrações

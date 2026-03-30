@@ -2,9 +2,11 @@
 
 import { html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { getClarificationElement, continuePoolingTask } from '/_102029_/l2/aiAgentOrchestration.js';
 import { getNextPendentStep, getNextClarificationStep, getInteractionStepId, getStepById } from '/_102029_/l2/aiAgentHelper.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 import '/_102025_/l2/collabMessagesTaskLogPreview.js';
 
@@ -15,15 +17,15 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     private forceViewRaw = false;
     private hasTodo = true;
 
-    @property() task: mls.msg.TaskData | undefined = undefined;
-    @property() message: mls.msg.Message | undefined = undefined;
+    @property() task: msg.TaskData | undefined = undefined;
+    @property() message: msg.Message | undefined = undefined;
     @property() restartPooling: boolean = false;
     @property() isTest: boolean = false;
 
     @property() stepid: string = '';
     @property({ attribute: false }) seen = new Set<string>();
 
-    @property() interactionClarification: mls.msg.AIAgentStep | undefined;
+    @property() interactionClarification: msg.AIAgentStep | undefined;
     @query('.direct-clarification') directClarification: HTMLElement | undefined;
     @query('.direct-clarification .content') directClarificationContent: HTMLElement | undefined;
 
@@ -56,7 +58,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
             this.setClarification();
         }
         if (this.restartPooling && this.message && this.task) {
-            const context: mls.msg.ExecutionContext = {
+            const context: msg.ExecutionContext = {
                 task: this.task,
                 message: this.message,
                 isTest: this.isTest || false
@@ -126,12 +128,12 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         </div>`
     }
 
-    renderClarification(payload: mls.msg.AIClarificationStep) {
+    renderClarification(payload: msg.AIClarificationStep) {
 
         if (!this.task) return html`Invalid task`;
         const parentInteraction = getInteractionStepId(this.task, payload.stepId);
         if (!parentInteraction) return html`No found parentInteraction ${payload.stepId} on task: ${this.task.PK} `;
-        const interaction = getStepById(this.task, parentInteraction) as mls.msg.AIAgentStep;
+        const interaction = getStepById(this.task, parentInteraction) as msg.AIAgentStep;
         this.interactionClarification = interaction;
         if (!interaction) return html`Invalid interaction id:${parentInteraction} on task: ${this.task.PK} `
         if (!interaction.agentName) return html`Invalid agent name for step id:${interaction.stepId} on task: ${this.task.PK} `
@@ -193,7 +195,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     private onTaskChange(e: Event) {
         if (!this.task) return;
         const customEvent = e as CustomEvent;
-        const task: mls.msg.TaskData = customEvent.detail.context.task;
+        const task: msg.TaskData = customEvent.detail.context.task;
         if (task.PK !== this.task.PK) return;
         this.task = task;
     }

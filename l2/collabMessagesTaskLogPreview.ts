@@ -2,16 +2,19 @@
 
 import { html, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { getRootAgent } from '/_102029_/l2/aiAgentHelper.js';
-import { IAgent, IAgentAsync } from '/_102029_/l2/aiAgentBase.js';
 import { loadAgent } from '/_102029_/l2/aiAgentOrchestration.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { IAgent, IAgentAsync } from '/_102029_/l2/aiAgentBase.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 
 @customElement('collab-messages-task-log-preview-102025')
 export class CollabMessagesTaskLogPreview extends StateLitElement {
 
-  @property() task: mls.msg.TaskData | undefined = undefined;
-  @property() message: mls.msg.Message | undefined = undefined;
+  @property() task: msg.TaskData | undefined = undefined;
+  @property() message: msg.Message | undefined = undefined;
 
 
   @state() template?: TemplateResult;
@@ -37,8 +40,8 @@ export class CollabMessagesTaskLogPreview extends StateLitElement {
     if (!this.task) return;
     const customEvent = e as CustomEvent;
     const context = customEvent.detail.context;
-    const message: mls.msg.Message = context.message;
-    const _task: mls.msg.TaskData = context.task;
+    const message: msg.Message = context.message;
+    const _task: msg.TaskData = context.task;
     if (this.task.PK !== _task.PK) return;
     this.task = _task;
     this.createFeedBack();

@@ -2,8 +2,8 @@
 
 import { html, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { updateUsers, listThreads } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { msgGetUserUpdate, msgUpdateUserDetails } from '/_102025_/l2/shared/api.js';
 
 import {
     loadChatPreferences,
@@ -20,6 +20,8 @@ import {
 
 } from '/_102025_/l2/collabMessagesHelper.js';
 
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import {
     IChatPreferences,
     TranslateMode,
@@ -192,9 +194,9 @@ type ViewMode = 'main' | 'integrationDetails' | 'addAgent' | 'editAvatar';
 export class CollabMessagesSettings extends StateLitElement {
 
     private msg: MessageType = messages['en'];
-    private list: mls.msg.ThreadPerformanceCache[] = [];
+    private list: msg.ThreadPerformanceCache[] = [];
 
-    @state() userPerfil: mls.msg.User | undefined;
+    @state() userPerfil: msg.User | undefined;
     @state() private chatPreferences: IChatPreferences = {
         translationMode: 'icon',
         language: '',
@@ -298,8 +300,8 @@ export class CollabMessagesSettings extends StateLitElement {
                     <div class="avatar-section">
                         <div class="avatar">
                             ${avatarUrl
-                                ? html`<img src="${avatarUrl}" alt="Avatar" />`
-                                : html`<div class="avatar-placeholder">${collab_user}</div>`}
+                ? html`<img src="${avatarUrl}" alt="Avatar" />`
+                : html`<div class="avatar-placeholder">${collab_user}</div>`}
                         </div>
                         <button class="btn-small btn-secondary" @click=${this.handleOpenEditAvatar}>
                             ${collab_edit} ${this.msg.changeAvatar}
@@ -355,12 +357,12 @@ export class CollabMessagesSettings extends StateLitElement {
 
                 <div class="avatar-edit-content">
                     <div class="avatar-preview-small">
-                        ${this.avatarLoading 
-                            ? html`<div class="avatar-loading"><span class="loader"></span></div>`
-                            : previewUrl && this.avatarUrlValid
-                                ? html`<img src="${previewUrl}" alt="Preview" @error=${this.handleAvatarError} />`
-                                : html`<div class="avatar-placeholder">${collab_user}</div>`
-                        }
+                        ${this.avatarLoading
+                ? html`<div class="avatar-loading"><span class="loader"></span></div>`
+                : previewUrl && this.avatarUrlValid
+                    ? html`<img src="${previewUrl}" alt="Preview" @error=${this.handleAvatarError} />`
+                    : html`<div class="avatar-placeholder">${collab_user}</div>`
+            }
                     </div>
                     <div class="avatar-url-field">
                         <label>${this.msg.avatarUrl}</label>
@@ -370,10 +372,10 @@ export class CollabMessagesSettings extends StateLitElement {
                             @input=${this.handleAvatarUrlInput}
                             placeholder="${this.msg.avatarUrlPlaceholder}"
                         />
-                        ${!this.avatarUrlValid && this.tempAvatarUrl 
-                            ? html`<small class="saving-error">${this.msg.invalidAvatarUrl}</small>` 
-                            : ''
-                        }
+                        ${!this.avatarUrlValid && this.tempAvatarUrl
+                ? html`<small class="saving-error">${this.msg.invalidAvatarUrl}</small>`
+                : ''
+            }
                     </div>
                 </div>
 
@@ -573,7 +575,7 @@ export class CollabMessagesSettings extends StateLitElement {
                     <button  @click=${() => this.handleSaveIntegration(integration.id)}>
                         ${this.isSavingIntegration ? html`<span class="loader"></span>` : html`${collab_floppy_disk} ${this.msg.save}`}
                     </button>
-                </div>` : nothing }
+                </div>` : nothing}
 
                 ${this.labelOkIntegration ? html`<small class="saving-ok">${this.labelOkIntegration}</small>` : ''}
                 ${this.labelErrorIntegration ? html`<small class="saving-error">${this.labelErrorIntegration}</small>` : ''}
@@ -735,7 +737,7 @@ export class CollabMessagesSettings extends StateLitElement {
     private handleAvatarUrlInput(e: Event) {
         const input = e.target as HTMLInputElement;
         this.tempAvatarUrl = input.value;
-        
+
         if (!this.tempAvatarUrl) {
             this.avatarUrlValid = true;
             return;
@@ -769,7 +771,7 @@ export class CollabMessagesSettings extends StateLitElement {
 
     private handleSaveAvatar() {
         if (!this.avatarUrlValid || this.avatarLoading) return;
-        
+
         if (this.userPerfil) {
             this.userPerfil = { ...this.userPerfil, avatar_url: this.tempAvatarUrl };
         }
@@ -1016,48 +1018,57 @@ export class CollabMessagesSettings extends StateLitElement {
         }
     }
 
-    private refreshAvatar() {
-        // Deprecated - now using handleOpenEditAvatar
-    }
 
     private async getUserPerfil() {
         try {
-            const response = await mls.api.msgGetUserUpdate({ userId: "" });
-            return response.user;
+            const result = await msgGetUserUpdate({ userId: "" });
+
+            if (!result.success || !result.response?.user) {
+                throw new Error(result.error || 'Failed to fetch user profile');
+            }
+
+            return result.response.user;
+
         } catch (err: any) {
-            // TODO: show error message
-            throw new Error(err.message);
+            throw new Error(err?.message || 'Unexpected error while fetching user profile');
         }
     }
-
     private async handleSave() {
         this.labelError = '';
         this.labelOk = '';
-        if (!this.userPerfil || !this.userPerfil?.name) {
-            this.labelError = this.msg.errorUserName
+
+        if (!this.userPerfil || !this.userPerfil.name) {
+            this.labelError = this.msg.errorUserName;
             return;
         }
+
         this.isSavingUser = true;
+
         try {
-            const response = await mls.api.msgUpdateUserDetails({
+            const result = await msgUpdateUserDetails({
                 userId: this.userPerfil.userId,
                 avatar_url: this.userPerfil.avatar_url,
                 name: this.userPerfil.name,
                 status: this.userPerfil.status,
-                deviceId: this.userPerfil.notifications ? this.userPerfil.notifications[0].deviceId : '',
-                notificationToken: this.userPerfil.notifications ? this.userPerfil.notifications[0].notificationToken : '',
+                deviceId: this.userPerfil.notifications?.[0]?.deviceId || '',
+                notificationToken: this.userPerfil.notifications?.[0]?.notificationToken || '',
             });
-            if (response.statusCode !== 200) {
-                this.labelError = `${response.msg}`;
-                this.isSavingUser = false;
+
+            if (!result.success || !result.response?.user) {
+                this.labelError =
+                    result.error || 'Failed to update user profile.';
                 return;
             }
-            this.labelOk = `${this.msg.successSavingUser}`;
-            await updateUsers([response.user]);
-            this.isSavingUser = false;
+
+            this.labelOk = this.msg.successSavingUser || 'User profile updated successfully.';
+
+            await updateUsers([result.response.user]);
+
         } catch (error: any) {
-            console.error('Error on update perfil:', error);
-            this.labelError = error.message;
+            console.error('Error updating user profile:', error);
+            this.labelError =
+                error?.message || 'An unexpected error occurred while saving the user profile.';
+        } finally {
             this.isSavingUser = false;
         }
     }

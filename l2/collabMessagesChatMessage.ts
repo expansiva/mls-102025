@@ -15,6 +15,9 @@ import {
 
 import { loadChatPreferences, formatTimestamp } from '/_102025_/l2/collabMessagesHelper.js';
 import { getMessage, updateMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { msgUpdateMessage } from '/_102025_/l2/shared/api.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { IChatPreferences, IMessage, IThreadInfo } from '/_102025_/l2/collabMessagesHelper.js';
 
@@ -58,9 +61,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     @property() message?: IMessage;
     @property({ reflect: true }) messageId?: string;
-    @property({ attribute: false }) allThreads: mls.msg.Thread[] = [];
+    @property({ attribute: false }) allThreads: msg.Thread[] = [];
     @property() actualThread: IThreadInfo | undefined;
-    @property() usersAvaliables: mls.msg.User[] = [];
+    @property() usersAvaliables: msg.User[] = [];
     @property() userId: string | undefined;
     @property({ attribute: false }) openedReactionMessageId?: string;
     @property({ attribute: false }) reactionPickerTarget?: HTMLElement;
@@ -175,7 +178,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
          `;
     }
 
-    private renderMessageByLanguage(message: mls.msg.Message) {
+    private renderMessageByLanguage(message: msg.Message) {
         const mode = this.userPreferenceChat?.translationMode || 'icon';
         if (!this.userPreferenceChat || mode === 'none' || !message.translations) {
             return html`
@@ -296,7 +299,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         }));
     }
 
-    private renderMessageResultByLanguage(message: mls.msg.Message) {
+    private renderMessageResultByLanguage(message: msg.Message) {
 
         if (!message.taskResults || message.taskResults.length === 0 || message.taskStatus !== 'done') return html``;
         const mode = this.userPreferenceChat?.translationMode || 'icon';
@@ -332,7 +335,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         }
     }
 
-    private renderMessageFooterResult(message: mls.msg.MessagePerformanceCache) {
+    private renderMessageFooterResult(message: msg.MessagePerformanceCache) {
 
         if (!message.footers || message.footers.length === 0) return html``;
         return html`<div class="message-result">
@@ -409,7 +412,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         all.forEach((item) => item.remove());
     }
 
-    private getTitleMessageTranslated(message: mls.msg.Message) {
+    private getTitleMessageTranslated(message: msg.Message) {
         const mode = this.userPreferenceChat?.translationMode || 'icon';
         if (!this.userPreferenceChat || mode === 'none' || !message.taskTitleTranslated) {
             return message.taskTitle;
@@ -510,7 +513,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     `;
     }
 
-    private findUser(userId: string): mls.msg.User | undefined {
+    private findUser(userId: string): msg.User | undefined {
         return [
             ...this.usersAvaliables,
             ...(this.actualThread?.users || [])
@@ -663,20 +666,26 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private async updateReactionOnDb(message: IMessage, reaction: string) {
-
         if (!this.actualThread?.thread.threadId) throw new Error('Invalid thread id');
         if (!this.userId) throw new Error('Invalid user id');
 
-        const response = await mls.api.msgUpdateMessage({
+        const result = await msgUpdateMessage({
             messageId: message.createAt,
             threadId: this.actualThread.thread.threadId,
             userId: this.userId,
             reaction,
         });
 
-        this.message = { ...response.message, footers: message.footers };
-        await updateMessage(this.message);
+        if (!result.success || !result.response?.message) {
+            throw new Error(result.error || 'Failed to update message reaction');
+        }
 
+        this.message = {
+            ...result.response.message,
+            footers: message.footers
+        };
+
+        await updateMessage(this.message);
     }
 
     private animateReactionPicker() {

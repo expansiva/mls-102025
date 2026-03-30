@@ -3,6 +3,8 @@
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { getAllSteps } from '/_102029_/l2/aiAgentHelper.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 
 import '/_102025_/l2/collabMessagesTaskPreviewAgent.js';
@@ -14,14 +16,14 @@ import '/_102025_/l2/collabMessagesTaskPreviewResult.js';
 @customElement('collab-messages-task-preview-102025')
 export class CollabMessageTaskPreview extends CollabLitElement {
 
-    @property({ type: Object }) message: mls.msg.Message | null = null;
-    @property({ type: Object }) task: mls.msg.TaskData | null = null;
+    @property({ type: Object }) message: msg.Message | null = null;
+    @property({ type: Object }) task: msg.TaskData | null = null;
     @property() modeTest: boolean = false;
 
     @state() private stepMap = new Map<number, any>();
     @state() private navigationStack: number[] = [];
     @state() private currentStepId: number | null = null;
-    @state() private allSteps: mls.msg.AIPayload[] = [];
+    @state() private allSteps: msg.AIPayload[] = [];
 
     disconnectedCallback() {
         window.removeEventListener('task-change', this.onTaskChange.bind(this));
@@ -81,7 +83,7 @@ export class CollabMessageTaskPreview extends CollabLitElement {
         `;
     }
 
-    renderStepDetails(step: mls.msg.AIPayload) {
+    renderStepDetails(step: msg.AIPayload) {
         switch (step.type) {
             case 'agent': return this.renderAgent(step);
             case 'clarification': return this.renderClarification(step);
@@ -112,23 +114,23 @@ export class CollabMessageTaskPreview extends CollabLitElement {
         `;
     }
 
-    renderAgent(step: mls.msg.AIAgentStep) {
+    renderAgent(step: msg.AIAgentStep) {
         return html` <collab-messages-task-preview-agent-102025 .step=${step} .message=${this.message} .task=${this.task} key="${step.stepId}"></collab-messages-task-preview-agent-102025> `;
     }
 
-    renderClarification(step: mls.msg.AIClarificationStep) {
+    renderClarification(step: msg.AIClarificationStep) {
         return html` <collab-messages-task-preview-clarification-102025 .step=${step} .message=${this.message}  .task=${this.task} key="${step.stepId}"></collab-messages-task-preview-clarification-102025> `;
     }
 
-    renderFlexible(step: mls.msg.AIFlexibleResultStep) {
+    renderFlexible(step: msg.AIFlexibleResultStep) {
         return html` <collab-messages-task-preview-flexible-102025 .step=${step} .message=${this.message}  .task=${this.task} key="${step.stepId}"></collab-messages-task-preview-flexible-102025> `;
     }
 
-    renderTools(step: mls.msg.AIToolStep) {
+    renderTools(step: msg.AIToolStep) {
         return html` <collab-messages-task-preview-tools-102025 .step=${step} .message=${this.message}  .task=${this.task} key="${step.stepId}"></collab-messages-task-preview-tools-102025> `;
     }
 
-    renderResult(step: mls.msg.AIResultStep) {
+    renderResult(step: msg.AIResultStep) {
         return html` <collab-messages-task-preview-result-102025 .step=${step} .message=${this.message}  .task=${this.task} key="${step.stepId}"></collab-messages-task-preview-result-102025> `;
     }
 
@@ -146,7 +148,7 @@ export class CollabMessageTaskPreview extends CollabLitElement {
     private onTaskChange(e: Event) {
         if (!this.task) return;
         const customEvent = e as CustomEvent;
-        const task: mls.msg.TaskData = customEvent.detail.context.task;
+        const task: msg.TaskData = customEvent.detail.context.task;
         if (task.PK !== this.task.PK) return;
         this.task = task;
         if (!this.task || !this.task.iaCompressed) return;
@@ -155,7 +157,7 @@ export class CollabMessageTaskPreview extends CollabLitElement {
         this.allSteps = getAllSteps(this.task.iaCompressed.nextSteps);
     }
 
-    private buildStepMap(steps: mls.msg.AIPayload[]) {
+    private buildStepMap(steps: msg.AIPayload[]) {
         for (const step of steps) {
             this.stepMap.set(step.stepId, step);
             if (step.interaction?.payload) {

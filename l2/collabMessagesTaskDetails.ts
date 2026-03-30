@@ -2,7 +2,7 @@
 
 import { html, TemplateResult } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 
 import {
     getNextResultStep,
@@ -16,15 +16,18 @@ import {
 import { getClarificationElement } from '/_102029_/l2/aiAgentOrchestration.js';
 import { collab_money } from '/_102025_/l2/collabMessagesIcons.js';
 
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 @customElement('collab-messages-task-details-102025')
 export class CollabMessagesTaskDetails extends StateLitElement {
 
-    @property() task: mls.msg.TaskData | undefined = undefined;
-    @property() message: mls.msg.Message | undefined = undefined;
+    @property() task: msg.TaskData | undefined = undefined;
+    @property() message: msg.Message | undefined = undefined;
     @property() stepid: string = '';
     @property({ attribute: false }) seen = new Set<string>();
 
-    @property() interactionClarification: mls.msg.AIAgentStep | undefined;
+    @property() interactionClarification: msg.AIAgentStep | undefined;
     @query('.direct-clarification') directClarification: HTMLElement | undefined;
     @query('.direct-clarification .content') directClarificationContent: HTMLElement | undefined;
 
@@ -149,7 +152,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
         `
     }
 
-    private renderTaskInteractions(payloads: mls.msg.AIPayload[]) {
+    private renderTaskInteractions(payloads: msg.AIPayload[]) {
         return html`
             <div class="payload-content">
                 ${payloads.map((payload) => {
@@ -162,7 +165,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
         `
     }
 
-    private renderPayload(payload: mls.msg.AIPayload, isDirect: boolean = false): TemplateResult<1> {
+    private renderPayload(payload: msg.AIPayload, isDirect: boolean = false): TemplateResult<1> {
 
 
         switch (payload.type) {
@@ -209,7 +212,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
         }
     }
 
-    private renderPayloadAgent(payload: mls.msg.AIPayload, isDirect: boolean = false): TemplateResult<1> {
+    private renderPayloadAgent(payload: msg.AIPayload, isDirect: boolean = false): TemplateResult<1> {
 
         if (payload.type !== 'agent') return html``;
 
@@ -226,7 +229,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
 
     }
 
-    private renderInteration(interaction: mls.msg.AIInteraction, stepId: number) {
+    private renderInteration(interaction: msg.AIInteraction, stepId: number) {
 
         return html` 
             <div class="interactions">
@@ -273,7 +276,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
             </div>`
     }
 
-    private renderAgent(payload: mls.msg.AIAgentStep) {
+    private renderAgent(payload: msg.AIAgentStep) {
         return html`
             <ul>
                 <li>agentName: ${payload.agentName}</li> 
@@ -284,7 +287,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
         `;
     }
 
-    private renderTool(payload: mls.msg.AIToolStep) {
+    private renderTool(payload: msg.AIToolStep) {
         return html`
             <ul>
                 <li>toolName: ${payload.toolName}</li>
@@ -297,7 +300,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
 
     }
 
-    private renderClarificationDetails(payload: mls.msg.AIClarificationStep) {
+    private renderClarificationDetails(payload: msg.AIClarificationStep) {
         return html`
             <ul>
                 <li>json: ${payload.json}</li>
@@ -309,7 +312,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
 
     }
 
-    private renderFlexible(payload: mls.msg.AIFlexibleResultStep) {
+    private renderFlexible(payload: msg.AIFlexibleResultStep) {
         return html`
             <ul>
                 <li>stepId: ${payload.stepId}</li>
@@ -321,19 +324,19 @@ export class CollabMessagesTaskDetails extends StateLitElement {
             `;
     }
 
-    private renderClarification(payload: mls.msg.AIClarificationStep) {
+    private renderClarification(payload: msg.AIClarificationStep) {
 
         if (!this.task) return html`Invalid task`;
         const parentInteraction = getInteractionStepId(this.task, payload.stepId);
         if (!parentInteraction) return html`No found parentInteraction ${payload.stepId} on task: ${this.task.PK} `;
-        const interaction = getStepById(this.task, parentInteraction) as mls.msg.AIAgentStep;
+        const interaction = getStepById(this.task, parentInteraction) as msg.AIAgentStep;
         this.interactionClarification = interaction;
         if (!interaction) return html`Invalid interaction id:${parentInteraction} on task: ${this.task.PK} `
         if (!interaction.agentName) return html`Invalid agent name for step id:${interaction.stepId} on task: ${this.task.PK} `
         return html`<div class="content"> Processing...</div>`
 
     }
-    private renderResult(payload: mls.msg.AIResultStep) {
+    private renderResult(payload: msg.AIResultStep) {
         return html`
             <div class="result">
                 <pre>${typeof payload.result === 'object' ? JSON.stringify(payload.result) : payload.result}</pre>
@@ -403,7 +406,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
     private onTaskChange(e: Event) {
         if (!this.task) return;
         const customEvent = e as CustomEvent;
-        const task: mls.msg.TaskData = customEvent.detail.context.task;
+        const task: msg.TaskData = customEvent.detail.context.task;
         if (task.PK !== this.task.PK) return;
         this.task = task;
         this.requestUpdate();

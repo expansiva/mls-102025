@@ -2,9 +2,9 @@
 
 import { html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { getNextPendentStep, getTotalCost } from '/_102029_/l2/aiAgentHelper.js';
 import { getTask, getMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { msgGetTaskUpdate } from '/_102025_/l2/shared/api.js';
 
 import {
     collab_money,
@@ -16,6 +16,10 @@ import {
     collab_bug,
     collab_play
 } from '/_102025_/l2/collabMessagesIcons.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 
 /// **collab_i18n_start** 
 const message_pt = {
@@ -44,8 +48,8 @@ export class CollabMessagesTask extends StateLitElement {
     @property() lastChanged: string = '';
     @property() status: string = '';
 
-    @state() task: mls.msg.TaskData | undefined;
-    @state() context: mls.msg.ExecutionContext | undefined;
+    @state() task: msg.TaskData | undefined;
+    @state() context: msg.ExecutionContext | undefined;
     @state() private secondsPassed: number = 0;
     @state() private lastStep: number | undefined;
     
@@ -158,37 +162,47 @@ export class CollabMessagesTask extends StateLitElement {
         return `${min}:${sec}`;
     }
 
-    private async getTaskLocal(taskId: string) {
-        const task = await getTask(taskId);
-        if (task) {
-            this.task = task;
+private async getTaskLocal(taskId: string) {
+	const task = await getTask(taskId);
+	if (!task) return;
 
-            if (task.status === 'in progress' && task.owner === this.userId && !this.context) {
-                const messageId = `${this.threadId}/${this.messageid}`
+	this.task = task;
 
-                const response = await mls.api.msgGetTaskUpdate({
-                    messageId,
-                    taskId,
-                    userId: this.userId
-                });
+	const shouldSync =
+		task.status === 'in progress' &&
+		task.owner === this.userId &&
+		!this.context;
 
-                const message = await getMessage(messageId);
-                if (!message) return;
-                if (!response || response.statusCode !== 200) return;
+	if (!shouldSync) return;
 
-                this.context = {
-                    task: response.task,
-                    message,
-                    isTest: false
-                }
+	const messageId = `${this.threadId}/${this.messageid}`;
 
-                this.lastChanged = new Date().getTime().toString();
-                const nextPendent = getNextPendentStep(response.task);
-            
-            }
+	try {
+		const result = await msgGetTaskUpdate({
+			messageId,
+			taskId,
+			userId: this.userId
+        });
+    
+		if (!result.success || !result.response?.task) return;
 
-        }
-    }
+		const message = await getMessage(messageId);
+		if (!message) return;
+
+		this.context = {
+			task: result.response.task,
+			message,
+			isTest: false
+		};
+
+		this.lastChanged = Date.now().toString();
+
+		const nextPendent = getNextPendentStep(result.response.task);
+
+	} catch (err: any) {
+		console.error('Error fetching task update:', err);
+	}
+}
 
     private onCardClick() {
         const event = new CustomEvent('taskclick', {

@@ -2,8 +2,12 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { getUserId } from "/_102025_/l2/collabMessagesHelper.js";
+import { msgGetTaskUpdate } from '/_102025_/l2/shared/api.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 import '/_102025_/l2/collabMessagesTaskDetails.js';
 
 /// **collab_i18n_start** 
@@ -33,9 +37,9 @@ export class CollabMessagesFindTask extends StateLitElement {
     @state() taskId?: string;
     @state() error?: string;
 
-    @property() actualTask: mls.msg.TaskData | undefined;
-    @property() actualMessage: mls.msg.Message | undefined = undefined;
-    
+    @property() actualTask: msg.TaskData | undefined;
+    @property() actualMessage: msg.Message | undefined = undefined;
+
     @property() isLoading: boolean = false;
 
     async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
@@ -99,15 +103,23 @@ export class CollabMessagesFindTask extends StateLitElement {
 
     private async findThread() {
         this.isLoading = true;
+
         try {
             const user = getUserId();
             if (!this.taskId || !this.threadId || !user) return;
-            const rc = await mls.api.msgGetTaskUpdate({
+
+            const result = await msgGetTaskUpdate({
                 messageId: this.threadId,
                 taskId: this.taskId,
                 userId: user
             });
-            this.actualTask = rc.task;
+
+            if (!result.success || !result.response?.task) {
+                throw new Error(result.error || 'Failed to fetch task');
+            }
+
+            this.actualTask = result.response.task;
+
         } catch (err: any) {
             const message = err instanceof Error ? err.message : String(err);
             this.actualTask = undefined;
@@ -115,7 +127,6 @@ export class CollabMessagesFindTask extends StateLitElement {
         } finally {
             this.isLoading = false;
         }
-
     }
 
 }

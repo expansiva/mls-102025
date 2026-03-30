@@ -2,6 +2,7 @@
 
 import { html, ifDefined } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 
 import {
     listThreads,
@@ -26,8 +27,9 @@ import {
     changeFavIcon
 } from "/_102025_/l2/collabMessagesHelper.js";
 
+import { msgGetUserUpdate, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
+
 import { checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
-import { ICollabMessageEvent } from '/_102025_/l2/collabMessagesHelper.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 import { collab_crm, collab_tasks, collab_connect, collab_moments, collab_gear, collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons.js';
 
@@ -86,7 +88,7 @@ export class CollabMessages extends CollabLitElement {
     @property() activeScenerie: IScenery = 'tabs';
 
     @state() isLoadingThread: boolean = false;
-    @state() userPerfil: mls.msg.User | undefined;
+    @state() userPerfil: msg.User | undefined;
     @state() userThreads: IThreadData = {}
     @state() showNotificationAlert: boolean = false;
 
@@ -176,7 +178,7 @@ export class CollabMessages extends CollabLitElement {
             const message = await getMessage(task.messageid_created);
             if (!message) continue;
             try {
-                const context: mls.msg.ExecutionContext = { message, task, isTest: false };
+                const context: msg.ExecutionContext = { message, task, isTest: false };
                 // await continuePoolingTask(context);
             } catch (err) {
                 deletePooling(task.PK);
@@ -186,7 +188,7 @@ export class CollabMessages extends CollabLitElement {
 
     private onThreadChange = async (e: Event) => {
         const customEvent = e as CustomEvent;
-        const thread = customEvent.detail as mls.msg.Thread;
+        const thread = customEvent.detail as msg.Thread;
         if (this.userThreads[thread.threadId]) {
             this.userThreads[thread.threadId].thread = thread;
         } else {
@@ -326,13 +328,20 @@ export class CollabMessages extends CollabLitElement {
         ></collab-messages-chat-102025>`
     }
 
-    private async getUser(): Promise<mls.msg.User> {
+    private async getUser(): Promise<msg.User> {
         try {
-            const response = await mls.api.msgGetUserUpdate({ userId: "" });
-            return response.user;
+            const result = await msgGetUserUpdate({ userId: "" });
+
+            if (!result.success || !result.response?.user) {
+                throw new Error(result.error || 'Failed to fetch user');
+            }
+
+            return result.response.user;
+
         } catch (err: any) {
-            // this.setError(err.message);
-            throw new Error(err.message);
+            throw new Error(
+                err?.message || 'Unexpected error while fetching user'
+            );
         }
     }
 
@@ -375,7 +384,7 @@ export class CollabMessages extends CollabLitElement {
         }
     }
 
-    private async updateUsersThread(thread: mls.msg.Thread) {
+    private async updateUsersThread(thread: msg.Thread) {
 
         if (!this.userPerfil?.userId) {
             // this.setError('Invalid userId');
@@ -404,7 +413,7 @@ export class CollabMessages extends CollabLitElement {
             if (this.userThreads[thread.threadId]) {
                 return;
             }
-            const threadUsers: mls.msg.User[] = [];
+            const threadUsers: msg.User[] = [];
             thread.users.forEach((user) => {
                 const userDB = users.find((us) => us.userId === user.userId);
                 if (userDB) threadUsers.push(userDB);
@@ -417,23 +426,34 @@ export class CollabMessages extends CollabLitElement {
 
     }
 
-    private async getThreadInfo(threadId: string, userId: string): Promise<IThreadInfo> {
+    private async getThreadInfo(
+        threadId: string,
+        userId: string
+    ): Promise<IThreadInfo> {
         try {
-            const response = await mls.api.msgGetThreadUpdate({
+            const result = await msgGetThreadUpdates({
                 threadId,
                 userId
             });
-            return response;
+
+            if (!result.success || !result.response) {
+                throw new Error(
+                    result.error || 'Failed to fetch thread info'
+                );
+            }
+
+            return result.response;
 
         } catch (err: any) {
-            // this.setError('Erro ao buscar threads: ' + err);
-            throw new Error(err.message)
+            throw new Error(
+                err?.message || 'Unexpected error while fetching thread info'
+            );
         }
     }
 
     private onThreadCreate = async (e: Event) => {
         const customEvent = e as CustomEvent;
-        const thread = customEvent.detail as mls.msg.Thread;
+        const thread = customEvent.detail as msg.Thread;
         if (!thread) return;
 
         this.userThreads[thread.threadId] = {
@@ -495,8 +515,8 @@ interface IDataLocal {
 type IThreadData = { [key: string]: IThreadInfo }
 
 interface IThreadInfo {
-    thread: mls.msg.Thread,
-    users: mls.msg.User[]
+    thread: msg.Thread,
+    users: msg.User[]
 }
 
 type ITabType = 'CRM' | 'TASK' | 'MOMENTS' | 'CONNECT' | 'APPS' | 'SETTINGS' | 'Add' | 'Loading';

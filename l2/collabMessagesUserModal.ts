@@ -2,9 +2,12 @@
 
 import { html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { collab_message } from '/_102025_/l2/collabMessagesIcons.js';
 import { createThreadDM, getDmThreadByUsers } from '/_102025_/l2/collabMessagesHelper.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -31,7 +34,7 @@ export class CollabMessagesUserModal extends StateLitElement {
     private msg: MessageType = messages['en'];
 
     @property({ type: Boolean }) open = true;
-    @property() user?: mls.msg.User;
+    @property() user?: msg.User;
     @property() actualUserId?: string;
 
     @state() private isLoading: boolean = false;

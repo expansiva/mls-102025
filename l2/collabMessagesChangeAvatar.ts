@@ -2,9 +2,11 @@
 
 import { html, unsafeHTML } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
 import { defaultThreadImage, getTemporaryContext } from '/_102025_/l2/collabMessagesHelper.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 /// **collab_i18n_start** 
 const message_pt = {
@@ -156,7 +158,7 @@ export class CollabChangeAvatar extends StateLitElement {
 
       ) {
 
-        const svg: string = (context.task.iaCompressed?.nextSteps[0]?.interaction?.payload[0] as mls.msg.AIFlexibleResultStep).result
+        const svg: string = (context.task.iaCompressed?.nextSteps[0]?.interaction?.payload[0] as msg.AIFlexibleResultStep).result
         if (svg && typeof svg === 'string') {
           this.preview = svg;
           this.emitValueChanged(this.preview);

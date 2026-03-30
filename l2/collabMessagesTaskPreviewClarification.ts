@@ -3,16 +3,19 @@
 
 import { html, unsafeHTML } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { CollabLitElement } from '/_102029_/l2/collabLitElement.js'; 
 import { getStepById, getTemporaryContext } from "/_102029_/l2/aiAgentHelper.js";
 import { loadAgent } from '/_102029_/l2/aiAgentOrchestration.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { CollabLitElement } from '/_102029_/l2/collabLitElement.js'; 
+
 
 @customElement('collab-messages-task-preview-clarification-102025')   
 export class CollabMessageTaskPreviewClarification extends CollabLitElement { 
 
-    @property({ type: Object }) message: mls.msg.Message | null = null;
-    @property({ type: Object }) task: mls.msg.TaskData | null = null;
-    @property({ type: Object }) step: mls.msg.AIClarificationStep | null = null;
+    @property({ type: Object }) message: msg.Message | null = null;
+    @property({ type: Object }) task: msg.TaskData | null = null;
+    @property({ type: Object }) step: msg.AIClarificationStep | null = null;
     @state() private mode: string = 'info';
     @state() private tag: string = 'pre';
     @query('#clarificationid') clarificationid: HTMLDivElement | undefined;

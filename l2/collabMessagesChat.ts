@@ -11,7 +11,7 @@ import {
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
-import { notifyThreadChange, dispatchDetailsTaskClick , notifyThreadNotification} from '/_102025_/l2/collabMessagesEvents.js';
+import { notifyThreadChange, dispatchDetailsTaskClick, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 
 import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
 
@@ -44,6 +44,15 @@ import {
     changeFavIcon
 } from '/_102025_/l2/collabMessagesHelper.js';
 
+import {
+    msgGetMessagesAfter,
+    msgGetMessagesBefore,
+    msgGetTaskUpdate,
+    msgGetThreadUpdates,
+    msgAddMessage
+} from '/_102025_/l2/shared/api.js';
+
+
 import '/_102025_/l2/collabMessagesTaskInfo.js';
 import '/_102025_/l2/collabMessagesTask.js';
 import '/_102025_/l2/collabMessagesTopics.js';
@@ -57,7 +66,7 @@ import '/_102025_/l2/collabMessagesAdd.js';
 import '/_102025_/l2/collabMessagesChatMessage.js';
 import '/_102025_/l2/collabMessagesRichPreviewText.js';
 
-
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { IMessage, IThreadInfo, AGENTDEFAULT } from '/_102025_/l2/collabMessagesHelper.js';
 import { CollabMessagesPrompt } from '/_102025_/l2/collabMessagesPrompt.js';
 import { CollabMessagesChatMessage102025 } from '/_102025_/l2/collabMessagesChatMessage.js';
@@ -131,7 +140,7 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private threadErrorMsg: string = '';
     @state() private lastTopicFilter: string = '';
     @state() private welcomeMessage: string = '';
-    @state() private usersAvaliables: mls.msg.User[] = [];
+    @state() private usersAvaliables: msg.User[] = [];
 
     @property() group: 'CONNECT' | 'APPS' | 'DOCS' | 'CRM' = 'CONNECT';
     @property() userId: string | undefined;
@@ -140,14 +149,14 @@ export class CollabMessagesChat extends StateLitElement {
     @property() userDeviceId: string | undefined;
     @property() activeScenerie: IScenery = 'list';
     @property() actualThread: IThreadInfo | undefined;
-    @property() actualTask: mls.msg.TaskData | undefined;
+    @property() actualTask: msg.TaskData | undefined;
     @property() actualMessage: IMessage | undefined;
     @property() actualMessages: IMessage[] = [];
     @property() actualMessagesParsed: IMessageGrouped = {};
     @property() isLoadingMessages: boolean = false;
     @property() searchTerm: string = '';
     @property({ attribute: false }) userThreads: IThread = {};
-    @property({ attribute: false }) allThreads: mls.msg.Thread[] = [];
+    @property({ attribute: false }) allThreads: msg.Thread[] = [];
     @property() lastMessageReaded: string | undefined = ''
     @property() unreadCountInSelectedThread: number = 0;
 
@@ -782,7 +791,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.filteredThreads = this.getFilteredThreads(ordenedThreads);
     }
 
-    private async updateMessagesAfterScrollMore(newMessages: mls.msg.MessagePerformanceCache[], container: HTMLElement, previousHeight: number) {
+    private async updateMessagesAfterScrollMore(newMessages: msg.MessagePerformanceCache[], container: HTMLElement, previousHeight: number) {
 
         this.actualMessages = [...this.actualMessages, ...newMessages];
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
@@ -791,7 +800,7 @@ export class CollabMessagesChat extends StateLitElement {
         container.scrollTop = newHeight - previousHeight;
     }
 
-    private async getBeforeMessagesInServer(thread: mls.msg.ThreadPerformanceCache) {
+    private async getBeforeMessagesInServer(thread: msg.ThreadPerformanceCache) {
         const firstItem = [...this.actualMessages].sort((a, b) => a.orderAt.localeCompare(b.orderAt))[0];
         const response = await this.getMessagesBefore(thread, firstItem.orderAt);
         const newMessages = response?.data;
@@ -1022,34 +1031,50 @@ export class CollabMessagesChat extends StateLitElement {
         return ordened;
     }
 
-    private async getMessagesAfter(thread: mls.msg.Thread, lastOrderAt: string = ''): Promise<mls.msg.ResponseGetMessagesAfter | undefined> {
-        if (!this.userId) {
-            return undefined;
-        }
-        const response = await mls.api.msgGetMessagesAfter({
+    private async getMessagesAfter(
+        thread: msg.Thread,
+        lastOrderAt: string = ''
+    ): Promise<msg.ResponseGetMessagesAfter | undefined> {
+
+        if (!this.userId) return;
+
+        const result = await msgGetMessagesAfter({
             lastOrderAt,
             threadId: thread.threadId,
             userId: this.userId
         });
-        return response;
 
+        if (!result.success || !result.response) {
+            console.warn('Failed to fetch messages after:', result.error);
+            return;
+        }
+
+        return result.response;
     }
 
-    private async getMessagesBefore(thread: mls.msg.Thread, orderAt: string = ''): Promise<mls.msg.ResponseGetMessagesAfter | undefined> {
-        if (!this.userId) {
-            return undefined;
-        }
-        const response = await mls.api.msgGetMessagesBefore({
+    private async getMessagesBefore(
+        thread: msg.Thread,
+        orderAt: string = ''
+    ): Promise<msg.ResponseGetMessagesBefore | undefined> {
+
+        if (!this.userId) return;
+
+        const result = await msgGetMessagesBefore({
             orderAt,
             threadId: thread.threadId,
             userId: this.userId
         });
-        return response;
 
+        if (!result.success || !result.response) {
+            console.warn('Failed to fetch messages before:', result.error);
+            return;
+        }
+
+        return result.response;
     }
 
     private parseMessages(
-        rawData: mls.msg.MessagePerformanceCache[],
+        rawData: msg.MessagePerformanceCache[],
         topic: string
     ): IMessageGrouped {
         const groupedByDay: IMessageGrouped = {};
@@ -1139,10 +1164,10 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private mergeMessages(
-        array1: mls.msg.MessagePerformanceCache[],
-        array2: mls.msg.MessagePerformanceCache[]
-    ): mls.msg.MessagePerformanceCache[] {
-        const map = new Map<string, mls.msg.MessagePerformanceCache>();
+        array1: msg.MessagePerformanceCache[],
+        array2: msg.MessagePerformanceCache[]
+    ): msg.MessagePerformanceCache[] {
+        const map = new Map<string, msg.MessagePerformanceCache>();
         for (const item of array1) {
             map.set(`${item.threadId}/${item.createAt}`, item);
         }
@@ -1245,7 +1270,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.taskToOpen = '';
     }
 
-    private checkWelcomeMessage(thread: mls.msg.ThreadPerformanceCache, messagesInDb: mls.msg.MessagePerformanceCache[]) {
+    private checkWelcomeMessage(thread: msg.ThreadPerformanceCache, messagesInDb: msg.MessagePerformanceCache[]) {
         if (messagesInDb.length > 0) return;
         if (!thread.welcomeMessage) return;
         this.welcomeMessage = thread.welcomeMessage;
@@ -1258,7 +1283,7 @@ export class CollabMessagesChat extends StateLitElement {
             notifyThreadNotification(false);
         }
     }
-    
+
     private alreadyCheckForRegisterToken: boolean = false;
     private async checkForRegisterNotification() {
         if (this.alreadyCheckForRegisterToken) return;
@@ -1280,13 +1305,13 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
 
-    private async updateMessagesOnDb(threadInfo: IThreadInfo, messages: mls.msg.Message[] | undefined) {
+    private async updateMessagesOnDb(threadInfo: IThreadInfo, messages: msg.Message[] | undefined) {
         if (!messages) return threadInfo;
-        const newMessages: mls.msg.MessagePerformanceCache[] = [];
+        const newMessages: msg.MessagePerformanceCache[] = [];
         for await (let mm of messages) {
             const messageId = `${mm.threadId}/${mm.createAt}`
             const messageOld = await getMessage(messageId);
-            const tempMessage: mls.msg.MessagePerformanceCache = { ...mm, footers: messageOld?.footers || [] };
+            const tempMessage: msg.MessagePerformanceCache = { ...mm, footers: messageOld?.footers || [] };
             newMessages.push(tempMessage);
         }
 
@@ -1300,7 +1325,7 @@ export class CollabMessagesChat extends StateLitElement {
         return threadInfo;
     }
 
-    private async clearUnreadMessageFromThread(thread: mls.msg.Thread) {
+    private async clearUnreadMessageFromThread(thread: msg.Thread) {
         const _thread = await updateThread(
             thread.threadId,
             thread,
@@ -1387,34 +1412,65 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async addMessage(prompt: string, replyTo: string | undefined) {
         if (!this.userId || !this.actualThread) return;
+
         this.unreadCountInSelectedThread = 0;
 
-        const message: IMessage = await this.createTempMessage(prompt, this.userId, this.actualThread.thread.threadId, replyTo);
+        const message: IMessage = await this.createTempMessage(
+            prompt,
+            this.userId,
+            this.actualThread.thread.threadId,
+            replyTo
+        );
+
         try {
-            const context: mls.msg.ExecutionContext = {
+            const context: msg.ExecutionContext = {
                 message,
                 task: undefined,
                 isTest: false
-            }
-            const contextToBot = await getBotsContext(this.actualThread.thread, prompt, context);
-            const params: mls.msg.RequestAddMessage = {
-                action: 'addMessage',
+            };
+
+            const contextToBot = await getBotsContext(
+                this.actualThread.thread,
+                prompt,
+                context
+            );
+
+            const result = await msgAddMessage({
                 content: prompt,
                 threadId: this.actualThread.thread.threadId,
                 userId: this.userId,
-            };
-            if (replyTo) params.replyTo = replyTo;
-            if (contextToBot) params.contextToBot = contextToBot;
-            const response = await mls.api.msgAddMessage(params);
+                ...(replyTo ? { replyTo } : {}),
+                ...(contextToBot ? { contextToBot } : {})
+            });
+
+            if (!result.success || !result.response?.message) {
+                throw new Error(
+                    result.error || 'Failed to send message'
+                );
+            }
+
             message.isFailed = false;
             message.isFailedError = '';
-            this.updateMessage2(false, true, message, response.message, response.botOutputs);
+
+            this.updateMessage2(
+                false,
+                true,
+                message,
+                result.response.message,
+                result.response.botOutputs
+            );
+
         } catch (err: any) {
             message.isFailed = true;
-            message.isFailedError = err.message;
+            message.isFailedError = err?.message || 'Failed to send message';
             message.isLoading = false;
-            this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
-            console.error('Error on send message:' + err.message);
+
+            this.actualMessagesParsed = this.parseMessages(
+                this.actualMessages,
+                this.lastTopicFilter
+            );
+
+            console.error('Error sending message:', err);
         }
     }
 
@@ -1440,7 +1496,7 @@ export class CollabMessagesChat extends StateLitElement {
         }
     }
 
-    private async updateMessageAI(context: mls.msg.ExecutionContext, updateThreadDB: boolean, oldContextCreateAt?: string) {
+    private async updateMessageAI(context: msg.ExecutionContext, updateThreadDB: boolean, oldContextCreateAt?: string) {
 
         if (this.activeScenerie !== 'details') return;
         if (!context.message) return;
@@ -1456,7 +1512,7 @@ export class CollabMessagesChat extends StateLitElement {
         );
 
         if (!messageAdded) {
-            const newMessage: mls.msg.MessagePerformanceCache = {
+            const newMessage: msg.MessagePerformanceCache = {
                 content,
                 createAt,
                 orderAt,
@@ -1534,7 +1590,7 @@ export class CollabMessagesChat extends StateLitElement {
         return newMessage;
     }
 
-    private async updateMessage2(updateLastSyncThreadDB: boolean, updateLastMessageThreadDB: boolean, oldMessage: IMessage, newMessage: mls.msg.Message, outputs: mls.msg.BotOutput[] | undefined) {
+    private async updateMessage2(updateLastSyncThreadDB: boolean, updateLastMessageThreadDB: boolean, oldMessage: IMessage, newMessage: msg.Message, outputs: msg.BotOutput[] | undefined) {
 
         if (this.actualThread && (updateLastSyncThreadDB || updateLastMessageThreadDB)) {
 
@@ -1564,7 +1620,7 @@ export class CollabMessagesChat extends StateLitElement {
 
             const module = await this.loadAgent(item.botId);
             if (module && module.afterBot && typeof module.afterBot === 'function') {
-                const context: mls.msg.ExecutionContext = {
+                const context: msg.ExecutionContext = {
                     message: newMessage,
                     task: undefined,
                     isTest: false
@@ -1663,39 +1719,72 @@ export class CollabMessagesChat extends StateLitElement {
         });
     }
 
-    private async getTaskUpdate(taskId: string, createdAt: string, threadId: string) {
-        if (!taskId || !createdAt || !threadId) throw new Error('Invalid args');
-        if (!this.userId) throw new Error('Invalid userId');
-        const taskData = await mls.api.msgGetTaskUpdate(
-            {
-                taskId,
-                messageId: `${threadId}/${createdAt}`,
-                userId: this.userId
-            }
-        );
-        if (taskData.statusCode !== 200) throw new Error("error on AI get taskUpdate , stoped");
-        return taskData.task;
+    private async getTaskUpdate(
+        taskId: string,
+        createdAt: string,
+        threadId: string
+    ) {
+        if (!taskId || !createdAt || !threadId) {
+            throw new Error('Invalid arguments for getTaskUpdate');
+        }
+
+        if (!this.userId) {
+            throw new Error('Invalid userId');
+        }
+
+        const result = await msgGetTaskUpdate({
+            taskId,
+            messageId: `${threadId}/${createdAt}`,
+            userId: this.userId
+        });
+
+        if (!result.success || !result.response?.task) {
+            throw new Error(
+                result.error || 'Failed to fetch task update'
+            );
+        }
+
+        return result.response.task;
     }
 
-    private async getThreadInfo(threadId: string, userId: string, lastOrderAt: string): Promise<mls.msg.ResponseGetThreadUpdate> {
+    private async getThreadInfo(
+        threadId: string,
+        userId: string,
+        lastOrderAt: string
+    ): Promise<msg.ResponseGetThreadUpdate> {
+
         const deviceId = loadNotificationDeviceId();
 
         try {
-            const response = await mls.api.msgGetThreadUpdate({
+            const result = await msgGetThreadUpdates({
                 threadId,
                 userId,
                 lastOrderAt,
                 deviceId: deviceId || undefined
             });
+
             removeThreadFromSync(threadId);
 
-            if (response.statusCode === 403) {
-                throw new Error(response.msg);
+            if (!result.success) {
+                if (result.statusCode === 403) {
+                    throw new Error(result.error || 'Access denied to thread');
+                }
+
+                throw new Error(
+                    result.error || 'Failed to fetch thread updates'
+                );
             }
 
-            return response;
+            if (!result.response) {
+                throw new Error('Empty response while fetching thread updates');
+            }
+
+            return result.response;
+
         } catch (err: any) {
-            throw new Error(err.message)
+            throw new Error(
+                err?.message || 'Unexpected error while fetching thread updates'
+            );
         }
     }
 
@@ -1715,8 +1804,8 @@ export class CollabMessagesChat extends StateLitElement {
 
     private onTaskChange = async (e: Event) => {
         const customEvent = e as CustomEvent;
-        const message: mls.msg.Message = customEvent.detail.context.message;
-        const task: mls.msg.TaskData = customEvent.detail.context.task;
+        const message: msg.Message = customEvent.detail.context.message;
+        const task: msg.TaskData = customEvent.detail.context.task;
         const thId = message?.threadId;
         if (!this.actualThread || !thId || thId !== this.actualThread.thread.threadId) return;
         await this.updateMessageAI(customEvent.detail.context, false, customEvent.detail.oldContextCreateAt);
@@ -1738,7 +1827,7 @@ export class CollabMessagesChat extends StateLitElement {
 
         const customEvent = e as CustomEvent;
         await this.updateMessageAI(customEvent.detail, false);
-        const thread = customEvent.detail as mls.msg.Thread;
+        const thread = customEvent.detail as msg.Thread;
         const threadUpdated = this.userThreads[this.group].find((th) => th.thread.threadId === thread.threadId);
 
         if (['deleted'].includes(thread.status)) {
@@ -1779,7 +1868,7 @@ export class CollabMessagesChat extends StateLitElement {
     private onMessageChange(e: Event) {
 
         const customEvent = e as CustomEvent;
-        const message: mls.msg.Message = customEvent.detail;
+        const message: msg.Message = customEvent.detail;
 
         if (!this.actualThread || !message || message.threadId !== this.actualThread.thread.threadId) return;
         for (const item of Object.values(this.actualMessagesParsed)) {
@@ -1796,8 +1885,8 @@ export class CollabMessagesChat extends StateLitElement {
 
     private onMessageSend = async (e: Event) => {
         const customEvent = e as CustomEvent;
-        const message: mls.msg.Message = customEvent.detail.context.message;
-        const outputs: mls.msg.BotOutput[] = customEvent.detail.context.botOutput;
+        const message: msg.Message = customEvent.detail.context.message;
+        const outputs: msg.BotOutput[] = customEvent.detail.context.botOutput;
         const thId = message?.threadId;
         if (!this.actualThread || !thId || thId !== this.actualThread.thread.threadId) return;
         this.updateMessage2(false, true, { ...message, footers: [] }, message, outputs);
@@ -1913,7 +2002,7 @@ interface IFilteredThreads {
     };
     hasMore?: boolean | undefined,
     thread: IDBThreadPerformanceCache;
-    users: mls.msg.User[];
+    users: msg.User[];
 }
 type IMessageGrouped = { [key: string]: IMessage[] }
 type IThread = { [key: string]: IThreadInfo[] }

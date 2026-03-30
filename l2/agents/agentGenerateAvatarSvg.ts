@@ -3,6 +3,7 @@
 
 import { IAgentAsync, IAgentMeta } from '/_102029_/l2/aiAgentBase.js';
 import { getAgentStepByAgentName } from '/_102029_/l2/aiAgentHelper.js';
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 
 export function createAgent(): IAgentAsync {
     return {
@@ -18,13 +19,13 @@ export function createAgent(): IAgentAsync {
 
 async function beforePromptImplicit(
     agent: IAgentMeta,
-    context: mls.msg.ExecutionContext,
+    context: msg.ExecutionContext,
     userPrompt: string,
-): Promise<mls.msg.AgentIntent[]> {
+): Promise<msg.AgentIntent[]> {
 
     if (!userPrompt || userPrompt.length < 5) throw new Error('invalid prompt');
 
-    const addMessageAI: mls.msg.AgentIntentAddMessageAI = {
+    const addMessageAI: msg.AgentIntentAddMessageAI = {
         type: "add-message-ai",
         request: {
             action: 'addMessageAI',
@@ -47,11 +48,11 @@ async function beforePromptImplicit(
 
 async function afterPromptStep(
     agent: IAgentMeta,
-    context: mls.msg.ExecutionContext,
-    parentStep: mls.msg.AIAgentStep,
-    step: mls.msg.AIAgentStep,
+    context: msg.ExecutionContext,
+    parentStep: msg.AIAgentStep,
+    step: msg.AIAgentStep,
     hookSequential: number,
-): Promise<mls.msg.AgentIntent[]> {
+): Promise<msg.AgentIntent[]> {
 
     if (!agent || !context || !step) throw new Error(`[afterPromptStep] invalid params, agent:${!!agent}, context:${!!context}, step:${!!step}`);
 
@@ -59,9 +60,9 @@ async function afterPromptStep(
     if (!payload || !payload.type) throw new Error(`Payload invalid`);
     if (payload?.type !== 'flexible' || !payload.result) throw new Error(`[afterPromptStep] invalid payload: ${payload}`)
 
-    let status: mls.msg.AIStepStatus = 'completed';
+    let status: msg.AIStepStatus = 'completed';
 
-    const updateStatus: mls.msg.AgentIntentUpdateStatus = {
+    const updateStatus: msg.AgentIntentUpdateStatus = {
         type: 'update-status',
         hookSequential,
         messageId: context.message.orderAt,
@@ -76,7 +77,7 @@ async function afterPromptStep(
 
 }
 
-export function getPayload(context: mls.msg.ExecutionContext): string {
+export function getPayload(context: msg.ExecutionContext): string {
     if (!context || !context.task) throw new Error(`[getPayload] Invalid context`);
     const agentStep = getAgentStepByAgentName(context.task, 'agentGenerateAvatarSvg'); // Only one agent execution must exist in this task
     if (!agentStep) throw new Error(`[getPayload] no agent found`);

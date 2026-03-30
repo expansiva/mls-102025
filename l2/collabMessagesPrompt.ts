@@ -2,13 +2,16 @@
 
 import { html, ifDefined, nothing } from 'lit';
 import { customElement, property, state, query, } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
-import { IAgent } from '/_102029_/l2/aiAgentBase.js'
+
 
 import { collab_arrow_up_long } from '/_102025_/l2/collabMessagesIcons.js';
 import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
 import '/_102025_/l2/collabMessagesAvatar.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { IAgent } from '/_102029_/l2/aiAgentBase.js'
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -43,7 +46,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() mentionQuery: string = '';
     @state() mentionSuggestions: IMentions[] = [];
     @state() mentionIndex: number = 0;
-    @state() allUsers: mls.msg.User[] = [];
+    @state() allUsers: msg.User[] = [];
     @state() allAgents: IMentionAgent[] = [];
     @state() alreadyLoadingAgents: boolean = false;
     @state() lastScopeLoaded: string | undefined;
@@ -111,7 +114,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         if (!this.threadId) return;
         const thread = await getThread(this.threadId.trim());
         if (!thread) return;
-        const users: mls.msg.User[] = await listUsers();
+        const users: msg.User[] = await listUsers();
         this.allUsers = users;
     }
 
