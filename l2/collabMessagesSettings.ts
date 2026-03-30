@@ -25,8 +25,6 @@ import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import {
     IChatPreferences,
     TranslateMode,
-    IOpenClawIntegration,
-    IOpenClawAgent
 } from '/_102025_/l2/collabMessagesHelper.js';
 
 import {
@@ -247,7 +245,7 @@ export class CollabMessagesSettings extends StateLitElement {
         this.chatPreferences = loadChatPreferences();
         const audioPref = loadNotificationPreferencesAudio();
         this.audioEnabled = audioPref;
-        this.integrations = loadOpenClawIntegrations();
+        this.integrations = await loadOpenClawIntegrations();
     }
 
     updated() {
@@ -613,7 +611,7 @@ export class CollabMessagesSettings extends StateLitElement {
         `;
     }
 
-    private renderAgent(integrationId: string, agent: IOpenClawAgent) {
+    private renderAgent(integrationId: string, agent:msg.IOpenClawAgent) {
         return html`
         <div class="agent-card">
             <div class="agent-avatar">
@@ -909,7 +907,7 @@ export class CollabMessagesSettings extends StateLitElement {
         );
     }
 
-    private async handleCopyToken(integration: IOpenClawIntegration) {
+    private async handleCopyToken(integration: msg.IOpenClawIntegration) {
         await navigator.clipboard.writeText(integration.bearerToken);
         this.tokenCopiedId = integration.id;
         setTimeout(() => { this.tokenCopiedId = ''; }, 2000);
@@ -965,7 +963,7 @@ export class CollabMessagesSettings extends StateLitElement {
 
         const agentId = generateUUIDv7();
         const sanitizedName = this.newAgentName.toLowerCase().replace(/\s+/g, '');
-        const newAgent: IOpenClawAgent = {
+        const newAgent: msg.IOpenClawAgent = {
             id: agentId,
             name: this.newAgentName.trim(),
             avatarUrl: this.newAgentAvatarUrl || generateAgentAvatar(this.newAgentName),
@@ -1105,6 +1103,6 @@ export class CollabMessagesSettings extends StateLitElement {
     }
 }
 
-interface IOpenClawIntegrationLocal extends IOpenClawIntegration {
+interface IOpenClawIntegrationLocal extends msg.IOpenClawIntegration {
     isLocal?: boolean
 }

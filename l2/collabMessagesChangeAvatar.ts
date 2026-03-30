@@ -2,10 +2,8 @@
 
 import { html, unsafeHTML } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
-import { defaultThreadImage, getTemporaryContext } from '/_102025_/l2/collabMessagesHelper.js';
-
-import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { defaultThreadImage } from '/_102025_/l2/collabMessagesHelper.js';
+import { environment } from '/_102036_/l2/environmentContract.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 /// **collab_i18n_start** 
@@ -142,29 +140,10 @@ export class CollabChangeAvatar extends StateLitElement {
 
     try {
 
-      const agent = await loadAgent(agentName);
-      if (!agent) throw new Error('Invalid agent');
-
-      const context = getTemporaryContext(this.threadId, this.userId, this.avatarPrompt);
-      await executeBeforePrompt(agent, context);
-
-      if (context.task &&
-        context.task.iaCompressed &&
-        context.task.iaCompressed.nextSteps &&
-        context.task.iaCompressed.nextSteps[0] &&
-        context.task.iaCompressed.nextSteps[0].interaction &&
-        context.task.iaCompressed.nextSteps[0].interaction.payload &&
-        context.task.iaCompressed.nextSteps[0].interaction.payload[0]
-
-      ) {
-
-        const svg: string = (context.task.iaCompressed?.nextSteps[0]?.interaction?.payload[0] as msg.AIFlexibleResultStep).result
-        if (svg && typeof svg === 'string') {
-          this.preview = svg;
-          this.emitValueChanged(this.preview);
-        }
-
-      }
+      const svgStr = await environment.agents.generateSvgAvatar(this.threadId, this.userId, this.avatarPrompt);
+      if (!svgStr) return;
+      this.preview = svgStr;
+      this.emitValueChanged(this.preview);
 
     } catch (err: any) {
       console.error("Erro ao gerar avatar via IA", err);

@@ -2,15 +2,16 @@
 
 import { html, ifDefined, nothing } from 'lit';
 import { customElement, property, state, query, } from 'lit/decorators.js';
-
 import { collab_arrow_up_long } from '/_102025_/l2/collabMessagesIcons.js';
 import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
-import '/_102025_/l2/collabMessagesAvatar.js';
 
+import { environment } from '/_102036_/l2/environmentContract.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
-import { IAgent } from '/_102029_/l2/aiAgentBase.js'
+
+import '/_102025_/l2/collabMessagesAvatar.js';
+
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -118,8 +119,10 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private async getAgents() {
-        const agentsFiles = await this.getAgentsFiles();
-        const agentsPublic = agentsFiles.map((agent: IAgent) => {
+
+        const agentsFiles = await environment.getAgents();
+
+        const agentsPublic = agentsFiles.map((agent: msg.IAgentMeta) => {
             const { visibility, agentName, avatar_url, agentDescription, scope } = agent;
             if (visibility === 'public') {
                 let inScope = this.scope ? false : true;
@@ -219,26 +222,6 @@ export class CollabMessagesPrompt extends StateLitElement {
         }
     }
 
-    private async getAgentsFiles(): Promise<IAgent[]> {
-        const keys = Object.keys(mls.stor.files);
-        const ret: IAgent[] = [];
-        for await (const k of keys) {
-            if (k.indexOf('agent') < 0) continue;
-            const file = mls.stor.files[k];
-            const path = `/_${file.project}_${file.folder ? file.folder + '/' : ''}${file.shortName}`;
-            if (file.extension !== '.ts' || !file.shortName.startsWith('agent')) continue;
-            try {
-                const mdl = await import(path);
-                if (!mdl.createAgent) continue;
-                const agent = mdl.createAgent() as IAgent
-                ret.push(agent);
-            } catch (err) {
-                console.info(err)
-                continue;
-            }
-        }
-        return ret;
-    }
 
     render() {
 

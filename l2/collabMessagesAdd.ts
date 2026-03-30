@@ -10,10 +10,8 @@ import {
     getDmThreadByUsers,
     addMessage,
     createThreadDM,
-    getTemporaryContext
 } from '/_102025_/l2/collabMessagesHelper.js';
 
-import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
 import {
     msgGetUsers,
     msgUpdateThread,
@@ -22,8 +20,9 @@ import {
     msgAddThread
 } from '/_102025_/l2/shared/api.js';
 
+import { environment } from '/_102036_/l2/environmentContract.js';
+
 import * as msg from '/_102025_/l2/shared/interfaces.js';
-import { IAgent } from '/_102029_/l2/aiAgentBase.js'
 import { CollabMessagesInputTag } from '/_102025_/l2/collabMessagesInputTag.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
@@ -192,14 +191,13 @@ export class CollabMessagesAdd extends StateLitElement {
 
     private async loadAgentsBotsAvaliables() {
 
-        const agentsFiles = await this.getAgentsFiles();
-        const agents = agentsFiles.map((data: IAgentsList) => {
-            const { visibility, agentName, avatar_url, agentDescription, scope } = data.agent;
-            const { project, folder, shortName } = data.storFile;
+        const agentsFiles = await environment.getAgents();
+        const agents = agentsFiles.map((data: msg.IAgentMeta) => {
+            const { visibility, agentName, avatar_url, agentDescription, scope, agentProject, agentFolder } = data;
 
             if (agentName.startsWith('agentBot') && agentName !== 'agentBotInstall' && visibility === 'public') {
                 return {
-                    id: agentName, name: agentName, description: agentDescription, avatar_url: avatar_url, info: { project, folder, shortName }
+                    id: agentName, name: agentName, description: agentDescription, avatar_url: avatar_url, info: { project: agentProject, folder: agentFolder, shortName: agentName }
                 }
             }
 
@@ -208,26 +206,6 @@ export class CollabMessagesAdd extends StateLitElement {
 
         this.agentsBots = [{ id: 'none', name: '', description: '', avatar_url: '' }].concat(agents as IAgentsBots[]);
 
-    }
-
-    private async getAgentsFiles(): Promise<IAgentsList[]> {
-        const keys = Object.keys(mls.stor.files);
-        const ret: IAgentsList[] = [];
-        for await (const k of keys) {
-            if (k.indexOf('agent') < 0) continue;
-            const storFile = mls.stor.files[k];
-            const path = storFile.folder ? `/_${storFile.project}_/l2/${storFile.folder}/${storFile.shortName}` : `/_${storFile.project}_/l2/${storFile.shortName}`;
-            if (storFile.extension !== '.ts' || !storFile.shortName.startsWith('agent')) continue;
-            try {
-                const mdl = await import(path);
-                if (!mdl.createAgent) continue;
-                const agent = mdl.createAgent() as IAgent
-                ret.push({ agent, storFile });
-            } catch (err) {
-                continue;
-            }
-        }
-        return ret;
     }
 
     private _renderAdd() {
@@ -636,19 +614,14 @@ export class CollabMessagesAdd extends StateLitElement {
 
     private async generateAvatar(threadId: string, userId: string) {
         try {
-            const agent = await loadAgent(agentName);
-            if (!agent) throw new Error('Invalid agent');
 
-            const context = getTemporaryContext(threadId, userId, this._promptToAvatar);
-            await executeBeforePrompt(agent, context);
-
-            const svg = this.extractSvgFromContext(context);
-            if (!svg) return;
+            const svgStr = await environment.agents.generateSvgAvatar(threadId, userId, this._promptToAvatar);
+            if (!svgStr) return;
 
             const result = await msgUpdateThread({
                 threadId,
                 userId,
-                avatar_url: svg
+                avatar_url: svgStr
             });
 
             if (!result.success || !result.response) {
@@ -676,11 +649,6 @@ interface IAgentsBots {
     name: string,
     description: string,
     avatar_url: string
-    info?: mls.stor.IFileInfoBase
-}
-
-interface IAgentsList {
-    agent: IAgent,
-    storFile: mls.stor.IFileInfo
+    info?: { project: number, shortName: string, folder: string }
 }
 

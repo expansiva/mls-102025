@@ -2,19 +2,21 @@
 
 import { getUserId, loadNotificationDeviceId, loadNotificationPreferencesAudio } from "/_102025_/l2/collabMessagesHelper.js";
 import {
-    getThread,
-    updateThread,
-    getMessage,
-    addMessages,
-    getAllThreads,
-    addThread,
-    getCompactUTC,
-    updateMessage
+	getThread,
+	updateThread,
+	getMessage,
+	addMessages,
+	getAllThreads,
+	addThread,
+	getCompactUTC,
+	updateMessage
 } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 import { notifyThreadChange, notifyMessageChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 import { changeFavIcon } from '/_102025_/l2/collabMessagesHelper.js';
 import { msgGetMessage, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
+import { environment } from '/_102036_/l2/environmentContract.js';
+
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 
 export const threadSyncMap = new Map<string, boolean>();
@@ -22,128 +24,128 @@ let hasNotificationMessages: boolean = false;
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export function removeThreadFromSync(threadId: string) {
-    threadSyncMap.delete(threadId);
+	threadSyncMap.delete(threadId);
 }
 
 export async function checkIfNotificationUnread(): Promise<boolean> {
 
-    const threads = await getAllThreads();
-    let hasPendingMessages: boolean = false;
-    for (let thread of threads) {
-        if (thread.unreadCount && thread.unreadCount > 0) {
-            hasPendingMessages = true;
-            break;
-        }
-    }
-    return hasPendingMessages;
+	const threads = await getAllThreads();
+	let hasPendingMessages: boolean = false;
+	for (let thread of threads) {
+		if (thread.unreadCount && thread.unreadCount > 0) {
+			hasPendingMessages = true;
+			break;
+		}
+	}
+	return hasPendingMessages;
 }
 
 export async function listenToThreadEvents() {
 
-    const notificationSound = new Audio('./l3/_100529_/audio/collabNotification.mp3');
-    notificationSound.preload = 'auto';
-    notificationSound.volume = 1;
+	const notificationSound = new Audio('./l3/_100529_/audio/collabNotification.mp3');
+	notificationSound.preload = 'auto';
+	notificationSound.volume = 1;
 
-    navigator.serviceWorker.addEventListener('message', async (event) => {
+	navigator.serviceWorker.addEventListener('message', async (event) => {
 
-        if ((mls as any).isTraceNotification) console.info(`[NOTIFICATION] Received`)
-        if ((mls as any).isTraceNotification) console.info(`[NOTIFICATION] Data`, event?.data)
-        const id = event.data.id;
-        if ((mls as any).isTraceNotification) console.info(`[NOTIFICATION] : sendACK id: ${id}`);
-        await mls.stor.cache.sendACK(id);
+		if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Received`)
+		if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Data`, event?.data)
+		const id = event.data.id;
+		if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] : sendACK id: ${id}`);
+		await environment.notifications.sendACK(id);
 
-        const reference = event.data?.data?.reference;
-        if (!reference) return;
-        let threadId: string = '';
+		const reference = event.data?.data?.reference;
+		if (!reference) return;
+		let threadId: string = '';
 
-        const parts = reference.split(':');
-        const typeNotification = parts.length === 2 ? 'message-update' : 'thread-update';
-        threadId = parts[0];
+		const parts = reference.split(':');
+		const typeNotification = parts.length === 2 ? 'message-update' : 'thread-update';
+		threadId = parts[0];
 
-        await enqueueThreadForSync(reference);
-        let isThreadOpened: boolean = false;
-
-
-        const chat = document.querySelector('collab-messages-102025')?.querySelector('collab-messages-chat-102025') as any;
-        const actualThreadId = chat?.actualThread?.thread?.threadId;
-        if (actualThreadId === threadId) {
-            isThreadOpened = true;
-        }
-    
-        if (typeNotification === 'thread-update' && (!isThreadOpened || (isThreadOpened && document.visibilityState === 'hidden')
-        && hasNotificationMessages)
-
-    ) {
-        changeFavIcon(true);
-        
-        notifyThreadNotification(true);
-        const audioEnabled = loadNotificationPreferencesAudio();
-        if (audioEnabled) {
-            notificationSound.currentTime = 0;
-            notificationSound.play().catch(err => console.warn('Erro on play notification audio:', err));
-        }
-    }
-
-    hasNotificationMessages = false;
+		await enqueueThreadForSync(reference);
+		let isThreadOpened: boolean = false;
 
 
-});
+		const chat = document.querySelector('collab-messages-102025')?.querySelector('collab-messages-chat-102025') as any;
+		const actualThreadId = chat?.actualThread?.thread?.threadId;
+		if (actualThreadId === threadId) {
+			isThreadOpened = true;
+		}
 
-if ((mls as any).isTraceNotification) console.info('[NOTIFICATION] : sendRequestMissed');
-await mls.stor.cache.sendRequestMissed();
+		if (typeNotification === 'thread-update' && (!isThreadOpened || (isThreadOpened && document.visibilityState === 'hidden')
+			&& hasNotificationMessages)
+
+		) {
+			changeFavIcon(true);
+
+			notifyThreadNotification(true);
+			const audioEnabled = loadNotificationPreferencesAudio();
+			if (audioEnabled) {
+				notificationSound.currentTime = 0;
+				notificationSound.play().catch(err => console.warn('Erro on play notification audio:', err));
+			}
+		}
+
+		hasNotificationMessages = false;
+
+
+	});
+
+	if ((window as any).isTraceNotification) console.info('[NOTIFICATION] : sendRequestMissed');
+	await environment.notifications.sendRequestMissed();
 
 }
 
 function enqueueThreadForSync(reference: string) {
-    threadSyncMap.set(reference, true);
-    return scheduleNextSync();
+	threadSyncMap.set(reference, true);
+	return scheduleNextSync();
 }
 
 async function scheduleNextSync() {
-    if (syncTimeout || threadSyncMap.size === 0) return;
+	if (syncTimeout || threadSyncMap.size === 0) return;
 
-    syncTimeout = setTimeout(async () => {
-        syncTimeout = null;
+	syncTimeout = setTimeout(async () => {
+		syncTimeout = null;
 
-        const [reference] = threadSyncMap.entries().next().value;
-        if (!reference) return;
-        threadSyncMap.delete(reference);
+		const [reference] = threadSyncMap.entries().next().value;
+		if (!reference) return;
+		threadSyncMap.delete(reference);
 
-        try {
-            if ((mls as any).isTraceNotification) console.info(`[NOTIFICATION] : refreshThread : ${reference}`);
-            await getThreadUpdateInBackground(reference);
+		try {
+			if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] : refreshThread : ${reference}`);
+			await getThreadUpdateInBackground(reference);
 
-        } catch (err) {
-            console.error(`Error on sync thread ${reference}`, err);
-        }
+		} catch (err) {
+			console.error(`Error on sync thread ${reference}`, err);
+		}
 
-        return scheduleNextSync();
-    }, 500);
+		return scheduleNextSync();
+	}, 500);
 }
 
 
 // reference: threadId or threadId:messageId
 export async function getThreadUpdateInBackground(reference: string): Promise<void> {
 
-    const userId = getUserId();
-    const deviceId = loadNotificationDeviceId();
-    if (!userId) throw new Error('Invalid user id');
+	const userId = getUserId();
+	const deviceId = loadNotificationDeviceId();
+	if (!userId) throw new Error('Invalid user id');
 
-    let threadId: string = '';
-    let messageId: string = '';
-    const parts = reference.split(':');
-    const typeNotification = parts.length === 2 ? 'message-update' : 'thread-update';
-    threadId = parts[0];
-    messageId = parts[1];
+	let threadId: string = '';
+	let messageId: string = '';
+	const parts = reference.split(':');
+	const typeNotification = parts.length === 2 ? 'message-update' : 'thread-update';
+	threadId = parts[0];
+	messageId = parts[1];
 
-    if (typeNotification === 'thread-update') {
-        await updateThreadInBackground(threadId, userId, deviceId);
-    }
+	if (typeNotification === 'thread-update') {
+		await updateThreadInBackground(threadId, userId, deviceId);
+	}
 
-    if (typeNotification === 'message-update') {
-        await updateMessageInBackground(threadId, messageId, userId, deviceId);
-        await updateThreadInBackground(threadId, userId, deviceId);
-    }
+	if (typeNotification === 'message-update') {
+		await updateMessageInBackground(threadId, messageId, userId, deviceId);
+		await updateThreadInBackground(threadId, userId, deviceId);
+	}
 
 }
 
@@ -153,7 +155,7 @@ async function updateMessageInBackground(
 	userId: string,
 	deviceId: string | null
 ) {
-    try {
+	try {
 		const result = await msgGetMessage({
 			messageId: `${threadId}/${messageId}`,
 			threadId,
@@ -164,7 +166,7 @@ async function updateMessageInBackground(
 			throw new Error(result.error || 'Failed to fetch message');
 		}
 
-		if ((mls as any).isTraceNotification) {
+		if ((window as any).isTraceNotification) {
 			console.info(
 				`[NOTIFICATION] : getMessageUpdateInBackground: ${result.response.message}`
 			);
@@ -201,7 +203,7 @@ async function updateThreadInBackground(
 
 		const response = result.response;
 
-		if ((mls as any).isTraceNotification) {
+		if ((window as any).isTraceNotification) {
 			console.info(
 				`[NOTIFICATION] : getThreadUpdateInBackground threadsPending: ${response.threadsPending}`
 			);

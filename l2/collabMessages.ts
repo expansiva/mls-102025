@@ -1,7 +1,8 @@
 /// <mls fileReference="_102025_/l2/collabMessages.ts" enhancement="_102027_/l2/enhancementLit" /> 
 
-import { html, ifDefined } from 'lit';
+import { html, ifDefined, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
+import { environment } from '/_102036_/l2/environmentContract.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 
@@ -96,6 +97,7 @@ export class CollabMessages extends CollabLitElement {
     @state() threadToOpen: string = '';
     @state() taskToOpen: string = '';
     @state() lastLevel: number = -1;
+    @state() modeMenu: string = 'default';
 
     private groupSelected: ITabType = 'CRM';
 
@@ -119,6 +121,7 @@ export class CollabMessages extends CollabLitElement {
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
         super.updated(changedProperties);
+
         if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT', 'APPS'].includes(this.activeTab)) {
 
             if (!this.userPerfil) {
@@ -134,11 +137,15 @@ export class CollabMessages extends CollabLitElement {
         if (changedProperties.has('dataLocal')) {
             if (this.activeTab !== 'Loading') this.activeTab = this.dataLocal.lastTab;
         }
+
+
     }
 
 
     async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
         super.firstUpdated(changedProperties);
+        this.modeMenu = environment.config.getMenuMode();
+        if (!this.activeTab) this.activeTab = this.dataLocal.lastTab;
         this.checkNotificationPermission();
         this.startPendentsPoolingsIfNeeded();
         this.checkNotificationPending();
@@ -229,6 +236,8 @@ export class CollabMessages extends CollabLitElement {
     }
 
     renderHeader() {
+
+        if (this.modeMenu === 'custom') return nothing;
         return html`
           <collab-messages-tab-menu-102025
             style="width: 375px;"
@@ -329,7 +338,7 @@ export class CollabMessages extends CollabLitElement {
         return html`
         ${this.renderAlert()}
         <collab-messages-chat-102025 
-            
+            class=${this.modeMenu}
             .isLoadingThread= ${this.isLoadingThread}
             group="CONNECT"
             .userThreads=${{

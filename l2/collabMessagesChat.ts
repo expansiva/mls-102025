@@ -11,9 +11,7 @@ import {
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
-import { notifyThreadChange, dispatchDetailsTaskClick, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
-
-import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
+import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 
 import {
     addOrUpdateTask,
@@ -52,8 +50,8 @@ import {
     msgAddMessage
 } from '/_102025_/l2/shared/api.js';
 
+import { environment } from '/_102036_/l2/environmentContract.js';
 
-import '/_102025_/l2/collabMessagesTaskInfo.js';
 import '/_102025_/l2/collabMessagesTask.js';
 import '/_102025_/l2/collabMessagesTopics.js';
 import '/_102025_/l2/collabMessagesPrompt.js';
@@ -70,7 +68,6 @@ import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { IMessage, IThreadInfo, AGENTDEFAULT } from '/_102025_/l2/collabMessagesHelper.js';
 import { CollabMessagesPrompt } from '/_102025_/l2/collabMessagesPrompt.js';
 import { CollabMessagesChatMessage102025 } from '/_102025_/l2/collabMessagesChatMessage.js';
-import { IAgent } from '/_102029_/l2/aiAgentBase.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 
@@ -141,6 +138,7 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private lastTopicFilter: string = '';
     @state() private welcomeMessage: string = '';
     @state() private usersAvaliables: msg.User[] = [];
+    @state() private elementTaskDetails: HTMLElement | undefined;
 
     @property() group: 'CONNECT' | 'APPS' | 'DOCS' | 'CRM' = 'CONNECT';
     @property() userId: string | undefined;
@@ -173,6 +171,7 @@ export class CollabMessagesChat extends StateLitElement {
     async updated(changedProperties: Map<PropertyKey, unknown>) {
 
         super.updated(changedProperties);
+
 
         if (changedProperties.has('activeScenerie') && (this.activeScenerie === 'list')) {
             this.usersAvaliables = await listUsers();
@@ -247,6 +246,7 @@ export class CollabMessagesChat extends StateLitElement {
         if (this.activeScenerie === 'loading') {
             return html`<div class="loading">${this.msg.loading}</div>`;
         }
+
         return html`
             ${this.renderHeader()}
             ${this.renderContent()}`;
@@ -767,8 +767,13 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private renderTaskDetails() {
-        const messageId = `${this.actualThread?.thread.threadId}/${this.actualMessage?.createAt}`
-        return html`<collab-messages-task-info-102025 messageId=${messageId} .task=${this.actualTask} .message=${this.actualMessage} taskId=${this.actualTask?.PK}></collab-messages-task-info-102025>`
+
+        if (this.elementTaskDetails) {
+            return html`${this.elementTaskDetails}`
+        }
+
+        return html`<span> No find any widget to show task details <span>`;
+
     }
 
     private renderThreadDetails() {
@@ -1482,9 +1487,10 @@ export class CollabMessagesChat extends StateLitElement {
         if (agentName) agentToCall = agentName;
         const message: IMessage = await this.createTempMessage(prompt, this.userId, this.actualThread.thread.threadId, replyTo);
         try {
-            const agent = await this.loadAgent(agentToCall);
+
             context.message = message;
-            await executeBeforePrompt(agent, context);
+            environment.agents.executeAgent(agentToCall, context);
+
         } catch (err: any) {
             console.error('Error on send message:' + err.message);
             if (message.isLoading) {
@@ -1618,7 +1624,8 @@ export class CollabMessagesChat extends StateLitElement {
                 lines: [item.output]
             }
 
-            const module = await this.loadAgent(item.botId);
+            const module = await environment.agents.loadAgent(item.botId) as any;
+
             if (module && module.afterBot && typeof module.afterBot === 'function') {
                 const context: msg.ExecutionContext = {
                     message: newMessage,
@@ -1672,17 +1679,6 @@ export class CollabMessagesChat extends StateLitElement {
 
     }
 
-    private async loadAgent(shortName: string): Promise<IAgent> {
-
-        try {
-            const agent = await loadAgent(shortName);
-            if (!agent) throw new Error(`(loadAgent) createAgent function not found in ${shortName}`);
-            return agent as IAgent;
-        } catch (error: any) {
-            throw new Error(`[loadAgent] ${error.message || error} `);
-        }
-
-    }
 
     private async onTaskClick(taskId: string, messageId: string, threadId: string, message: IMessage) {
         this.saveScrollPosition();
@@ -1692,12 +1688,12 @@ export class CollabMessagesChat extends StateLitElement {
         this.actualMessage = message;
         const messageId2 = `${this.actualThread?.thread.threadId}/${this.actualMessage?.createAt}`;
 
-        const collabMessages = this.closest('collab-messages-102025') as HTMLElement;
-        if (collabMessages && collabMessages.getAttribute('mode') === 'collab') {
-            dispatchDetailsTaskClick(messageId2, this.actualTask.PK || '', this.actualTask, this.actualMessage)
-        } else {
-            this.activeScenerie = 'task'
-        }
+        const rc = await environment.tasks.openTaskDetails(messageId2, this.actualTask.PK || '', this.actualTask, this.actualMessage);
+        if (!rc.openLocal) return;
+
+        this.activeScenerie = 'task'
+        this.elementTaskDetails = rc.element;
+
     }
 
     private onReplyPreviewClick(ev: CustomEvent) {

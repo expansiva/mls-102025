@@ -270,14 +270,6 @@ export function msgUpdateMessage(
 	);
 }
 
-export function cbeAddOrUpdateOrgValue(
-	key: string,
-	value: string
-) {
-	return handleRequest<any>(
-		mls.api.cbeAddOrUpdateOrgValue(key, value)
-	);
-}
 
 export type ApiResult<T> = {
 	success: boolean;

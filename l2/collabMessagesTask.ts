@@ -1,8 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesTask.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { getNextPendentStep, getTotalCost } from '/_102029_/l2/aiAgentHelper.js';
 import { getTask, getMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { msgGetTaskUpdate } from '/_102025_/l2/shared/api.js';
 
@@ -52,7 +51,7 @@ export class CollabMessagesTask extends StateLitElement {
     @state() context: msg.ExecutionContext | undefined;
     @state() private secondsPassed: number = 0;
     @state() private lastStep: number | undefined;
-    
+
     private timerId: number | undefined;
 
     disconnectedCallback() {
@@ -69,7 +68,7 @@ export class CollabMessagesTask extends StateLitElement {
         if (changedProperties.has('lastChanged')) {
             if (this.context && this.context.task) {
                 this.task = this.context.task;
-                const nextStep = getNextPendentStep(this.task);
+                const nextStep = this.getNextPendentStep(this.task);
                 if (!nextStep || nextStep.type === 'clarification') {
                     this.resetTimer();
                     this.lastStep = undefined;
@@ -103,7 +102,7 @@ export class CollabMessagesTask extends StateLitElement {
          </div>`
         }
 
-        const price = this.task ? getTotalCost(this.task) || '0.00' : '';
+        const price = this.task ? this.getTotalCost(this.task) || '0.00' : '';
         const title = this.task?.title || '';
         const timeDisplay = this.formatTime(this.secondsPassed);
 
@@ -136,7 +135,7 @@ export class CollabMessagesTask extends StateLitElement {
         let status = this.status;
         if (this.task) {
             status = this.task.status;
-            const nextStepPending = getNextPendentStep(this.task);
+            const nextStepPending = this.getNextPendentStep(this.task);
             if (nextStepPending?.type === 'clarification') status = 'waitingforuser'
         }
 
@@ -162,47 +161,46 @@ export class CollabMessagesTask extends StateLitElement {
         return `${min}:${sec}`;
     }
 
-private async getTaskLocal(taskId: string) {
-	const task = await getTask(taskId);
-	if (!task) return;
+    private async getTaskLocal(taskId: string) {
+        const task = await getTask(taskId);
+        if (!task) return;
 
-	this.task = task;
+        this.task = task;
 
-	const shouldSync =
-		task.status === 'in progress' &&
-		task.owner === this.userId &&
-		!this.context;
+        const shouldSync =
+            task.status === 'in progress' &&
+            task.owner === this.userId &&
+            !this.context;
 
-	if (!shouldSync) return;
+        if (!shouldSync) return;
 
-	const messageId = `${this.threadId}/${this.messageid}`;
+        const messageId = `${this.threadId}/${this.messageid}`;
 
-	try {
-		const result = await msgGetTaskUpdate({
-			messageId,
-			taskId,
-			userId: this.userId
-        });
-    
-		if (!result.success || !result.response?.task) return;
+        try {
+            const result = await msgGetTaskUpdate({
+                messageId,
+                taskId,
+                userId: this.userId
+            });
 
-		const message = await getMessage(messageId);
-		if (!message) return;
+            if (!result.success || !result.response?.task) return;
 
-		this.context = {
-			task: result.response.task,
-			message,
-			isTest: false
-		};
+            const message = await getMessage(messageId);
+            if (!message) return;
 
-		this.lastChanged = Date.now().toString();
+            this.context = {
+                task: result.response.task,
+                message,
+                isTest: false
+            };
 
-		const nextPendent = getNextPendentStep(result.response.task);
+            this.lastChanged = Date.now().toString();
 
-	} catch (err: any) {
-		console.error('Error fetching task update:', err);
-	}
-}
+
+        } catch (err: any) {
+            console.error('Error fetching task update:', err);
+        }
+    }
 
     private onCardClick() {
         const event = new CustomEvent('taskclick', {
@@ -210,6 +208,64 @@ private async getTaskLocal(taskId: string) {
             composed: true
         });
         this.dispatchEvent(event);
+    }
+
+    private getAllSteps(firstStep: msg.AIPayload[] | undefined): msg.AIPayload[] {
+        if (!firstStep || firstStep.length < 1) {
+            return [];
+        }
+        const allSteps: msg.AIPayload[] = [];
+        const queue: msg.AIPayload[] = [...firstStep];
+
+        // BFS approach to collect all steps
+        while (queue.length > 0) {
+            const currentStep = queue.shift()!;
+            allSteps.push(currentStep);
+
+            // Add nextSteps to queue if they exist
+            if (currentStep.nextSteps) {
+                queue.push(...currentStep.nextSteps);
+            }
+
+            // Add steps from interaction.payload if they exist
+            if (currentStep.interaction?.payload) {
+                queue.push(...currentStep.interaction.payload);
+            }
+        }
+
+        return allSteps;
+    };
+
+    private getNextPendentStep(task: msg.TaskData): msg.AIPayload | null {
+        const allSteps = this.getAllSteps(task.iaCompressed?.nextSteps);
+        return allSteps.find(step => step.status === 'pending') || null;
+    };
+
+
+    private getTotalCost(task: msg.TaskData): string {
+        let tot = 0;
+        const nextSteps = task.iaCompressed?.nextSteps;
+        if (!nextSteps || nextSteps.length === 0) return "$ 0.01"; // garante saída mínima
+
+        const sumCosts = (payload: msg.AIPayload[]) => {
+            payload.forEach((pay) => {
+                const { interaction, nextSteps } = pay;
+
+                if (interaction) {
+                    tot += interaction.cost ? interaction.cost : 0;
+                    if (interaction.payload) sumCosts(interaction.payload);
+                }
+
+                if (nextSteps) {
+                    nextSteps.forEach((next) => sumCosts([next]));
+                }
+            });
+        };
+
+        nextSteps.forEach((step) => sumCosts([step]));
+
+        const rounded = Math.ceil(tot * 100) / 100;
+        return `${rounded.toFixed(2)}`;
     }
 
 }

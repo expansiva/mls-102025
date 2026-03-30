@@ -10,7 +10,7 @@ import { addMessage, loadOpenClawIntegrations, generateUUIDv7 } from "/_102025_/
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
-import { IOpenClawIntegration, IOpenClawAgent } from "/_102025_/l2/collabMessagesHelper.js";
+
 
 import {
     msgGetThreadUpdates,
@@ -167,7 +167,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
 
     // Agent states
     @state() private showAgentForm: boolean = false;
-    @state() private integrations: IOpenClawIntegration[] = [];
+    @state() private integrations: msg.IOpenClawIntegration[] = [];
     @state() private selectedIntegrationId: string = '';
     @state() private selectedAgentId: string = '';
     @state() private isLoadingAgents: boolean = false;
@@ -180,7 +180,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
 
     private async loadIntegrations() {
         try {
-            this.integrations = loadOpenClawIntegrations();
+            this.integrations = await loadOpenClawIntegrations();
         } catch (err: any) {
             console.error('Error loading integrations:', err.message);
             this.integrations = [];
@@ -222,7 +222,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         return addedIds;
     }
 
-    private getAvailableAgents(integrationId: string): { agent: IOpenClawAgent; isAdded: boolean }[] {
+    private getAvailableAgents(integrationId: string): { agent: msg.IOpenClawAgent; isAdded: boolean }[] {
         const integration = this.integrations.find(i => i.id === integrationId);
         if (!integration) return [];
 
@@ -474,7 +474,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         `;
     }
 
-    private findAgentInfo(agentId: string): { agent: IOpenClawAgent; integrationName: string } | null {
+    private findAgentInfo(agentId: string): { agent: msg.IOpenClawAgent; integrationName: string } | null {
         for (const integration of this.integrations) {
             const agent = integration.agents.find(a => a.id === agentId);
             if (agent) {

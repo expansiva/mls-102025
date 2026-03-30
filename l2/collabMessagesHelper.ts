@@ -4,13 +4,20 @@ import {
     msgGetUserUpdate,
     msgUpdateUserDetails,
     msgAddMessage,
-    cbeAddOrUpdateOrgValue,
     msgAddThread,
     msgAddParticipantToThread
 } from '/_102025_/l2/shared/api.js';
 
-import * as msg from '/_102025_/l2/shared/interfaces.js';
+import {
+    notifyMessageSendChange,
+    notifyThreadChange,
+    notifyThreadCreate,
+} from '/_102025_/l2/collabMessagesEvents.js';
 
+import { addThread, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { environment } from '/_102036_/l2/environmentContract.js';
+
+import * as msg from '/_102025_/l2/shared/interfaces.js';
 
 /// **collab_i18n_start** 
 const message_pt = {
@@ -66,15 +73,6 @@ const messages: { [key: string]: MessageType } = {
 const lang = getMessageKey(messages)
 const i18n: MessageType = messages[lang];
 
-import { loadAgent, executeBeforePrompt } from '/_102029_/l2/aiAgentOrchestration.js';
-
-import {
-    notifyMessageSendChange,
-    notifyThreadChange,
-    notifyThreadCreate,
-} from '/_102025_/l2/collabMessagesEvents.js';
-
-import { addThread, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 const LS_KEY_OLD = 'collabChatPreferences';
 const LOCAL_STORAGE_KEY = 'serviceCollabMessages';
@@ -83,102 +81,99 @@ export const AGENTDEFAULT = 'agentPlanner1';
 export const defaultThreadImage = "https://images.unsplash.com/photo-1577563908411-5077b6dc7624?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 export async function registerToken() {
-	const token = await mls.events.getFCMTokenForBackend();
-	if (token === null) {
-		saveNotificationPreferences('denied');
-		return token;
-	}
+    const token = await environment.notifications.getFCMTokenForBackend();
 
-	const lastToken = loadNotificationToken();
-	if (lastToken === token) return token;
 
-	saveNotificationToken(token);
+    if (token === null) {
+        saveNotificationPreferences('denied');
+        return token;
+    }
 
-	try {
-		const deviceId = crypto.randomUUID();
+    const lastToken = loadNotificationToken();
+    if (lastToken === token) return token;
+
+    saveNotificationToken(token);
+
+    try {
+        const deviceId = crypto.randomUUID();
         saveNotificationDeviceId(deviceId);
-        
-		const userResult = await msgGetUserUpdate({ userId: "" });
-		if (!userResult.success || !userResult.response?.user) {
-			throw new Error(userResult.error || 'Failed to fetch user data');
-		}
 
-		const user = userResult.response.user;
+        const userResult = await msgGetUserUpdate({ userId: "" });
+        if (!userResult.success || !userResult.response?.user) {
+            throw new Error(userResult.error || 'Failed to fetch user data');
+        }
 
-		const updateResult = await msgUpdateUserDetails({
-			userId: user.userId,
-			avatar_url: user.avatar_url,
-			name: user.name,
-			status: user.status,
-			deviceId,
-			notificationToken: token
-		});
+        const user = userResult.response.user;
 
-		if (!updateResult.success) {
-			throw new Error(updateResult.error || 'Failed to update user details');
-		}
+        const updateResult = await msgUpdateUserDetails({
+            userId: user.userId,
+            avatar_url: user.avatar_url,
+            name: user.name,
+            status: user.status,
+            deviceId,
+            notificationToken: token
+        });
 
-		saveNotificationPreferences('granted');
-		return token;
+        if (!updateResult.success) {
+            throw new Error(updateResult.error || 'Failed to update user details');
+        }
 
-	} catch (err: any) {
-		throw new Error('Error on register token: ' + err.message);
-	}
+        saveNotificationPreferences('granted');
+        return token;
+
+    } catch (err: any) {
+        throw new Error('Error on register token: ' + err.message);
+    }
 }
 
-export async function addMessage(threadId: string, messageContent: string, contextToBot?: mls.bots.ToolsBeforeSendMessage) {
+export async function addMessage(threadId: string, messageContent: string, contextToBot?: msg.ToolsBeforeSendMessage) {
 
-	const userId = getUserId() || '';
-	if (!userId) throw new Error('Invalid user id');
+    const userId = getUserId() || '';
+    if (!userId) throw new Error('Invalid user id');
 
-	const context = getTemporaryContext(threadId, userId, messageContent);
+    const context = getTemporaryContext(threadId, userId, messageContent);
 
-	if (!messageContent.startsWith('@@')) {
+    if (!messageContent.startsWith('@@')) {
 
-		const result = await msgAddMessage({
-			content: messageContent,
-			threadId,
-			userId,
-			contextToBot
-		});
+        const result = await msgAddMessage({
+            content: messageContent,
+            threadId,
+            userId,
+            contextToBot
+        });
 
-		if (!result.success || !result.response?.message) {
-			throw new Error(result.error || 'Failed to send message');
-		}
+        if (!result.success || !result.response?.message) {
+            throw new Error(result.error || 'Failed to send message');
+        }
 
-		notifyMessageSendChange({
-			message: result.response.message,
-			task: undefined,
-			isTest: false
-		});
+        notifyMessageSendChange({
+            message: result.response.message,
+            task: undefined,
+            isTest: false
+        });
 
-		return;
-	}
+        return;
+    }
 
-	const agentName = extractAgentName(messageContent) || AGENTDEFAULT;
-	const moduleAgent = await loadAgent(agentName);
-	if (!moduleAgent) throw new Error('Invalid Agent');
-
-	await executeBeforePrompt(moduleAgent, context);
-	return context;
+    const agentName = extractAgentName(messageContent) || AGENTDEFAULT;
+    await environment.agents.executeAgent(agentName, context);
+    return context;
 }
 
 export async function getArgsToBots(): Promise<Record<string, any>> {
-    const data = {
-        project: mls.actualProject
-    }
-    return data
+    const data = {}
+    return data;
 }
 
 export async function getBotsContext(thread: msg.Thread, prompt: string, context: msg.ExecutionContext): Promise<Record<string, any>> {
 
     const argsToBot = await getArgsToBots();
-    const botsVarsBefore = mls.bots.getBotContextVarsBeforeMessageSend(thread, prompt);
-    const botsVarsBefore2 = mls.bots.getBotContextVarsBeforeMessageSend2(botsVarsBefore, argsToBot);
+    const botsVarsBefore = await environment.bots.getBotContextVarsBeforeMessageSend(thread, prompt);
+    const botsVarsBefore2 = await environment.bots.getBotContextVarsBeforeMessageSend2(botsVarsBefore, argsToBot);
     const auxContextToBot: Record<string, any>[] = []
     for await (let bot of botsVarsBefore2) {
         try {
-            const moduleBot = await loadAgent(bot.toolName);
+            const moduleBot = await environment.agents.loadAgent(bot.toolName) as any;
             if (moduleBot && moduleBot.beforeBot && typeof moduleBot.beforeBot === 'function') {
                 const argsBot: Record<string, any> = await moduleBot.beforeBot(context, prompt, botsVarsBefore2)
                 auxContextToBot.push(argsBot);
@@ -189,7 +184,7 @@ export async function getBotsContext(thread: msg.Thread, prompt: string, context
         }
 
     }
-
+    
     const merged = auxContextToBot.reduce((acc, curr) => {
         return { ...acc, ...curr }
     }, {})
@@ -323,55 +318,12 @@ export function saveChatPreferences(chatPreferences: IChatPreferences) {
     saveLocalStorage(dataLocal);
 }
 
-export function getOrgDetails(orgIndex: number) {
-    const actualOrgName = Object.keys(mls.stor.orgs)[orgIndex];
-    const actualOrgDetails = mls.stor.orgs[actualOrgName];
-    return actualOrgDetails;
+export async function loadOpenClawIntegrations(): Promise<msg.IOpenClawIntegration[]> {
+    return environment.getIntegrationsOpenClaw()
 }
 
-export function loadOpenClawIntegrations(): IOpenClawIntegration[] {
-
-    if (mls.l5.actualOrg === undefined) return [];
-    const actualOrgDetails = getOrgDetails(mls.l5.actualOrg);
-    if (!actualOrgDetails || !actualOrgDetails.value) return [];
-    try {
-        const data = JSON.parse(actualOrgDetails.value);
-        return data.integrations || []
-
-    } catch (err: any) {
-        throw new Error(err.message)
-    }
-
-}
-
-export async function saveOpenClawIntegrations(integrations: IOpenClawIntegration[]) {
-
-	if (mls.l5.actualOrg === undefined) throw new Error(`Invalid org actual: ${mls.l5.actualOrg}`);
-
-	const actualOrgDetails = getOrgDetails(mls.l5.actualOrg);
-	if (!actualOrgDetails) throw new Error(`Invalid org details: ${mls.l5.actualOrg}`);
-
-	try {
-		let data: any = {};
-
-		if (actualOrgDetails.value) {
-			data = JSON.parse(actualOrgDetails.value);
-		}
-
-		data = { ...data, integrations };
-
-		const result = await cbeAddOrUpdateOrgValue(
-			actualOrgDetails.sett.name,
-			JSON.stringify(data)
-		);
-
-		if (!result.success) {
-			throw new Error(result.error || 'Failed to save integrations');
-		}
-
-	} catch (err: any) {
-		throw new Error(err.message);
-	}
+export async function saveOpenClawIntegrations(integrations: msg.IOpenClawIntegration[]) {
+    return environment.setIntegrationsOpenClaw(integrations)
 }
 
 function saveLocalStorage(data: CollabMessagesLS) {
@@ -433,99 +385,99 @@ export async function getDmThreadByUsers(userId1: string, userId2: string): Prom
 }
 
 export async function createThread(
-	threadName: string,
-	languages: string[],
-	visibility: msg.ThreadVisibility,
-	avatar_url: string = ''
+    threadName: string,
+    languages: string[],
+    visibility: msg.ThreadVisibility,
+    avatar_url: string = ''
 ): Promise<msg.ThreadPerformanceCache | undefined> {
 
-	const userId = getUserId();
-	if (!userId) throw new Error('No find user id');
+    const userId = getUserId();
+    if (!userId) throw new Error('No find user id');
 
-	try {
-		const result = await msgAddThread({
-			name: threadName,
-			group: 'CONNECT',
-			languages,
-			userId,
-			visibility,
-			status: 'active',
-			avatar_url
-		});
+    try {
+        const result = await msgAddThread({
+            name: threadName,
+            group: 'CONNECT',
+            languages,
+            userId,
+            visibility,
+            status: 'active',
+            avatar_url
+        });
 
-		if (!result.success || !result.response?.thread) {
-			throw new Error(result.error || 'Failed to create thread');
-		}
+        if (!result.success || !result.response?.thread) {
+            throw new Error(result.error || 'Failed to create thread');
+        }
 
-		const thread = result.response.thread;
+        const thread = result.response.thread;
 
-		const thr = await addThread(thread);
-		notifyThreadCreate(thr);
+        const thr = await addThread(thread);
+        notifyThreadCreate(thr);
 
-		return thread;
+        return thread;
 
-	} catch (err: any) {
-		console.error(err);
-		throw new Error(err.message);
-	}
+    } catch (err: any) {
+        console.error(err);
+        throw new Error(err.message);
+    }
 }
 
 
 export async function createThreadDM(
-	threadName: string,
-	dmUser: string,
-	group: msg.ThreadGroup
+    threadName: string,
+    dmUser: string,
+    group: msg.ThreadGroup
 ) {
-	const userId = getUserId();
-	if (!userId) throw new Error('User not found');
+    const userId = getUserId();
+    if (!userId) throw new Error('User not found');
 
-	const alreadyExistThread = await getDmThreadByUsers(userId, dmUser);
-	if (alreadyExistThread) {
-		throw new Error('A direct message thread with this user already exists.');
-	}
+    const alreadyExistThread = await getDmThreadByUsers(userId, dmUser);
+    if (alreadyExistThread) {
+        throw new Error('A direct message thread with this user already exists.');
+    }
 
-	try {
-		// 1. Create thread
-		const threadResult = await msgAddThread({
-			name: threadName,
-			group,
-			languages: [],
-			userId,
-			visibility: 'private',
-			status: 'active',
-			avatar_url: ''
-		});
+    try {
+        // 1. Create thread
+        const threadResult = await msgAddThread({
+            name: threadName,
+            group,
+            languages: [],
+            userId,
+            visibility: 'private',
+            status: 'active',
+            avatar_url: ''
+        });
 
-		if (!threadResult.success || !threadResult.response?.thread) {
-			throw new Error(threadResult.error || 'Failed to create thread');
-		}
+        if (!threadResult.success || !threadResult.response?.thread) {
+            throw new Error(threadResult.error || 'Failed to create thread');
+        }
 
-		const thread = threadResult.response.thread;
+        const thread = threadResult.response.thread;
 
-		const thr = await addThread(thread);
-		notifyThreadCreate(thr);
+        const thr = await addThread(thread);
+        notifyThreadCreate(thr);
 
-		// 2. Add participant
-		const participantResult = await msgAddParticipantToThread({
-			auth: 'admin',
-			userIdOrName: dmUser,
-			threadId: thr.threadId,
-			userId
-		});
+        // 2. Add participant
+        const participantResult = await msgAddParticipantToThread({
+            auth: 'admin',
+            userIdOrName: dmUser,
+            threadId: thr.threadId,
+            userId
+        });
 
-		if (participantResult.success && participantResult.response?.thread) {
-			await updateThread(thread.threadId, thread);
-			notifyThreadChange(participantResult.response.thread);
-			return participantResult.response.thread;
-		}
+        if (participantResult.success && participantResult.response?.thread) {
+            await updateThread(thread.threadId, thread);
+            notifyThreadChange(participantResult.response.thread);
+            return participantResult.response.thread;
+        }
 
-		// fallback
-		return thread;
+        // fallback
+        return thread;
 
-	} catch (err: any) {
-		console.error(err);
-		throw new Error(err.message || 'Failed to create DM thread');
-	}
+    } catch (err: any) {
+        console.error(err);
+        throw new Error(err.message || 'Failed to create DM thread');
+    }
 }
 
 export function formatTimestamp(timestamp: string) {
@@ -761,20 +713,3 @@ export interface IThreadInfo {
     messages?: msg.Message[] | undefined
 }
 
-// Interfaces para Integrações
-export interface IOpenClawAgent {
-    id: string;
-    name: string;
-    avatarUrl: string;
-    senderId: string;
-    createdAt: string;
-}
-
-export interface IOpenClawIntegration {
-    id: string;
-    name: string;
-    url: string;
-    bearerToken: string;
-    agents: IOpenClawAgent[];
-    createdAt: string;
-}
