@@ -12,12 +12,59 @@ collab-messages-settings-102025 {
     background-color: @bg-primary-color;
     padding: 1rem;
     height: calc(100% - 41px);
-    
+    width: 375px;
+
+    // Integration Header (outside sections)
+    .integration-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+
+        h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+            font-size: @font-size-20;
+
+            svg {
+                fill: currentColor;
+                width: 24px;
+                height: 24px;
+            }
+        }
+
+        .btn-back {
+            width: 32px;
+            height: 32px;
+            padding: 0.25rem;
+            border-radius: 6px;
+            background-color: transparent;
+            color: @text-primary-color;
+            box-shadow: none;
+            border: none;
+            cursor: pointer;
+
+            &:hover {
+                background-color: @bg-secondary-color;
+            }
+
+            svg {
+                width: 20px;
+                height: 20px;
+                fill: currentColor;
+            }
+        }
+    }
+
     .section {
-        padding: 1rem 0.75rem;
+        padding: 1.4rem 0.75rem;
         border-radius: 10px;
-        box-shadow: #d2d2d2 0px 1px 4px;
-        margin-bottom: 3rem;
+        box-shadow: #e7e3e3 0px 1px 4px;
+        background-color: @bg-primary-color-darker;
+        margin-bottom: 1.5rem;
 
         h4 {
             display: flex;
@@ -29,6 +76,7 @@ collab-messages-settings-102025 {
             border-bottom: 1px solid #d2d2d2;
 
             svg {
+                fill: currentColor;
                 width: 20px;
                 height: 20px;
             }
@@ -114,23 +162,24 @@ collab-messages-settings-102025 {
             height: 30px;
         }
 
+
         button {
             background-color: @info-color;
-            border-radius: 8px;
-            border: none;
             box-shadow: 0px 1px 3px 0px @grey-color;
-            display: inline-flex;
             flex-direction: row;
             justify-content: center;
-            gap: .2rem;
-            font-weight: 700;
-            align-items: center;
-            height: 40px;
             width: max-content;
             transition: height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-            padding: 0.5rem;
             color: #ffffff;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
+            font-size: @font-size-12;
+            font-weight: @font-weight-bold;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
 
 
             white-space: nowrap;
@@ -218,6 +267,18 @@ collab-messages-settings-102025 {
 
                 &:hover {
                     background-color: @info-color-hover;
+                }
+            }
+
+            &.btn-link {
+                border: none;
+                background-color: transparent;
+                color: @active-color;
+                box-shadow: none;
+                cursor: pointer;
+
+                &:hover {
+                    text-decoration: underline;
                 }
             }
 
@@ -367,7 +428,6 @@ collab-messages-settings-102025 {
 
         .user-info-row {
             display: flex;
-            gap: 2rem;
             flex-wrap: wrap;
 
             .user-info-item {
@@ -572,9 +632,8 @@ collab-messages-settings-102025 {
         }
     }
 
-    // Integration Details View
-    .integration-details {
-
+    // Integration Details Section
+    .integration-details-section {
         svg {
             fill: currentColor;
         }
@@ -601,34 +660,6 @@ collab-messages-settings-102025 {
                     font-size: @font-size-12;
                 }
             }
-        }
-
-        .agents-section {
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid @grey-color;
-
-            .agents-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 0.75rem;
-
-            }
-
-            .agents-list {
-                display: flex;
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-        }
-
-        .form-actions {
-            display: flex;
-            justify-content: flex-start;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid @grey-color;
         }
 
         .delete-confirmation {
@@ -710,7 +741,92 @@ collab-messages-settings-102025 {
                 }
             }
         }
+    }
 
+    // Agents Section Container
+    .agents-section-container {
+        .no-items {
+            color: @text-primary-color-lighter;
+            font-style: italic;
+            margin: 0.5rem 0;
+        }
+
+        .agents-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        // Add Agent Details (expandable)
+        .add-agent-details {
+            margin-top: 1rem;
+
+            summary {
+                cursor: pointer;
+            }
+
+            .add-agent-content {
+                padding: 1rem;
+                border-top: 1px solid @grey-color;
+                background-color: @bg-primary-color;
+            }
+        }
+
+        .agent-preview {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            background-color: @bg-secondary-color-lighter;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+
+            .preview-avatar {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+
+            .preview-avatar-placeholder {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background-color: @grey-color;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                svg {
+                    width: 24px;
+                    height: 24px;
+                    color: @text-primary-color-lighter;
+                }
+            }
+
+            .preview-info {
+                display: flex;
+                flex-direction: column;
+
+                .preview-name {
+                    font-weight: @font-weight-bold;
+                    font-size: @font-size-16;
+                }
+
+                .preview-sender-id {
+                    font-family: monospace;
+                    font-size: @font-size-12;
+                    color: @text-primary-color-lighter;
+                }
+            }
+        }
+
+        .add-agent-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
     }
 
     .agent-card {
@@ -757,71 +873,21 @@ collab-messages-settings-102025 {
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
+
+            .agent-id {
+                font-family: monospace;
+                font-size: @font-size-12;
+                color: @text-primary-color-lighter;
+
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
         }
 
         .btn-icon {
             flex-shrink: 0;
         }
-    }
-
-    // Add Agent Form
-    .add-agent-form {
-        .integration-context {
-            color: @text-secondary-color;
-            font-size: @font-size-12;
-            margin-bottom: 1rem;
-        }
-
-        .agent-preview {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background-color: @bg-secondary-color-lighter;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-
-            .preview-avatar {
-                width: 60px;
-                height: 60px;
-                border-radius: 50%;
-                object-fit: cover;
-            }
-
-            .preview-avatar-placeholder {
-                width: 60px;
-                height: 60px;
-                border-radius: 50%;
-                background-color: @grey-color;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-
-                svg {
-                    width: 30px;
-                    height: 30px;
-                    color: @text-primary-color-lighter;
-                }
-            }
-
-            .preview-info {
-                display: flex;
-                flex-direction: column;
-
-                .preview-name {
-                    font-weight: @font-weight-bold;
-                    font-size: @font-size-20;
-                }
-
-                .preview-sender-id {
-                    font-family: monospace;
-                    font-size: @font-size-12;
-                    color: @text-primary-color-lighter;
-                }
-            }
-        }
-
-
     }
 
 }

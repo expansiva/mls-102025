@@ -6,7 +6,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { updateThread, updateUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { notifyThreadChange } from '/_102025_/l2/collabMessagesEvents.js';
 import { msgAddParticipantToThread, msgGetThreadUpdates, msgGetUsers } from '/_102025_/l2/shared/api.js';
-
+import { collab_floppy_disk } from '/_102025_/l2/collabMessagesIcons.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
@@ -14,7 +14,7 @@ import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 /// **collab_i18n_start** 
 const message_pt = {
     loading: 'Carregando...',
-    btnAddParticipant: 'Adicionar participante',
+    btnSave: 'Adicionar participante',
     labelUserId: 'Nome do usuario ou Id',
     labelPermission: 'Autoridade:',
     errorFieldsAddParticipant: 'Preencha todos os campos!',
@@ -24,7 +24,7 @@ const message_pt = {
 
 const message_en = {
     loading: 'Loading...',
-    btnAddParticipant: 'Add Participant',
+    btnSave: 'Add participant',
     labelUserId: 'User id or name',
     labelPermission: 'Auth:',
     errorFieldsAddParticipant: 'Fill in all fields!',
@@ -117,12 +117,17 @@ export class CollabMessagesAddParticipant extends StateLitElement {
                 </select>
             </label>
 
-            <button
-                @click=${this.onSubmitAddParticipant}
-                ?disabled=${this.isAddParticipant}
-            >
-                ${this.isAddParticipant ? html`<span class="loader"></span>` : this.msg.btnAddParticipant}
-            </button>
+            <div class="form-actions">
+               <button class="btn-save"
+                    @click=${this.onSubmitAddParticipant}
+                    ?disabled=${this.isAddParticipant}
+                >
+                     ${this.isAddParticipant ? html`<span class="loader"></span>` : html`${collab_floppy_disk} ${this.msg.btnSave}`}
+                 </button>
+            
+            </div>
+
+         
             
             ${this.labelOkAddParticipant ? html`<small class="add-participant-ok">${this.labelOkAddParticipant}<small>` : ''}
             ${this.labelErrorAddParticipant ? html`<small class="add-participant-error">${this.labelErrorAddParticipant}<small>` : ''}
@@ -201,7 +206,7 @@ export class CollabMessagesAddParticipant extends StateLitElement {
         this.isAddParticipant = true;
 
         try {
-            
+
             const result = await msgAddParticipantToThread({
                 auth: this.auth,
                 userIdOrName: this.userIdOrName.trim(),

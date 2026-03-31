@@ -27,6 +27,7 @@ import {
     TranslateMode,
 } from '/_102025_/l2/collabMessagesHelper.js';
 
+
 import {
     collab_user,
     collab_minus,
@@ -111,7 +112,11 @@ const message_pt = {
     deleteConfirmInstruction: 'Digite o nome da integração para confirmar:',
     deleteConfirmPlaceholder: 'Nome da integração',
     deleteConfirmButton: 'Confirmar remoção',
-    deleteConfirmError: 'O nome digitado não corresponde ao nome da integração'
+    deleteConfirmError: 'O nome digitado não corresponde ao nome da integração',
+    // Section titles
+    detailsSection: 'Detalhes',
+    agentsSection: 'Agentes',
+    successAddingAgent: 'Agente adicionado com sucesso',
 }
 
 const message_en = {
@@ -176,7 +181,11 @@ const message_en = {
     deleteConfirmInstruction: 'Type the integration name to confirm:',
     deleteConfirmPlaceholder: 'Integration name',
     deleteConfirmButton: 'Confirm removal',
-    deleteConfirmError: 'The typed name does not match the integration name'
+    deleteConfirmError: 'The typed name does not match the integration name',
+    // Section titles
+    detailsSection: 'Details',
+    agentsSection: 'Agents',
+    successAddingAgent: 'Agent added successfully',
 }
 
 type MessageType = typeof message_en;
@@ -186,7 +195,7 @@ const messages: { [key: string]: MessageType } = {
 }
 /// **collab_i18n_end**
 
-type ViewMode = 'main' | 'integrationDetails' | 'addAgent' | 'editAvatar';
+type ViewMode = 'main' | 'integrationDetails' | 'editAvatar';
 
 @customElement('collab-messages-settings-102025')
 export class CollabMessagesSettings extends StateLitElement {
@@ -216,6 +225,7 @@ export class CollabMessagesSettings extends StateLitElement {
     @state() newAgentName: string = '';
     @state() newAgentAvatarUrl: string = '';
     @state() tokenCopiedId: string = '';
+    @state() addAgentDetailsOpen: boolean = false;
 
     // Delete confirmation states
     @state() showDeleteConfirmation: boolean = false;
@@ -230,9 +240,12 @@ export class CollabMessagesSettings extends StateLitElement {
     @property() labelErrorNotification: string = '';
     @property() labelOkIntegration: string = '';
     @property() labelErrorIntegration: string = '';
+    @property() labelOkAgent: string = '';
+    @property() labelErrorAgent: string = '';
 
     @property() isSavingUser: boolean = false;
     @property() isSavingChat: boolean = false;
+    @property() isSavingAgent: boolean = false;
     @property() isSavingNotification: boolean = false;
     @property() isSavingIntegration: boolean = false;
 
@@ -267,10 +280,6 @@ export class CollabMessagesSettings extends StateLitElement {
             return this.renderIntegrationDetailsView();
         }
 
-        if (this.viewMode === 'addAgent') {
-            return this.renderAddAgentView();
-        }
-
         return html`
             ${this.renderUser()}
             ${this.renderChatPreferences()}
@@ -301,7 +310,7 @@ export class CollabMessagesSettings extends StateLitElement {
                 ? html`<img src="${avatarUrl}" alt="Avatar" />`
                 : html`<div class="avatar-placeholder">${collab_user}</div>`}
                         </div>
-                        <button class="btn-small btn-secondary" @click=${this.handleOpenEditAvatar}>
+                        <button class="btn-small btn-link" @click=${this.handleOpenEditAvatar}>
                             ${collab_edit} ${this.msg.changeAvatar}
                         </button>
                     </div>
@@ -466,7 +475,7 @@ export class CollabMessagesSettings extends StateLitElement {
                                         <span class="integration-name">${integration.name || `Integration #${integration.id.slice(0, 8)}`}</span>
                                         <span class="integration-meta">${integration.agents.length} ${this.msg.agents.toLowerCase()}</span>
                                     </div>
-                                    <button class="btn-small btn-secondary" @click=${() => this.handleOpenIntegrationDetails(integration.id)}>
+                                    <button class="btn-small btn-link" @click=${() => this.handleOpenIntegrationDetails(integration.id)}>
                                         ${collab_edit} ${this.msg.editIntegration}
                                     </button>
                                 </li>
@@ -475,7 +484,7 @@ export class CollabMessagesSettings extends StateLitElement {
                     `
             }
                 <div class="integration-actions">
-                    <button class="btn-add" @click=${this.handleAddIntegration}>
+                    <button class="btn-link" @click=${this.handleAddIntegration}>
                         ${collab_plus} ${this.msg.addIntegration}
                     </button>
                 </div>
@@ -491,13 +500,15 @@ export class CollabMessagesSettings extends StateLitElement {
 
         return html`
         <div>
-            <div class="section integrations integration-details">
-                    <h4>
-                <button class="btn-back" @click=${this.handleBackToMain}>
-                    ${collab_chevron_left}
-                </button>
-                ${collab_plug} ${this.msg.integrationDetails}
-            </h4>
+            <!-- Header -->
+            <div class="integration-header">
+                <h3>${collab_plug} ${integration.name || this.msg.integrationDetails}</h3>
+            </div>
+
+            <!-- Section: Details -->
+            <div class="section integration-details-section">
+                <h4>${this.msg.detailsSection}</h4>
+                
                 <div class="form-field">
                     <label>${this.msg.integrationName}</label>
                     <input 
@@ -532,45 +543,27 @@ export class CollabMessagesSettings extends StateLitElement {
                     ${isTokenCopied ? html`<small class="saving-ok">${this.msg.tokenCopied}</small>` : ''}
                 </div>
 
-                <div class="agents-section">
-                    <div class="agents-header">
-                        <label>${this.msg.agents}</label>
-                        <button class="btn-small" @click=${() => this.handleOpenAddAgent(integration.id)}>
-                            ${collab_plus} ${this.msg.addAgent}
-                        </button>
-                    </div>
-                    ${integration.agents.length === 0
-                ? html`<p class="no-items">${this.msg.noAgents}</p>`
-                : html`
-                            <div class="agents-list">
-                                ${integration.agents.map(agent => this.renderAgent(integration.id, agent))}
-                            </div>
-                        `
-            }
-                </div>
-
                 <div class="form-actions">
                     ${!integration.isLocal ? html`
                         <div class="info-message">
                             ${this.msg.integrationRemoveInfo}
                         </div>
-
                         <button 
                             class="btn-danger-outline" 
                             @click=${() => this.handleToggleDeleteConfirmation()}
                         >
                             ${collab_trash} ${this.msg.removeIntegration}
                         </button>
-                        
                         ${this.renderDeleteConfirmation(integration)}
                     ` : nothing}
                 </div>
+
                 ${!this.showDeleteConfirmation ? html`
                 <div class="form-actions">
                     <button class="btn-secondary" style="margin-left:auto" @click=${() => this.handleCancelIntegration(integration.id)}>
                         ${collab_xmark} ${this.msg.cancel}
                     </button>
-                    <button  @click=${() => this.handleSaveIntegration(integration.id)}>
+                    <button @click=${() => this.handleSaveIntegration(integration.id)}>
                         ${this.isSavingIntegration ? html`<span class="loader"></span>` : html`${collab_floppy_disk} ${this.msg.save}`}
                     </button>
                 </div>` : nothing}
@@ -578,7 +571,73 @@ export class CollabMessagesSettings extends StateLitElement {
                 ${this.labelOkIntegration ? html`<small class="saving-ok">${this.labelOkIntegration}</small>` : ''}
                 ${this.labelErrorIntegration ? html`<small class="saving-error">${this.labelErrorIntegration}</small>` : ''}
             </div>
+
+            <!-- Section: Agents -->
+            <div class="section agents-section-container">
+                <h4>${collab_robot} ${this.msg.agentsSection}</h4>
+                
+                ${integration.agents.length === 0
+                ? html`<p class="no-items">${this.msg.noAgents}</p>`
+                : html`
+                        <div class="agents-list">
+                            ${integration.agents.map(agent => this.renderAgent(integration.id, agent))}
+                        </div>
+                    `
+            }
+
+                <!-- Add Agent Details -->
+                <details class="add-agent-details" ?open=${this.addAgentDetailsOpen} @toggle=${this.handleAddAgentToggle}>
+                    <summary>${this.msg.addAgent}</summary>
+                    <div class="add-agent-content">
+                        ${this.renderAddAgentForm()}
+                    </div>
+                </details>
+            </div>
         </div>`;
+    }
+
+    private renderAddAgentForm() {
+        const previewAvatar = this.newAgentAvatarUrl || (this.newAgentName ? generateAgentAvatar(this.newAgentName) : '');
+        const previewSenderId = this.newAgentName
+            ? `integration:openclaw:${this.newAgentName.toLowerCase().replace(/\s+/g, '')}`
+            : 'integration:openclaw:...';
+
+        return html`
+            <div class="agent-preview">
+                ${previewAvatar
+                ? html`<img src="${previewAvatar}" alt="Preview" class="preview-avatar" />`
+                : html`<div class="preview-avatar-placeholder">${collab_robot}</div>`
+            }
+                <div class="preview-info">
+                    <span class="preview-name">${this.newAgentName || '...'}</span>
+                    <span class="preview-sender-id">${previewSenderId}</span>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label>${this.msg.agentName} *</label>
+                <input type="text" .value=${this.newAgentName} @input=${this.handleNewAgentNameInput} placeholder="Ex: Assistant Bot" />
+            </div>
+
+            <div class="form-field">
+                <label>${this.msg.agentAvatar}</label>
+                <div class="avatar-input-group">
+                    <input type="url" .value=${this.newAgentAvatarUrl} @input=${this.handleNewAgentAvatarInput} placeholder="https://..." />
+                    <button class="btn-small" @click=${this.handleGenerateAgentAvatar}>
+                        ${collab_refresh}
+                    </button>
+                </div>
+            </div>
+
+            <div class="add-agent-actions">
+                <button class="btn-primary" @click=${this.handleSaveAgent} ?disabled=${this.isSavingAgent}>
+                    ${this.isSavingAgent ? html`<span class="loader"></span>` : html`${collab_plus} ${this.msg.addAgent}`}
+                </button>
+            </div>
+
+            ${this.labelOkAgent ? html`<small class="saving-ok">${this.labelOkAgent}</small>` : ''}
+            ${this.labelErrorAgent ? html`<small class="saving-error">${this.labelErrorAgent}</small>` : ''}
+        `;
     }
 
     private renderDeleteConfirmation(integration: IOpenClawIntegrationLocal) {
@@ -611,7 +670,7 @@ export class CollabMessagesSettings extends StateLitElement {
         `;
     }
 
-    private renderAgent(integrationId: string, agent:msg.IOpenClawAgent) {
+    private renderAgent(integrationId: string, agent: msg.IOpenClawAgent) {
         return html`
         <div class="agent-card">
             <div class="agent-avatar">
@@ -620,74 +679,12 @@ export class CollabMessagesSettings extends StateLitElement {
             <div class="agent-info">
                 <span class="agent-name">${agent.name}</span>
                 <span class="agent-sender-id">${agent.senderId}</span>
+                <span class="agent-id">${agent.id}</span>
+
             </div>
             <button class="btn-icon btn-danger" @click=${() => this.handleRemoveAgent(integrationId, agent.id)} title="${this.msg.removeAgent}">
                 ${collab_trash}
             </button>
-        </div>`;
-    }
-
-    private renderAddAgentView() {
-        const integration = this.integrations.find(i => i.id === this.currentIntegrationId);
-        if (!integration) return html``;
-
-        const previewAvatar = this.newAgentAvatarUrl || (this.newAgentName ? generateAgentAvatar(this.newAgentName) : '');
-        const previewSenderId = this.newAgentName
-            ? `integration:openclaw:${this.newAgentName.toLowerCase().replace(/\s+/g, '')}`
-            : 'integration:openclaw:...';
-
-        return html`
-        <div>
-            
-            <div class="section add-agent-form">
-            <h4>
-                <button class="btn-back" @click=${this.handleBackToIntegrationDetails}>
-                    ${collab_chevron_left}
-                </button>
-                ${collab_robot} ${this.msg.configureAgent}
-            </h4>
-                <p class="integration-context">${integration.name || `Integration #${integration.id.slice(0, 8)}`}</p>
-                
-                <div class="agent-preview">
-                    ${previewAvatar
-                ? html`<img src="${previewAvatar}" alt="Preview" class="preview-avatar" />`
-                : html`<div class="preview-avatar-placeholder">${collab_robot}</div>`
-            }
-                    <div class="preview-info">
-                        <span class="preview-name">${this.newAgentName || '...'}</span>
-                        <span class="preview-sender-id">${previewSenderId}</span>
-                    </div>
-                </div>
-
-                <div class="form-field">
-                    <label>${this.msg.agentName} *</label>
-                    <input type="text" .value=${this.newAgentName} @input=${this.handleNewAgentNameInput} placeholder="Ex: Assistant Bot" />
-                </div>
-
-                <div class="form-field">
-                    <label>${this.msg.agentAvatar}</label>
-                    <div class="avatar-input-group">
-                        <input type="url" .value=${this.newAgentAvatarUrl} @input=${this.handleNewAgentAvatarInput} placeholder="https://..." />
-                        <button class="btn-small" @click=${this.handleGenerateAgentAvatar}>
-                            ${collab_refresh} ${this.msg.generateAvatar}
-                        </button>
-                    </div>
-                </div>
-
-            
-                <div class="form-actions">
-                    <button class="btn-secondary" @click=${this.handleBackToIntegrationDetails}>
-                        ${this.msg.cancel}
-                    </button>
-                    <button class="btn-primary" @click=${this.handleSaveAgent}>
-                        ${collab_floppy_disk} ${this.msg.save}
-                    </button>
-                </div>
-
-                ${this.labelErrorIntegration ? html`<small class="saving-error">${this.labelErrorIntegration}</small>` : ''}
-                
-                
-            </div>
         </div>`;
     }
 
@@ -837,31 +834,21 @@ export class CollabMessagesSettings extends StateLitElement {
         this.currentIntegrationId = integrationId;
         this.labelOkIntegration = '';
         this.labelErrorIntegration = '';
+        this.labelOkAgent = '';
+        this.labelErrorAgent = '';
         this.showDeleteConfirmation = false;
         this.deleteConfirmationInput = '';
+        this.newAgentName = '';
+        this.newAgentAvatarUrl = '';
+        this.addAgentDetailsOpen = false;
         this.viewMode = 'integrationDetails';
     }
 
-    private async handleRemoveIntegration(integrationId: string) {
-        if (!confirm(this.msg.confirmRemoveIntegration)) return;
-        this.isSavingIntegration = true;
-        const tempIntegrations = this.integrations.filter(i => i.id !== integrationId);
-        try {
-            await saveOpenClawIntegrations(tempIntegrations);
-            this.labelOkIntegration = this.msg.successRemoveIntegration;
-            this.integrations = tempIntegrations;
-            this.handleBackToMain();
-
-        }
-        catch (err: any) {
-            this.labelErrorIntegration = err.message;
-        } finally {
-            this.isSavingIntegration = false;
-        }
-    }
 
     private handleCancelIntegration(integrationId: string) {
-        this.integrations = this.integrations.filter(i => i.id !== integrationId && !i.isLocal);
+        // debugger;
+        // this.integrations = this.integrations.filter(i => i.id !== integrationId && !i.isLocal);
+        this.integrations = this.integrations.filter(i => !i.isLocal);
         this.handleBackToMain();
     }
 
@@ -913,12 +900,13 @@ export class CollabMessagesSettings extends StateLitElement {
         setTimeout(() => { this.tokenCopiedId = ''; }, 2000);
     }
 
-    private handleOpenAddAgent(integrationId: string) {
-        this.currentIntegrationId = integrationId;
-        this.newAgentName = '';
-        this.newAgentAvatarUrl = '';
-        this.labelErrorIntegration = '';
-        this.viewMode = 'addAgent';
+    private handleAddAgentToggle(e: Event) {
+        const details = e.target as HTMLDetailsElement;
+        this.addAgentDetailsOpen = details.open;
+        if (details.open) {
+            this.labelOkAgent = '';
+            this.labelErrorAgent = '';
+        }
     }
 
     private handleBackToMain() {
@@ -928,15 +916,11 @@ export class CollabMessagesSettings extends StateLitElement {
         this.newAgentAvatarUrl = '';
         this.labelErrorIntegration = '';
         this.labelOkIntegration = '';
+        this.labelOkAgent = '';
+        this.labelErrorAgent = '';
         this.showDeleteConfirmation = false;
         this.deleteConfirmationInput = '';
-    }
-
-    private handleBackToIntegrationDetails() {
-        this.viewMode = 'integrationDetails';
-        this.newAgentName = '';
-        this.newAgentAvatarUrl = '';
-        this.labelErrorIntegration = '';
+        this.addAgentDetailsOpen = false;
     }
 
     private handleNewAgentNameInput(e: Event) {
@@ -955,12 +939,16 @@ export class CollabMessagesSettings extends StateLitElement {
         }
     }
 
-    private handleSaveAgent() {
+    private async handleSaveAgent() {
+        this.labelOkAgent = '';
+        this.labelErrorAgent = '';
+
+
         if (!this.newAgentName.trim()) {
-            this.labelErrorIntegration = this.msg.errorAgentName;
+            this.labelErrorAgent = this.msg.errorAgentName;
             return;
         }
-
+        this.isSavingAgent = true;
         const agentId = generateUUIDv7();
         const sanitizedName = this.newAgentName.toLowerCase().replace(/\s+/g, '');
         const newAgent: msg.IOpenClawAgent = {
@@ -977,8 +965,27 @@ export class CollabMessagesSettings extends StateLitElement {
                 : i
         );
 
-        this.handleBackToIntegrationDetails();
-        setTimeout(() => { this.labelOkIntegration = ''; }, 3000);
+        this.integrations = this.integrations.map(i => {
+            if (i.id === this.currentIntegrationId) {
+                const { isLocal, ...rest } = i;
+                return rest;
+            }
+            return i;
+        });
+
+        try {
+            await saveOpenClawIntegrations(this.integrations);
+            this.labelOkAgent = this.msg.successAddingAgent;
+        }
+        catch (err: any) {
+            this.labelErrorAgent = err.message;
+        } finally {
+            this.isSavingAgent = false;
+            this.newAgentName = '';
+            this.newAgentAvatarUrl = '';
+        }
+
+        setTimeout(() => { this.labelOkAgent = ''; }, 3000);
     }
 
     private handleRemoveAgent(integrationId: string, agentId: string) {

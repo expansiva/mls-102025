@@ -2,7 +2,7 @@
 
 import { html, unsafeHTML, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { defaultThreadImage } from '/_102025_/l2/collabMessagesHelper.js';
+import {  generateDefaultAvatar } from '/_102025_/l2/collabMessagesHelper.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
@@ -47,6 +47,7 @@ export class CollabChangeAvatar extends StateLitElement {
   private msg: MessageType = messages['en'];
 
   @property({ type: String }) value?: string;
+  @property({ type: String }) nameValue?: string;
   @property({ type: String }) userId: string = "20250417120841.1000";
   @property({ type: String }) threadId: string = "20250825143728.1000";
 
@@ -59,7 +60,7 @@ export class CollabChangeAvatar extends StateLitElement {
 
   firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties)
-    this.preview = this.value || defaultThreadImage;
+    this.preview = this.value || generateDefaultAvatar(this.nameValue || '');
   }
 
   render() {

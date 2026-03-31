@@ -78,8 +78,6 @@ const LS_KEY_OLD = 'collabChatPreferences';
 const LOCAL_STORAGE_KEY = 'serviceCollabMessages';
 export const AGENTDEFAULT = 'agentPlanner1';
 
-export const defaultThreadImage = "https://images.unsplash.com/photo-1577563908411-5077b6dc7624?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-
 export async function registerToken() {
     const token = await environment.notifications.getFCMTokenForBackend();
 
@@ -184,7 +182,7 @@ export async function getBotsContext(thread: msg.Thread, prompt: string, context
         }
 
     }
-    
+
     const merged = auxContextToBot.reduce((acc, curr) => {
         return { ...acc, ...curr }
     }, {})
@@ -661,6 +659,14 @@ export async function changeFavIcon(notification: boolean) {
     const newIcon = canvas.toDataURL("image/png");
 
     link.href = newIcon;
+}
+
+export function generateDefaultAvatar(name: string): string {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+    const colorIndex = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+    const bgColor = colors[colorIndex];
+    const initials = name.replace('#', '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="${bgColor}"/><text x="40" y="40" font-family="Arial" font-size="28" fill="white" text-anchor="middle" dy=".35em">${initials}</text></svg>`)}`;
 }
 
 function getMessageKey(messages: any): string {

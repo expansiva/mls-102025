@@ -36,7 +36,7 @@ import {
     registerToken,
     loadNotificationPreferences,
     loadNotificationDeviceId,
-    defaultThreadImage,
+    generateDefaultAvatar,
     getTemporaryContext,
     formatTimestamp,
     changeFavIcon
@@ -445,7 +445,7 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private getThreadAvatar(item: IFilteredThreads) {
-        let threadAvatar = defaultThreadImage;
+        let threadAvatar = generateDefaultAvatar(item.thread.name);
         if (item.thread.name.startsWith('@') && item.thread.users.length === 2) {
             const user = item.users.find((user) => user.userId !== this.userId);
             if (user && user.avatar_url) threadAvatar = user.avatar_url;
