@@ -1245,12 +1245,12 @@ export class CollabMessagesChat extends StateLitElement {
     private async updateThreadPendingsInBackground(threadId: string, threadsPendings: string[]) {
         for await (let threadPending of threadsPendings) {
 
-            let threadId: string = '';
+            let threadId2: string = '';
             const parts = threadPending.split(':');
-            threadId = parts[0];
+            threadId2 = parts[0];
 
-            if (threadId !== threadId) {
-                removeThreadFromSync(threadId);
+            if (threadId !== threadId2) {
+                removeThreadFromSync(threadId2);
                 await getThreadUpdateInBackground(threadPending);
             }
         }
