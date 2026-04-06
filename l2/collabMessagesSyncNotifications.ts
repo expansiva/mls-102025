@@ -42,9 +42,7 @@ export async function checkIfNotificationUnread(): Promise<boolean> {
 
 export async function listenToThreadEvents() {
 
-	const notificationSound = new Audio('./l3/_100529_/audio/collabNotification.mp3');
-	notificationSound.preload = 'auto';
-	notificationSound.volume = 1;
+	const notificationSound: HTMLAudioElement | null = await getNotificationSound();
 
 	navigator.serviceWorker.addEventListener('message', async (event) => {
 
@@ -80,7 +78,7 @@ export async function listenToThreadEvents() {
 
 			notifyThreadNotification(true);
 			const audioEnabled = loadNotificationPreferencesAudio();
-			if (audioEnabled) {
+			if (audioEnabled && notificationSound) {
 				notificationSound.currentTime = 0;
 				notificationSound.play().catch(err => console.warn('Erro on play notification audio:', err));
 			}
@@ -295,4 +293,18 @@ async function updateThreadInBackground(
 			'Unexpected error while updating thread in background'
 		);
 	}
+}
+
+async function getNotificationSound() {
+	const notifySoundUrl = await environment.notifications.getNotifySoundUrl();
+	let notificationSound: HTMLAudioElement | null = null;
+
+	if (notifySoundUrl) {
+		notificationSound = new Audio(notifySoundUrl);
+		notificationSound.preload = 'auto';
+		notificationSound.volume = 1;
+	}
+
+	return notificationSound;
+
 }
