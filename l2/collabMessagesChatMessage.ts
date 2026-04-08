@@ -170,7 +170,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             <div class="message-footer">${dateFormated?.timeShort}</div>
                         </div>
                         ${cls === 'system' ? this.renderReactionButtonAdd(message) : nothing}
-                        ${cls === 'system' && !isSame ? html`<collab-messages-avatar-102025 avatar=${userAvatar}></collab-messages-avatar-102025>` : ''}
+                        ${cls === 'system' && !isSame ? html`<collab-messages-avatar-102025 avatar=${userAvatar} alt=${userName} ></collab-messages-avatar-102025>` : ''}
                     </div>
                 </div>
             </div>
@@ -495,6 +495,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             <div class="reaction-list-user">
                                 <collab-messages-avatar-102025 
                                     avatar=${userAvatar}
+                                    alt=${userName}
                                 ></collab-messages-avatar-102025>
                                 <div class="reaction-list-detail">
                                     <span class="reaction-list-name">

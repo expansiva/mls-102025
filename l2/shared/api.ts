@@ -314,6 +314,18 @@ export function msgListOpenClawConnectorAgents(
 	);
 }
 
+export function msgListThreadOpenClawAgents(
+	args: Omit<msg.RequestListThreadOpenClawAgents, "action">
+) {
+	return handleRequest<msg.ResponseListThreadOpenClawAgents>(
+		post<msg.ResponseListThreadOpenClawAgents>({
+			action: "listThreadOpenClawAgents",
+			...args
+		})
+	);
+}
+
+
 export function msgAddOrUpdateThreadOpenClawAgent(
 	args: Omit<msg.RequestAddOrUpdateThreadOpenClawAgent, "action">
 ) {
@@ -336,18 +348,27 @@ export function msgRemoveThreadOpenClawAgent(
 	);
 }
 
-export function msgListThreadOpenClawAgents(
-	args: Omit<msg.RequestListThreadOpenClawAgents, "action">
+export function msgCreateOpenClawAgent (
+	args: Omit<msg.RequestCreateOpenClawAgent , "action">
 ) {
-	return handleRequest<msg.ResponseListThreadOpenClawAgents>(
-		post<msg.ResponseListThreadOpenClawAgents>({
-			action: "listThreadOpenClawAgents",
+	return handleRequest<msg.ResponseCreateOpenClawAgent >(
+		post<msg.ResponseCreateOpenClawAgent >({
+			action: "createOpenClawAgent",
 			...args
 		})
 	);
 }
 
-
+export function msgListOpenClawAvailableAgents  (
+	args: Omit<msg.RequestListOpenClawAvailableAgents  , "action">
+) {
+	return handleRequest<msg.ResponseListOpenClawAvailableAgents  >(
+		post<msg.ResponseListOpenClawAvailableAgents  >({
+			action: "listOpenClawAvailableAgents",
+			...args
+		})
+	);
+}
 
 
 export type ApiResult<T> = {

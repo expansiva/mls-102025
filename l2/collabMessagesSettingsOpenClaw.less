@@ -3,6 +3,16 @@
 collab-messages-settings-open-claw-102025 {
     display: block;
 
+    .saving-ok {
+        color: @success-color;
+        font-size: @font-size-12;
+    }
+
+    .saving-error {
+        color: @error-color;
+        font-size: @font-size-12;
+    }
+
     button {
         background-color: @info-color;
         box-shadow: 0px 1px 3px 0px @grey-color;
@@ -54,6 +64,15 @@ collab-messages-settings-open-claw-102025 {
             svg {
                 width: 16px;
                 height: 16px;
+            }
+
+            &.copied {
+                color: @success-color  !important;
+                border-color: @success-color  !important;
+
+                svg {
+                    fill: @success-color;
+                }
             }
 
             &.btn-danger {
@@ -227,15 +246,7 @@ collab-messages-settings-open-claw-102025 {
             }
         }
 
-        .saving-ok {
-            color: @success-color;
-            font-size: @font-size-12;
-        }
 
-        .saving-error {
-            color: @error-color;
-            font-size: @font-size-12;
-        }
 
         .no-items {
             color: @text-primary-color-lighter;
@@ -279,6 +290,15 @@ collab-messages-settings-open-claw-102025 {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
+        }
+
+        .form-row {
+            .form-field {
+                input[maxlength="4"] {
+                    text-align: center;
+                    font-size: 20px;
+                }
+            }
         }
 
         .form-actions {
@@ -505,6 +525,7 @@ collab-messages-settings-open-claw-102025 {
             }
         }
 
+
         .token-field {
             display: flex;
             gap: 6px;
@@ -520,6 +541,21 @@ collab-messages-settings-open-claw-102025 {
                 width: 30px;
                 height: 30px;
                 flex-shrink: 0;
+            }
+
+            &.with-actions {
+                flex-wrap: wrap;
+
+                input {
+                    flex: 1;
+                    min-width: 150px;
+                }
+
+                .token-actions {
+                    display: flex;
+                    gap: 4px;
+                    align-items: center;
+                }
             }
         }
 
@@ -597,6 +633,24 @@ collab-messages-settings-open-claw-102025 {
 
                 .test-result-detail {
                     color: @success-color;
+                }
+            }
+
+            &.warning {
+                background-color: fade(@warning-color, 10%);
+                border: 1px solid fade(@warning-color, 25%);
+
+                .test-result-icon {
+                    background-color: @warning-color;
+                    color: white;
+                }
+
+                .test-result-title {
+                    color: darken(@warning-color, 15%);
+                }
+
+                .test-result-detail {
+                    color: @warning-color;
                 }
             }
 
@@ -687,7 +741,6 @@ collab-messages-settings-open-claw-102025 {
     .delete-warning-section {
         margin-top: 1.5rem;
         padding-top: 1rem;
-        border-top: 1px solid @grey-color;
     }
 
     .delete-warning-box {
@@ -824,6 +877,33 @@ collab-messages-settings-open-claw-102025 {
         .agent-avatar {
             flex-shrink: 0;
 
+            .agent-avatar-svg {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+
+                svg {
+                    width: 100%;
+                    height: 100%;
+                }
+            }
+
+
+            .agent-avatar-emoji {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background-color: @bg-secondary-color;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+            }
+
             img {
                 width: 36px;
                 height: 36px;
@@ -944,6 +1024,56 @@ collab-messages-settings-open-claw-102025 {
                     font-size: @font-size-12;
                     color: @text-primary-color-lighter;
                 }
+            }
+        }
+
+        .preview-avatar-emoji {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background-color: @bg-secondary-color;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            border: 2px solid @grey-color-dark;
+        }
+
+        // Textarea para markdown
+        textarea {
+            display: block;
+            width: 100%;
+            min-height: 100px;
+            padding: 0.75rem;
+            font-size: @font-size-12;
+            font-family: @font-family-primary;
+            line-height: 1.5;
+            color: @text-primary-color;
+            background-color: @bg-primary-color;
+            border: 1px solid @grey-color-dark;
+            border-radius: 6px;
+            resize: vertical;
+            box-sizing: border-box;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+            &:focus {
+                outline: none;
+                border-color: @info-color;
+                box-shadow: 0 0 0 2px fade(@info-color, 20%);
+            }
+
+            &::placeholder {
+                color: @text-primary-color-lighter;
+            }
+        }
+
+        .avatar-input-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+
+            input {
+                flex: 1;
             }
         }
     }

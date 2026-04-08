@@ -4,6 +4,7 @@ import { html, ifDefined, nothing } from 'lit';
 import { customElement, property, state, query, } from 'lit/decorators.js';
 import { collab_arrow_up_long } from '/_102025_/l2/collabMessagesIcons.js';
 import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
+
 import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
 
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -47,6 +48,8 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() mentionSuggestions: IMentions[] = [];
     @state() mentionIndex: number = 0;
     @state() allUsers: msg.User[] = [];
+    @state() allUsersValids: msg.User[] = [];
+
     @state() allAgents: IMentionAgent[] = [];
     @state() alreadyLoadingAgents: boolean = false;
     @state() lastScopeLoaded: string | undefined;
@@ -111,16 +114,20 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private async getUsers() {
-        if (!this.threadId) return;
-        const thread = await getThread(this.threadId.trim());
-        if (!thread) return;
         const users: msg.User[] = await listUsers();
         this.allUsers = users;
+        this.allUsersValids = users.filter((user) => !user.kind);
     }
 
     private async getAgents() {
 
+        if (!this.threadId) return;
+        const thread = await getThread(this.threadId.trim());
+        if (!thread) return;
+
         const agentsFiles = await environment.getAgents();
+
+        const usersAgent = this.allUsers.filter((user) => user.kind === 'synthetic_agent' && thread.openClawAgents?.some((item) => item.collabUserId === user.userId));
 
         const agentsPublic = agentsFiles.map((agent: msg.IAgentMeta) => {
             const { visibility, agentName, avatar_url, agentDescription, scope } = agent;
@@ -140,7 +147,18 @@ export class CollabMessagesPrompt extends StateLitElement {
                 }
             }
         }).filter((item) => !!item);
-        this.allAgents = agentsPublic as IMentionAgent[];
+
+        const agentsAsUser = usersAgent.map((usersAgent) => {
+            const mentionAgent: IMentionAgent = {
+                alias: usersAgent.name,
+                description: usersAgent?.metadata?.source || '',
+                name: usersAgent.name,
+                avatar_url: usersAgent.avatar_url
+            }
+            return mentionAgent;
+        });
+
+        this.allAgents = [...agentsPublic, ...agentsAsUser] as IMentionAgent[];
     }
 
     private getCaretCoordinates(): { x: number, y: number } | null {
@@ -254,14 +272,9 @@ export class CollabMessagesPrompt extends StateLitElement {
                                     <span class="emoji-suggestion">${s.text}</span>
                                     <span class="emoji-code">:${s.value}:</span>
                                     ` : s.type === 'agent' ? html`
-                                    ${s.avatar_url
-                    ? html`<collab-messages-avatar-102025 width="20px" height="20px" avatar=${s.avatar_url}></collab-messages-avatar-102025>`
-                    : ''}
-                                    <span class="agent-suggestion">${s.text}</span>
-                                    ` : s.type === 'user' ? html`
-                                    ${s.avatar_url
-                    ? html`<collab-messages-avatar-102025 width="20px" height="20px" avatar=${s.avatar_url}></collab-messages-avatar-102025>`
-                    : ''}
+                                        <collab-messages-avatar-102025 width="20px" height="20px" avatar=${s.avatar_url} alt=${s.text}></collab-messages-avatar-102025>
+                                        <span class="agent-suggestion">${s.text}</span>
+                                    ` : s.type === 'user' ? html`<collab-messages-avatar-102025 width="20px" height="20px" avatar=${s.avatar_url} alt=${s.text}></collab-messages-avatar-102025>
                                     <span class="user-suggestion">${s.text}</span>
                                     ` : ''}
                                 </li>
@@ -273,7 +286,7 @@ export class CollabMessagesPrompt extends StateLitElement {
 
     private renderReply() {
 
-        const user = this.allUsers?.find(u => u.userId === this.replyingTo?.senderId)
+        const user = this.allUsersValids?.find(u => u.userId === this.replyingTo?.senderId)
         const name = user?.name || this.replyingTo?.senderId;
 
         return html`${this.replyingTo ? html`
@@ -354,7 +367,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private getUserSuggestions(query: string): IMentions[] {
-        return this.allUsers
+        return this.allUsersValids
             .filter(user => user.name.toLowerCase().startsWith(query.toLowerCase()))
             .map(user => ({
                 avatar_url: user.avatar_url,
@@ -502,8 +515,8 @@ export class CollabMessagesPrompt extends StateLitElement {
         let finalText = this.text.trim();
         let isSpecialMention = false;
         let agentName: string | undefined;
-        if (this.allUsers.length > 0) {
-            const sortedUsers = [...this.allUsers].sort((a, b) => b.name.length - a.name.length);
+        if (this.allUsersValids.length > 0) {
+            const sortedUsers = [...this.allUsersValids].sort((a, b) => b.name.length - a.name.length);
             sortedUsers.forEach(user => {
                 const escapedName = user.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(`(^|\\s)@${escapedName}(?=$|\\s|[.,!?])`, 'g');

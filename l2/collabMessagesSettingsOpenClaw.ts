@@ -1,12 +1,13 @@
-/// <mls fileReference="_102025_/l2/collabMessagesSettingsOpenClaw.ts" enhancement="_100554_/l2/enhancementLit.ts"/>
+/// <mls fileReference="_102025_/l2/collabMessagesSettingsOpenClaw.ts" enhancement="_102027_/l2/enhancementLit"/>
 
 import { html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
-
 import {
     generateUUIDv7,
     generateAgentAvatar,
+    saveOpenClawIntegrations,
+    loadOpenClawIntegrations,
 } from '/_102025_/l2/collabMessagesHelper.js';
 
 import {
@@ -21,11 +22,16 @@ import {
     collab_check,
     collab_warning,
     collab_robot,
+    collab_eye_slash,
+    collab_eye,
+    collab_copy
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import {
     msgListOpenClawConnectors,
-    msgAddOrUpdateOpenClawConnector
+    msgAddOrUpdateOpenClawConnector,
+    msgRemoveOpenClawConnector,
+    msgCreateOpenClawAgent
 } from '/_102025_/l2/shared/api.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
@@ -36,7 +42,7 @@ const message_pt = {
     save: 'Salvar',
     cancel: 'Cancelar',
     back: 'Voltar',
-    connectorsTitle: 'OpenClaw',
+    connectorsTitle: 'Conectores OpenClaw ',
     newConnector: 'Novo connector',
     editConnector: 'Editar connector',
     noConnectors: 'Nenhum connector configurado',
@@ -59,7 +65,7 @@ const message_pt = {
     configSection: 'Configuração',
     authSection: 'Autenticação',
     behaviorSection: 'Comportamento padrão',
-    deleteSection: 'Remover integração',
+    deleteSection: 'Remover conector',
     changeToken: 'Alterar',
     generateToken: 'Gerar',
     removeConnector: 'Remover',
@@ -87,12 +93,35 @@ const message_pt = {
     testConnectionBtn: 'Testar conexão',
     testConnectionTesting: 'Testando...',
     testConnectionSuccess: 'Conexão estabelecida com sucesso',
+    testConnectionWarning: 'Conexão não verificada',
+    testConnectionWarningReason: 'Servidor detectado (não foi possível validar o token via browser)',
     testConnectionLatency: 'Latência',
     testConnectionError: 'Falha na conexão',
     testConnectionErrorTimeout: 'Timeout - servidor não respondeu',
     testConnectionErrorAuth: 'Erro de autenticação - verifique o token',
     testConnectionErrorNetwork: 'Erro de rede - verifique a URL',
     testConnectionErrorUnknown: 'Erro desconhecido',
+
+    copyToken: 'Copiar',
+    tokenCopied: 'Copiado!',
+    showToken: 'Mostrar token',
+    hideToken: 'Ocultar token',
+
+
+    agentWorkspace: 'Workspace',
+    agentWorkspaceHint: 'Identificador do workspace onde o agente será criado',
+    agentWorkspacePlaceholder: 'Ex: vendas, suporte, geral',
+    agentEmoji: 'Emoji (opcional)',
+    agentEmojiHint: 'Emoji para identificar o agente',
+    agentSoulMd: 'Soul (Markdown)',
+    agentSoulMdHint: 'Personalidade e comportamento do agente',
+    agentSoulMdPlaceholder: 'Descreva a personalidade do agente...',
+    agentIdentityMd: 'Identity (Markdown)',
+    agentIdentityMdHint: 'Identidade e papel do agente',
+    agentIdentityMdPlaceholder: 'Descreva a identidade do agente...',
+
+    errorAgentWorkspace: 'Workspace é obrigatório',
+    creatingAgent: 'Criando agente...',
 };
 
 const message_en = {
@@ -100,7 +129,7 @@ const message_en = {
     save: 'Save',
     cancel: 'Cancel',
     back: 'Back',
-    connectorsTitle: 'OpenClaw',
+    connectorsTitle: 'OpenClaw Connectors',
     newConnector: 'New connector',
     editConnector: 'Edit connector',
     noConnectors: 'No connectors configured',
@@ -123,7 +152,7 @@ const message_en = {
     configSection: 'Configuration',
     authSection: 'Authentication',
     behaviorSection: 'Default behavior',
-    deleteSection: 'Remove integration',
+    deleteSection: 'Remove conector',
     changeToken: 'Change',
     generateToken: 'Generate',
     removeConnector: 'Remove',
@@ -151,12 +180,34 @@ const message_en = {
     testConnectionBtn: 'Test connection',
     testConnectionTesting: 'Testing...',
     testConnectionSuccess: 'Connection established successfully',
+    testConnectionWarning: 'Connection not verified',
+    testConnectionWarningReason: 'Server detected (unable to validate token via browser)',
     testConnectionLatency: 'Latency',
     testConnectionError: 'Connection failed',
     testConnectionErrorTimeout: 'Timeout - server did not respond',
     testConnectionErrorAuth: 'Authentication error - check the token',
     testConnectionErrorNetwork: 'Network error - check the URL',
     testConnectionErrorUnknown: 'Unknown error',
+
+    copyToken: 'Copy',
+    tokenCopied: 'Copied!',
+    showToken: 'Show token',
+    hideToken: 'Hide token',
+
+    agentWorkspace: 'Workspace',
+    agentWorkspaceHint: 'Workspace identifier where the agent will be created',
+    agentWorkspacePlaceholder: 'Ex: sales, support, general',
+    agentEmoji: 'Emoji (optional)',
+    agentEmojiHint: 'Emoji to identify the agent',
+    agentSoulMd: 'Soul (Markdown)',
+    agentSoulMdHint: 'Agent personality and behavior',
+    agentSoulMdPlaceholder: 'Describe the agent personality...',
+    agentIdentityMd: 'Identity (Markdown)',
+    agentIdentityMdHint: 'Agent identity and role',
+    agentIdentityMdPlaceholder: 'Describe the agent identity...',
+
+    errorAgentWorkspace: 'Workspace is required',
+    creatingAgent: 'Creating agent...',
 };
 
 type MessageType = typeof message_en;
@@ -168,30 +219,8 @@ const messages: { [key: string]: MessageType } = {
 
 type ViewMode = 'main' | 'connectorDetails' | 'editAgent';
 
-interface IOpenClawAgent2 {
-    id: string;
-    name: string;
-    avatarUrl: string;
-    senderId: string;
-    createdAt: string;
-}
-
-interface IOpenClawAgent {
-    id: string;
-    identityName: string;
-    identityEmoji: string;
-    identitySource: string;
-    workspace: string;
-    agentDir: string; model: string;
-    bindings: number;
-    isDefault: boolean;
-    routes: string[];
-}
-
-
 interface IOpenClawConnectorLocal extends msg.OpenClawConnector {
     isNew?: boolean;
-    agents: IOpenClawAgent[],
     gatewayTokenChanged?: boolean;
     inboundTokenChanged?: boolean;
 }
@@ -203,15 +232,23 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
 
     @property() userId: string = '';
 
+    // Integration
+    @state() actualIntegration: msg.IOpenClawIntegration | undefined;
+    @state() integrations: msg.IOpenClawIntegration[] = [];
+
     // OpenClaw Connector states
     @state() connectors: IOpenClawConnectorLocal[] = [];
     @state() viewMode: ViewMode = 'main';
     @state() currentConnectorId: string = '';
     @state() editingConnector: IOpenClawConnectorLocal | null = null;
     @state() isTestingConnection: boolean = false;
-    @state() connectionTestResult: 'none' | 'success' | 'error' = 'none';
+    @state() connectionTestResult: 'none' | 'success' | 'error' | 'warning' = 'none';
     @state() connectionTestMessage: string = '';
     @state() connectionTestLatency: number = 0;
+
+    @state() showGatewayToken: boolean = false;
+    @state() showInboundToken: boolean = false;
+    @state() copiedToken: 'gateway' | 'inbound' | null = null;
 
     // Delete confirmation states
     @state() showDeleteConfirmation: boolean = false;
@@ -220,8 +257,13 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
     // Agent states
     @state() newAgentName: string = '';
     @state() newAgentAvatarUrl: string = '';
-    @state() editingAgent: IOpenClawAgent | null = null;
+    @state() editingAgent: msg.IOpenClawAgent | null = null;
     @state() isNewAgent: boolean = false;
+
+    @state() newAgentWorkspace: string = '';
+    @state() newAgentEmoji: string = '';
+    @state() newAgentSoulMd: string = '';
+    @state() newAgentIdentityMd: string = '';
 
     @property() labelOkConnector: string = '';
     @property() labelErrorConnector: string = '';
@@ -242,56 +284,11 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         if (rc.response) {
             this.connectors = rc.response.connectors.map((item) => {
                 return {
-                    ...item, isNew: false, agents: [
-
-                        {
-                            "id": "main",
-                            "identityName": "Eduardo",
-                            "identityEmoji": "🧭",
-                            "identitySource": "identity",
-                            "workspace": "/home/node/.openclaw/workspace",
-                            "agentDir": "/home/node/.openclaw/agents/main/agent",
-                            "model": "microsoft-foundry/gpt-4.1",
-                            "bindings": 0,
-                            "isDefault": true,
-                            "routes": [
-                                "default (no explicit rules)"
-                            ]
-                        },
-                    ], gatewayTokenChanged: false, inboundTokenChanged: false
+                    ...item, isNew: false, gatewayTokenChanged: false, inboundTokenChanged: false
                 }
             });
         }
 
-        // Dados de teste
-        /*this.connectors = [
-            {
-                "connectorId": "01936f8a-7c2e-7d4b-9a1f-3e8b5c6d7a2f",
-                "name": "OpenClaw Produção",
-                "baseUrl": "https://openclaw.collab.codes",
-                "gatewayToken": "d46e07c67f4196e537c69d1998c3a7ea03529fd89f43f3e2dbe52d7d12059c68",
-                "inboundToken": "wh-prod-x9y8z7w6v5u4t3s2r1q0p9o8n7m6l5k4",
-                "enabled": true,
-                "defaultTimeoutMs": 60000,
-                "defaultOutputMode": "final_only",
-                "agents": [
-                    {
-                        "id": "01936f8a-8d3e-7f4a-9b2c-1d4e5f6a7b8c",
-                        "name": "Assistant Bot",
-                        "avatarUrl": "https://api.dicebear.com/7.x/bottts/svg?seed=assistant",
-                        "senderId": "integration:openclaw:assistantbot",
-                        "createdAt": "2024-11-15T10:35:00.000Z"
-                    },
-                    {
-                        "id": "01936f8a-9e4f-8a5b-0c3d-2e5f6a7b8c9d",
-                        "name": "Support Agent",
-                        "avatarUrl": "https://api.dicebear.com/7.x/bottts/svg?seed=support",
-                        "senderId": "integration:openclaw:supportagent",
-                        "createdAt": "2024-11-16T14:20:00.000Z"
-                    }
-                ],
-            },
-        ];*/
     }
 
 
@@ -337,7 +334,6 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
 
     private renderConnectorCard(connector: IOpenClawConnectorLocal) {
         const isEnabled = connector.enabled;
-        const agentCount = connector.agents?.length || 0;
         return html`
         <div class="connector-card ${!isEnabled ? 'disabled' : ''}">
             <div class="connector-info">
@@ -351,15 +347,11 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
                 <div class="connector-url">${connector.baseUrl}</div>
                 <div class="connector-meta">
                     <span>Timeout: <strong>${connector.defaultTimeoutMs}ms</strong></span>
-                    <span>${this.msg.agentsSection}: <strong>${agentCount}</strong></span>
                 </div>
             </div>
             <div class="connector-actions">
                 <button class="btn-icon" @click=${() => this.handleOpenConnectorDetails(connector.connectorId)} title="Editar">
                     ${collab_edit}
-                </button>
-                <button class="btn-icon btn-toggle ${isEnabled ? 'on' : 'off'}" @click=${() => this.handleToggleConnector(connector.connectorId)} title="${isEnabled ? 'Desativar' : 'Ativar'}">
-                    ${this.renderToggleIcon(isEnabled)}
                 </button>
             </div>
         </div>`;
@@ -389,11 +381,9 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
 
             ${this.renderConfigurationSection(connector)}
 
-            ${!connector.isNew ? this.renderAgentSection(connector) : html`${nothing}`}
+            ${!connector.isNew ? this.renderAgentSection() : html`${nothing}`}
             ${!connector.isNew ? this.renderDeleteSection(connector) : html`${nothing}`}
             
-            ${this.labelOkConnector ? html`<small class="saving-ok">${this.labelOkConnector}</small>` : ''}
-            ${this.labelErrorConnector ? html`<small class="saving-error">${this.labelErrorConnector}</small>` : ''}
         </div>`;
     }
 
@@ -458,11 +448,31 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
                         </button>
                     </div>
                 ` : html`
-                    <div class="token-field">
-                        <input type="password" value="••••••••••••••••••••••••" readonly />
-                        <button class="btn-change-token" @click=${() => this.handleChangeToken('gateway')}>
-                            ${collab_edit} ${this.msg.changeToken}
-                        </button>
+                    <div class="token-field with-actions">
+                        <input 
+                            type="${this.showGatewayToken ? 'text' : 'password'}" 
+                            .value=${this.showGatewayToken ? connector.gatewayToken : '••••••••••••••••••••••••'} 
+                            readonly 
+                        />
+                        <div class="token-actions">
+                            <button 
+                                class="btn-icon" 
+                                @click=${() => this.handleToggleTokenVisibility('gateway')} 
+                                title="${this.showGatewayToken ? this.msg.hideToken : this.msg.showToken}"
+                            >
+                                ${this.showGatewayToken ? collab_eye_slash : collab_eye}
+                            </button>
+                            <button 
+                                class="btn-icon ${this.copiedToken === 'gateway' ? 'copied' : ''}" 
+                                @click=${() => this.handleCopyToken('gateway')} 
+                                title="${this.copiedToken === 'gateway' ? this.msg.tokenCopied : this.msg.copyToken}"
+                            >
+                                ${this.copiedToken === 'gateway' ? collab_check : collab_copy}
+                            </button>
+                            <button class="btn-change-token" @click=${() => this.handleChangeToken('gateway')}>
+                                ${collab_edit} ${this.msg.changeToken}
+                            </button>
+                        </div>
                     </div>
                 `}
                 <small class="field-hint">${this.msg.gatewayTokenHint}</small>
@@ -483,11 +493,31 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
                         </button>
                     </div>
                 ` : html`
-                    <div class="token-field">
-                        <input type="password" value="••••••••••••••••••••••••" readonly />
-                        <button class="btn-change-token" @click=${() => this.handleChangeToken('inbound')}>
-                            ${collab_edit} ${this.msg.changeToken}
-                        </button>
+                    <div class="token-field with-actions">
+                        <input 
+                            type="${this.showInboundToken ? 'text' : 'password'}" 
+                            .value=${this.showInboundToken ? connector.inboundToken : '••••••••••••••••••••••••'} 
+                            readonly 
+                        />
+                        <div class="token-actions">
+                            <button 
+                                class="btn-icon" 
+                                @click=${() => this.handleToggleTokenVisibility('inbound')} 
+                                title="${this.showInboundToken ? this.msg.hideToken : this.msg.showToken}"
+                            >
+                                ${this.showInboundToken ? collab_eye_slash : collab_eye}
+                            </button>
+                            <button 
+                                class="btn-icon ${this.copiedToken === 'inbound' ? 'copied' : ''}" 
+                                @click=${() => this.handleCopyToken('inbound')} 
+                                title="${this.copiedToken === 'inbound' ? this.msg.tokenCopied : this.msg.copyToken}"
+                            >
+                                ${this.copiedToken === 'inbound' ? collab_check : collab_copy}
+                            </button>
+                            <button class="btn-change-token" @click=${() => this.handleChangeToken('inbound')}>
+                                ${collab_edit} ${this.msg.changeToken}
+                            </button>
+                        </div>
                     </div>
                 `}
                 <small class="field-hint">${this.msg.inboundTokenHint}</small>
@@ -532,6 +562,9 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
                     ${this.isSavingConnector ? html`<span class="loader"></span>` : html`${collab_floppy_disk} ${this.msg.save}`}
                 </button>
             </div>
+
+            ${this.labelOkConnector ? html`<small class="saving-ok">${this.labelOkConnector}</small>` : ''}
+            ${this.labelErrorConnector ? html`<small class="saving-error">${this.labelErrorConnector}</small>` : ''}
         </div>`;
     }
 
@@ -554,7 +587,19 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
                         <span class="test-result-detail">${this.msg.testConnectionLatency}: ${this.connectionTestLatency}ms</span>
                     </div>
                 </div>
-            ` : this.connectionTestResult === 'error' ? html`
+            `
+                : this.connectionTestResult === 'warning' ? html`
+                <div class="test-result warning">
+                    <div class="test-result-icon">
+                        ${collab_warning}
+                    </div>
+                    <div class="test-result-content">
+                        <span class="test-result-title">${this.msg.testConnectionWarning}</span>
+                        <span class="test-result-detail">${this.connectionTestMessage}</span>
+                    </div>
+                </div>
+            `
+                    : this.connectionTestResult === 'error' ? html`
                 <div class="test-result error">
                     <div class="test-result-icon">
                         ${collab_xmark}
@@ -585,22 +630,22 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         </div>`;
     }
 
-    private renderAgentSection(connector: IOpenClawConnectorLocal) {
+    private renderAgentSection() {
         return html`
         <div class="section connector-form">
             <div class="section-divider">
-                <span class="section-title">${this.msg.agentsSection}(In develpoment)</span>
+                <span class="section-title">${this.msg.agentsSection}</span>
             </div>
 
             <div class="agents-list">
-                ${connector.agents.length === 0
+                ${this.actualIntegration?.agents.length === 0
                 ? html`<p class="no-items">${this.msg.noAgents}</p>`
-                : connector.agents.map((agent) => this.renderAgentCard(agent))
+                : this.actualIntegration?.agents.map((agent) => this.renderAgentCard(agent))
             }
             </div>
 
             <div class="agent-add-link">
-                <button class="btn-link" @click=${this.handleOpenAddAgent} disabled >
+                <button class="btn-link" @click=${this.handleOpenAddAgent} >
                     ${collab_plus} ${this.msg.addAgent}
                 </button>
             </div>
@@ -662,45 +707,43 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         </div>`;
     }
 
-    private renderAgentCard(agent: IOpenClawAgent) {
+    private renderAgentCard(agent: msg.IOpenClawAgent) {
         return html`
         <div class="agent-card">
             <div class="agent-avatar">
               ${this.renderAvatar(agent)}
             </div>
             <div class="agent-info">
-                <span class="agent-name">${agent.identityName}</span>
+                <span class="agent-name">${agent.name}</span>
                 <span class="agent-sender-id">${agent.id}</span>
             </div>
             <div class="agent-actions" style="display:none"> 
                 <button class="btn-icon" @click=${() => this.handleOpenEditAgent(agent)} title="${this.msg.editConnector}">
                     ${collab_edit}
                 </button>
-                <button class="btn-icon btn-danger" @click=${() => this.handleRemoveAgent(agent.id)} title="${this.msg.confirmRemoveAgent}">
+                <button class="btn-icon btn-danger" @click=${() => this.handleDisableAgent(agent.id)} title="${this.msg.confirmRemoveAgent}">
                     ${collab_trash}
                 </button>
             </div>
         </div>`;
     }
 
-    private renderAvatar(agent: IOpenClawAgent) {
-        const value = agent.identityEmoji;
+    private renderAvatar(agent: msg.IOpenClawAgent) {
+        const value = agent.avatarUrl;
 
         if (!value) {
-            return html`<div class="agent-avatar-placeholder">${collab_robot}</div>`;
+            return html`<img src="${generateAgentAvatar(agent.name)}" alt="${agent.name}" />`;
+    
         }
 
-        // 1. SVG string
         if (value.trim().startsWith("<svg")) {
             return html`<div class="agent-avatar-svg" .innerHTML=${value}></div>`;
         }
 
-        // 2. URL (http, https, data, etc)
         if (this.isUrl(value)) {
-            return html`<img src="${value}" alt="${agent.identityName}" />`;
+            return html`<img src="${value}" alt="${agent.name}" />`;
         }
 
-        // 3. Emoji ou texto simples
         return html`<div class="agent-avatar-emoji">${value}</div>`;
     }
 
@@ -716,73 +759,127 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
     private renderEditAgentView() {
         if (!this.editingConnector) return html``;
 
-        const previewAvatar = this.newAgentAvatarUrl || (this.newAgentName ? generateAgentAvatar(this.newAgentName) : '');
-        const previewSenderId = this.newAgentName
-            ? `integration:openclaw:${this.newAgentName.toLowerCase().replace(/\s+/g, '')}`
-            : 'integration:openclaw:...';
+        const isNew = this.isNewAgent;
+        const previewName = this.newAgentName || 'Novo Agente';
 
         return html`
-        <div>
-            <div class="connector-details-header">
-                <button class="btn-back" @click=${this.handleBackToConnectorDetails}>
-                    ${collab_chevron_left}
-                </button>
-                <h3>${collab_robot} ${this.isNewAgent ? this.msg.addAgent : this.msg.editConnector}</h3>
+    <div>
+        <div class="connector-details-header">
+            <button class="btn-back" @click=${this.handleBackToConnectorDetails}>
+                ${collab_chevron_left}
+            </button>
+            <h3>${collab_robot} ${isNew ? this.msg.addAgent : this.msg.editConnector}</h3>
+        </div>
+
+        <div class="section agent-form">
+            <div class="agent-preview-large">
+                ${this.newAgentAvatarUrl
+                ? html`<img class="preview-avatar" src="${this.newAgentAvatarUrl}" alt="${previewName}" />`
+                : this.newAgentEmoji
+                    ? html`<div class="preview-avatar-emoji">${this.newAgentEmoji}</div>`
+                    : html`<div class="preview-avatar-placeholder">${collab_robot}</div>`
+            }
+                <div class="preview-info">
+                    <span class="preview-name">${previewName}</span>
+                    <span class="preview-sender-id">${this.newAgentWorkspace || 'workspace'}</span>
+                </div>
             </div>
 
-            <div class="section agent-form">
-                <div class="agent-preview-large">
-                    ${previewAvatar
-                ? html`<img src="${previewAvatar}" alt="Preview" class="preview-avatar" />`
-                : html`<div class="preview-avatar-placeholder">${collab_robot}</div>`
-            }
-                    <div class="preview-info">
-                        <span class="preview-name">${this.newAgentName || '...'}</span>
-                        <span class="preview-sender-id">${previewSenderId}</span>
-                    </div>
-                </div>
+            <div class="section-divider">
+                <span class="section-title">${this.msg.configSection}</span>
+            </div>
 
-                <div class="form-field">
-                    <label>${this.msg.agentName} *</label>
+            <div class="form-field">
+                <label>${this.msg.agentName} *</label>
+                <input 
+                    type="text" 
+                    .value=${this.newAgentName} 
+                    @input=${this.handleNewAgentNameInput}
+                    placeholder="${this.msg.agentNamePlaceholder}"
+                />
+            </div>
+
+            <div class="form-field">
+                <label>${this.msg.agentWorkspace} *</label>
+                <input 
+                    type="text" 
+                    .value=${this.newAgentWorkspace} 
+                    @input=${this.handleNewAgentWorkspaceInput}
+                    placeholder="${this.msg.agentWorkspacePlaceholder}"
+                />
+                <small class="field-hint">${this.msg.agentWorkspaceHint}</small>
+            </div>
+
+            <div class="form-field">
+                    <label>${this.msg.agentEmoji}</label>
                     <input 
                         type="text" 
-                        .value=${this.newAgentName} 
-                        @input=${this.handleNewAgentNameInput} 
-                        placeholder="${this.msg.agentNamePlaceholder}" 
+                        .value=${this.newAgentEmoji} 
+                        @input=${this.handleNewAgentEmojiInput}
+                        maxlength="4"
                     />
-                </div>
-
-                <div class="form-field">
-                    <label>${this.msg.agentAvatar}</label>
-                    <div class="avatar-input-group">
-                        <input 
-                            type="url" 
-                            .value=${this.newAgentAvatarUrl} 
-                            @input=${this.handleNewAgentAvatarInput} 
-                            placeholder="https://..." 
-                        />
-                        <button class="btn-icon" @click=${this.handleGenerateAgentAvatar} title="${this.msg.generateToken}">
-                            ${collab_refresh}
-                        </button>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button class="btn-secondary" @click=${this.handleBackToConnectorDetails}>
-                        ${collab_xmark} ${this.msg.cancel}
-                    </button>
-                    <button @click=${this.handleSaveAgent} ?disabled=${this.isSavingAgent}>
-                        ${this.isSavingAgent
-                ? html`<span class="loader"></span>`
-                : html`${collab_floppy_disk} ${this.msg.save}`}
-                    </button>
-                </div>
-
-                ${this.labelOkAgent ? html`<small class="saving-ok">${this.labelOkAgent}</small>` : ''}
-                ${this.labelErrorAgent ? html`<small class="saving-error">${this.labelErrorAgent}</small>` : ''}
+                    <small class="field-hint">${this.msg.agentEmojiHint}</small>
             </div>
-        </div>`;
+
+
+            <div class="form-field">
+                <label>${this.msg.agentAvatar}</label>
+                <div class="avatar-input-group">
+                    <input 
+                        type="text" 
+                        .value=${this.newAgentAvatarUrl} 
+                        @input=${this.handleNewAgentAvatarInput}
+                        placeholder="https://..."
+                    />
+                    <button class="btn-icon" @click=${this.handleGenerateAgentAvatar} title="${this.msg.generateToken}">
+                        ${collab_refresh}
+                    </button>
+                </div>
+            </div>
+        
+            <div class="section-divider">
+                <span class="section-title">${this.msg.behaviorSection}</span>
+            </div>
+
+            <div class="form-field">
+                <label>${this.msg.agentSoulMd}</label>
+                <textarea 
+                    .value=${this.newAgentSoulMd} 
+                    @input=${this.handleNewAgentSoulMdInput}
+                    placeholder="${this.msg.agentSoulMdPlaceholder}"
+                    rows="4"
+                ></textarea>
+                <small class="field-hint">${this.msg.agentSoulMdHint}</small>
+            </div>
+
+            <div class="form-field">
+                <label>${this.msg.agentIdentityMd}</label>
+                <textarea 
+                    .value=${this.newAgentIdentityMd} 
+                    @input=${this.handleNewAgentIdentityMdInput}
+                    placeholder="${this.msg.agentIdentityMdPlaceholder}"
+                    rows="4"
+                ></textarea>
+                <small class="field-hint">${this.msg.agentIdentityMdHint}</small>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn-secondary" @click=${this.handleBackToConnectorDetails}>
+                    ${collab_xmark} ${this.msg.cancel}
+                </button>
+                <button @click=${this.handleSaveAgent} ?disabled=${this.isSavingAgent}>
+                    ${this.isSavingAgent
+                ? html`<span class="loader"></span> ${this.msg.creatingAgent}`
+                : html`${collab_floppy_disk} ${this.msg.save}`}
+                </button>
+            </div>
+
+            ${this.labelOkAgent ? html`<small class="saving-ok">${this.labelOkAgent}</small>` : ''}
+            ${this.labelErrorAgent ? html`<small class="saving-error">${this.labelErrorAgent}</small>` : ''}
+        </div>
+    </div>`;
     }
+
 
     // ========== NAVIGATION ==========
 
@@ -810,7 +907,6 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
             enabled: true,
             defaultTimeoutMs: 60000,
             defaultOutputMode: 'final_only',
-            agents: [],
             isNew: true
         };
 
@@ -820,9 +916,6 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.clearStates();
         this.clearErrors();
         this.navigateTo('connectorDetails', true);
-
-
-
 
     }
 
@@ -838,22 +931,36 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.deleteConfirmationInput = '';
         this.newAgentName = '';
         this.newAgentAvatarUrl = '';
+        this.newAgentWorkspace = '';
+        this.newAgentEmoji = '';
+        this.newAgentSoulMd = '';
+        this.newAgentIdentityMd = '';
         this.isTestingConnection = false;
         this.connectionTestResult = 'none';
         this.connectionTestMessage = '';
         this.connectionTestLatency = 0;
+        this.showGatewayToken = false;
+        this.showInboundToken = false;
+        this.copiedToken = null;
     }
 
-    private handleOpenConnectorDetails(connectorId: string) {
+
+    private async getIntegration(connectorId: string) {
+        this.integrations = await loadOpenClawIntegrations();
+        const actual = this.integrations.find((item) => item.connectorId === connectorId);
+        if (actual) this.actualIntegration = actual;
+    }
+
+    private async handleOpenConnectorDetails(connectorId: string) {
         const connector = this.connectors.find(c => c.connectorId === connectorId);
         if (!connector) return;
         this.editingConnector = {
             ...connector,
-            agents: connector.agents || [],
             isNew: false,
             gatewayTokenChanged: false,
             inboundTokenChanged: false
         };
+        await this.getIntegration(connectorId)
         this.currentConnectorId = connectorId;
         this.labelOkConnector = '';
         this.labelErrorConnector = '';
@@ -937,9 +1044,23 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.editingConnector = { ...this.editingConnector, defaultOutputMode: select.value as msg.OpenClawOutputMode };
     }
 
-    private handleConnectorEnabledToggle() {
+    private async handleConnectorEnabledToggle() {
         if (!this.editingConnector) return;
         this.editingConnector = { ...this.editingConnector, enabled: !this.editingConnector.enabled };
+        await this.saveOrUpdateOpenClawConnector(this.editingConnector);
+        const { isNew: _, gatewayTokenChanged, inboundTokenChanged, ...connectorData } = this.editingConnector;
+        const updatedConnectors: IOpenClawConnectorLocal[] = this.connectors.map(c => {
+            if (c.connectorId === connectorData.connectorId) {
+                return {
+                    ...c,
+                    ...connectorData,
+                    gatewayToken: gatewayTokenChanged ? connectorData.gatewayToken : c.gatewayToken,
+                    inboundToken: inboundTokenChanged ? connectorData.inboundToken : c.inboundToken,
+                };
+            }
+            return c;
+        });
+        this.connectors = updatedConnectors;
     }
 
     private handleGenerateToken(type: 'gateway' | 'inbound') {
@@ -952,22 +1073,6 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         }
     }
 
-    private async handleToggleConnector(connectorId: string) {
-        const connector = this.connectors.find(c => c.connectorId === connectorId);
-        if (!connector) return;
-
-        this.connectors = this.connectors.map(c =>
-            c.connectorId === connectorId ? { ...c, enabled: !c.enabled } : c
-        );
-
-        try {
-            // await saveOpenClawConnectors(this.connectors);
-        } catch (err: any) {
-            this.connectors = this.connectors.map(c =>
-                c.connectorId === connectorId ? { ...c, enabled: !c.enabled } : c
-            );
-        }
-    }
 
     private async handleSaveConnector() {
         if (!this.editingConnector) return;
@@ -1018,7 +1123,8 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         }
 
         try {
-            await this.saveOpenClawConnector(this.editingConnector);
+            await this.saveOrUpdateOpenClawConnector(this.editingConnector);
+            await this.saveIntegration(this.editingConnector);
             this.connectors = updatedConnectors;
             this.labelOkConnector = this.msg.successSavingConnector;
 
@@ -1039,19 +1145,57 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         }
     }
 
-    private async saveOpenClawConnector(newConnector: IOpenClawConnectorLocal) {
+    private async saveIntegration(connector: IOpenClawConnectorLocal) {
+
+        let integration = this.actualIntegration as msg.IOpenClawIntegration;
+
+        const { isNew: _, gatewayTokenChanged, inboundTokenChanged, ...connectorData } = connector;
+
+        if (!integration) {
+            integration = {
+                agents: [],
+                id: generateUUIDv7(),
+                bearerToken: connectorData.gatewayToken,
+                connectorId: connectorData.connectorId,
+                createdAt: Date.now().toString(),
+                name: connectorData.name,
+                url: connectorData.baseUrl
+            }
+            this.integrations = [...this.integrations, integration];
+
+        } else {
+            const index = this.integrations.findIndex(i => i.connectorId === integration.connectorId);
+
+            if (index !== -1) {
+                const updatedIntegration = {
+                    ...integration,
+                    bearerToken: connectorData.gatewayToken,
+                    connectorId: connectorData.connectorId,
+                    name: connectorData.name,
+                    url: connectorData.baseUrl
+                };
+
+                this.integrations = [
+                    ...this.integrations.slice(0, index),
+                    updatedIntegration,
+                    ...this.integrations.slice(index + 1)
+                ];
+            }
+        }
+
+        await saveOpenClawIntegrations(this.integrations);
+    }
+
+    private async saveOrUpdateOpenClawConnector(connector: IOpenClawConnectorLocal) {
 
         if (!this.userId) throw new Error('Invalid user id');
-
-        const { isNew, agents, gatewayTokenChanged, inboundTokenChanged, ...payload } = newConnector;
-
+        const { isNew, gatewayTokenChanged, inboundTokenChanged, protocolVersion, transport, ...payload } = connector;
         const result = await msgAddOrUpdateOpenClawConnector({
             userId: this.userId,
             ...payload
         });
-
         if (!result.success || !result.response) {
-            throw new Error(result.error || 'Failed to update the thread avatar. Please try again.');
+            throw new Error(result.error || 'Failed to save openClaw connector. Please try again.');
         };
 
         return result;
@@ -1059,10 +1203,9 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
 
 
     private async handleTestConnection() {
+
         if (!this.editingConnector) return;
-
         const { baseUrl, gatewayToken } = this.editingConnector;
-
         if (!baseUrl || !gatewayToken) return;
 
         this.isTestingConnection = true;
@@ -1071,63 +1214,75 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.connectionTestLatency = 0;
 
         const startTime = performance.now();
+        const normalizedUrl = baseUrl.replace(/\/+$/, '');
 
         try {
-            const response = await fetch(`${baseUrl}/v1/chat/completions`, {
-                method: 'POST',
+
+            const domainExists = await this.checkDomainExists(normalizedUrl);
+
+            if (!domainExists) {
+                this.connectionTestLatency = Math.round(performance.now() - startTime);
+                this.connectionTestResult = 'error';
+                this.connectionTestMessage = this.msg.testConnectionErrorNetwork;
+                return;
+            }
+
+            const sseUrl = normalizedUrl.endsWith('/sse') ? normalizedUrl : `${normalizedUrl}/sse`;
+
+            const response = await fetch(sseUrl, {
+                method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${gatewayToken}`,
-                    'Content-Type': 'application/json'
+                    'Accept': 'text/event-stream',
                 },
-                body: JSON.stringify({
-                    model: 'gpt-4.1',
-                    messages: [{ role: 'user', content: 'ping' }],
-                    max_tokens: 1,
-                    stream: false
-                }),
-                signal: AbortSignal.timeout(this.editingConnector.defaultTimeoutMs || 30000)
+                signal: AbortSignal.timeout(this.editingConnector.defaultTimeoutMs || 30000),
             });
 
             const endTime = performance.now();
             this.connectionTestLatency = Math.round(endTime - startTime);
 
             if (response.ok) {
+                if (response.body) await response.body.cancel();
                 this.connectionTestResult = 'success';
-            } else if (response.status === 401) {
-                this.connectionTestResult = 'error';
-                this.connectionTestMessage = this.msg.testConnectionErrorAuth;
-            } else if (response.status === 403) {
+                this.connectionTestMessage = this.msg.testConnectionSuccess;
+            } else if (response.status === 401 || response.status === 403) {
                 this.connectionTestResult = 'error';
                 this.connectionTestMessage = this.msg.testConnectionErrorAuth;
             } else {
-                let errorDetail = '';
-                try {
-                    const errorBody = await response.json();
-                    errorDetail = errorBody?.error?.message || errorBody?.message || '';
-                } catch {
-                    errorDetail = response.statusText;
-                }
                 this.connectionTestResult = 'error';
-                this.connectionTestMessage = `HTTP ${response.status}${errorDetail ? ': ' + errorDetail : ''}`;
+                this.connectionTestMessage = `HTTP ${response.status}: ${response.statusText}`;
             }
         } catch (error: any) {
             const endTime = performance.now();
             this.connectionTestLatency = Math.round(endTime - startTime);
-            this.connectionTestResult = 'error';
 
             if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+                this.connectionTestResult = 'error';
                 this.connectionTestMessage = this.msg.testConnectionErrorTimeout;
-            } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-                this.connectionTestMessage = this.msg.testConnectionErrorNetwork;
-            } else if (error.message?.includes('CORS')) {
-                this.connectionTestMessage = 'Erro de CORS - servidor não permite requisições do navegador';
             } else {
-                this.connectionTestMessage = error.message || this.msg.testConnectionErrorUnknown;
+                this.connectionTestResult = 'warning';
+                this.connectionTestMessage = this.msg.testConnectionWarningReason;
             }
         } finally {
             this.isTestingConnection = false;
         }
     }
+
+
+    private async checkDomainExists(baseUrl: string): Promise<boolean> {
+        try {
+            await fetch(baseUrl, {
+                method: 'HEAD',
+                mode: 'no-cors',
+                signal: AbortSignal.timeout(10000),
+            });
+
+            return true;
+        } catch (error: any) {
+            return false;
+        }
+    }
+
 
     // ========== DELETE CONFIRMATION HANDLERS ==========
     private handleToggleDeleteConfirmation() {
@@ -1155,7 +1310,15 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         const updatedConnectors = this.connectors.filter(c => c.connectorId !== connectorId);
 
         try {
-            // await saveOpenClawConnectors(updatedConnectors);
+            const result = await msgRemoveOpenClawConnector({
+                connectorId,
+                userId: this.userId
+            });
+
+            if (!result.success || !result.response) {
+                throw new Error(result.error || 'Failed to remove connector. Please try again.');
+            };
+
             this.connectors = updatedConnectors;
             this.labelOkConnector = this.msg.successRemoveConnector;
             this.showDeleteConfirmation = false;
@@ -1172,6 +1335,10 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
     private handleOpenAddAgent() {
         this.newAgentName = '';
         this.newAgentAvatarUrl = '';
+        this.newAgentWorkspace = '';
+        this.newAgentEmoji = '';
+        this.newAgentSoulMd = '';
+        this.newAgentIdentityMd = '';
         this.editingAgent = null;
         this.isNewAgent = true;
         this.labelOkAgent = '';
@@ -1179,10 +1346,11 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.navigateTo('editAgent', true);
     }
 
-    private handleOpenEditAgent(agent: IOpenClawAgent) {
+
+    private handleOpenEditAgent(agent: msg.IOpenClawAgent) {
         this.editingAgent = agent;
-        this.newAgentName = agent.identityName;
-        this.newAgentAvatarUrl = agent.identityEmoji;
+        this.newAgentName = agent.name;
+        this.newAgentAvatarUrl = agent.avatarUrl;
         this.isNewAgent = false;
         this.labelOkAgent = '';
         this.labelErrorAgent = '';
@@ -1208,6 +1376,26 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.newAgentAvatarUrl = input.value;
     }
 
+    private handleNewAgentWorkspaceInput(e: Event) {
+        const input = e.target as HTMLInputElement;
+        this.newAgentWorkspace = input.value.toLowerCase().replace(/\s+/g, '-');
+    }
+
+    private handleNewAgentEmojiInput(e: Event) {
+        const input = e.target as HTMLInputElement;
+        this.newAgentEmoji = input.value;
+    }
+
+    private handleNewAgentSoulMdInput(e: Event) {
+        const textarea = e.target as HTMLTextAreaElement;
+        this.newAgentSoulMd = textarea.value;
+    }
+
+    private handleNewAgentIdentityMdInput(e: Event) {
+        const textarea = e.target as HTMLTextAreaElement;
+        this.newAgentIdentityMd = textarea.value;
+    }
+
     private handleGenerateAgentAvatar() {
         if (this.newAgentName) {
             this.newAgentAvatarUrl = generateAgentAvatar(this.newAgentName);
@@ -1220,92 +1408,106 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.labelOkAgent = '';
         this.labelErrorAgent = '';
 
+        // Validações
         if (!this.newAgentName.trim()) {
             this.labelErrorAgent = this.msg.errorAgentName;
             return;
         }
 
-        this.isSavingAgent = true;
-        const sanitizedName = this.newAgentName.toLowerCase().replace(/\s+/g, '');
-
-        /* 
-        if (this.isNewAgent) {
-            const agentId = generateUUIDv7();
-            const newAgent: IOpenClawAgent = {
-                id: agentId,
-                identityName: this.newAgentName.trim(),
-                identityEmoji: this.newAgentAvatarUrl || generateAgentAvatar(this.newAgentName),
-                senderId: `integration:openclaw:${sanitizedName}`,
-                createdAt: new Date().toISOString()
-            };
-
-            this.editingConnector = {
-                ...this.editingConnector,
-                agents: [...this.editingConnector.agents, newAgent]
-            };
-        } else if (this.editingAgent) {
-            const updatedAgent: IOpenClawAgent = {
-                ...this.editingAgent,
-                name: this.newAgentName.trim(),
-                avatarUrl: this.newAgentAvatarUrl || generateAgentAvatar(this.newAgentName),
-                senderId: `integration:openclaw:${sanitizedName}`,
-            };
-
-            this.editingConnector = {
-                ...this.editingConnector,
-                agents: this.editingConnector.agents.map(a =>
-                    a.id === this.editingAgent!.id ? updatedAgent : a
-                )
-            };
+        if (!this.newAgentWorkspace.trim()) {
+            this.labelErrorAgent = this.msg.errorAgentWorkspace;
+            return;
         }
 
-        try {
-            const updatedConnectors = this.connectors.map(c =>
-                c.connectorId === this.editingConnector!.connectorId
-                    ? { ...c, agents: this.editingConnector!.agents }
-                    : c
-            );
+        this.isSavingAgent = true;
 
-            if (!this.editingConnector.isNew) {
-                // await saveOpenClawConnectors(updatedConnectors);
-                this.connectors = updatedConnectors;
+        try {
+
+            const result = await msgCreateOpenClawAgent({
+                userId: this.userId,
+                connectorId: this.editingConnector.connectorId,
+                name: this.newAgentName.trim(),
+                workspace: this.newAgentWorkspace.trim(),
+                emoji: this.newAgentEmoji || undefined,
+                avatar: this.newAgentAvatarUrl || undefined,
+                soulMd: this.newAgentSoulMd || undefined,
+                identityMd: this.newAgentIdentityMd || undefined,
+            });
+
+            if (!result.success || !result.response) {
+                throw new Error(result.error || 'Failed to create agent');
+            }
+
+            const newAgent: msg.IOpenClawAgent = {
+                id: result.response.agent.id,
+                name: this.newAgentName.trim(),
+                avatarUrl: this.newAgentAvatarUrl || this.newAgentEmoji || '',
+                createdAt: Date.now().toString(),
+                collabUserId: result.response.collabUserId
+            };
+
+            if (this.actualIntegration) {
+                this.actualIntegration = {
+                    ...this.actualIntegration,
+                    agents: [...this.actualIntegration.agents, newAgent]
+                };
+
+                const index = this.integrations.findIndex(
+                    i => i.connectorId === this.editingConnector!.connectorId
+                );
+                if (index !== -1) {
+                    this.integrations = [
+                        ...this.integrations.slice(0, index),
+                        this.actualIntegration,
+                        ...this.integrations.slice(index + 1)
+                    ];
+                }
+                await saveOpenClawIntegrations(this.integrations);
             }
 
             this.labelOkAgent = this.msg.successAddingAgent;
 
             setTimeout(() => {
                 this.handleBackToConnectorDetails();
-            }, 1000);
+            }, 1500);
 
         } catch (err: any) {
-            this.labelErrorAgent = err.message;
+            this.labelErrorAgent = err.message || 'Error creating agent';
         } finally {
             this.isSavingAgent = false;
         }
-        */
     }
 
-    private async handleRemoveAgent(agentId: string) {
-        if (!this.editingConnector) return;
-        if (!confirm(this.msg.confirmRemoveAgent)) return;
 
-        this.editingConnector = {
-            ...this.editingConnector,
-            agents: this.editingConnector.agents.filter(a => a.id !== agentId)
-        };
+    private async handleDisableAgent(agentId: string) {
 
-        if (!this.editingConnector.isNew) {
-            try {
-                const updatedConnectors = this.connectors.map(c =>
-                    c.connectorId === this.editingConnector!.connectorId
-                        ? { ...c, agents: this.editingConnector!.agents }
-                        : c
-                );
-                // await saveOpenClawConnectors(updatedConnectors);
-                this.connectors = updatedConnectors;
-            } catch (err: any) {
-                console.error('Error removing agent:', err);
-            }
+    }
+
+    private handleToggleTokenVisibility(type: 'gateway' | 'inbound') {
+        if (type === 'gateway') {
+            this.showGatewayToken = !this.showGatewayToken;
+        } else {
+            this.showInboundToken = !this.showInboundToken;
         }
     }
+
+    private async handleCopyToken(type: 'gateway' | 'inbound') {
+        if (!this.editingConnector) return;
+
+        const token = type === 'gateway'
+            ? this.editingConnector.gatewayToken
+            : this.editingConnector.inboundToken;
+
+        try {
+            await navigator.clipboard.writeText(token);
+            this.copiedToken = type;
+
+            setTimeout(() => {
+                this.copiedToken = null;
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy token:', err);
+        }
+    }
+
 }

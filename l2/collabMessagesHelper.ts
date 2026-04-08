@@ -661,13 +661,6 @@ export async function changeFavIcon(notification: boolean) {
     link.href = newIcon;
 }
 
-export function generateDefaultAvatar(name: string): string {
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
-    const colorIndex = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
-    const bgColor = colors[colorIndex];
-    const initials = name.replace('#', '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-    return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="${bgColor}"/><text x="40" y="40" font-family="Arial" font-size="28" fill="white" text-anchor="middle" dy=".35em">${initials}</text></svg>`)}`;
-}
 
 function getMessageKey(messages: any): string {
     const keys = Object.keys(messages);

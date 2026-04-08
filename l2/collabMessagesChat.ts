@@ -36,7 +36,7 @@ import {
     registerToken,
     loadNotificationPreferences,
     loadNotificationDeviceId,
-    generateDefaultAvatar,
+    generateAgentAvatar,
     getTemporaryContext,
     formatTimestamp,
     changeFavIcon
@@ -445,7 +445,7 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private getThreadAvatar(item: IFilteredThreads) {
-        let threadAvatar = generateDefaultAvatar(item.thread.name);
+        let threadAvatar = generateAgentAvatar(item.thread.name);
         if (item.thread.name.startsWith('@') && item.thread.users.length === 2) {
             const user = item.users.find((user) => user.userId !== this.userId);
             if (user && user.avatar_url) threadAvatar = user.avatar_url;
@@ -1397,6 +1397,23 @@ export class CollabMessagesChat extends StateLitElement {
     ) {
         this.isSystemChangeScroll = true;
         this.lastTopicFilter = '';
+
+        if (this.actualThread) {
+
+            const isDirectMessage = this.isDirectMessage(this.actualThread);
+            const isDirectMessageToAgent =
+                this.actualThread.thread.openClawAgents?.some(agent =>
+                    this.actualThread?.thread.users?.some(user => user.userId === agent.collabUserId)
+                );
+
+            if (isDirectMessage && isDirectMessageToAgent && !value.startsWith('@@')) {
+                const agentDM = this.actualThread?.thread.users.find((user) => user.userId !== this.userId);
+                const alias = this.actualThread.thread.openClawAgents?.find((agentOC) => agentOC.collabUserId === agentDM?.userId)?.alias;
+                if (alias) value = `@@${alias.trim()} ${value.trim()}`;
+            }
+
+        }
+
         try {
             if (!opt.isSpecialMention) {
                 await this.addMessage(value, opt.replyTo);

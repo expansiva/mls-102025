@@ -1,12 +1,12 @@
 /// <mls fileReference="_102025_/l2/collabMessagesThreadDetails.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, repeat, ifDefined } from 'lit';
+import { html, repeat, ifDefined, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 
 import { updateThread, getUser, deleteAllMessagesFromThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { collab_triangle_exclamation, collab_floppy_disk, collab_edit } from '/_102025_/l2/collabMessagesIcons.js';
 import { notifyThreadChange } from '/_102025_/l2/collabMessagesEvents.js';
-import { addMessage, loadOpenClawIntegrations, generateUUIDv7, generateDefaultAvatar } from "/_102025_/l2/collabMessagesHelper.js";
+import { addMessage, loadOpenClawIntegrations, generateUUIDv7, generateAgentAvatar } from "/_102025_/l2/collabMessagesHelper.js";
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
@@ -16,6 +16,10 @@ import {
     msgRemoveParticipantFromThread,
     msgAddOrUpdateThreadIntegration,
     msgAddOrUpdateThreadBot,
+
+    msgAddOrUpdateThreadOpenClawAgent,
+    msgRemoveThreadOpenClawAgent,
+
     msgUpdateThread
 } from '/_102025_/l2/shared/api.js';
 
@@ -319,7 +323,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             <div class="details-summary">
                 ${this.isChannel ? html`
                     <div class="summary-avatar">
-                        <img src="${thread?.avatar_url || generateDefaultAvatar(thread?.name || '')}" 
+                        <img src="${thread?.avatar_url || generateAgentAvatar(thread?.name || '')}" 
                              alt="${thread?.name}" 
                              width="48" 
                              height="48" />
@@ -347,10 +351,10 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                     <div class="summary-item">
                         <span class="summary-label">${this.msg.topicsDefault}</span>
                         <span class="summary-value">
-                            ${topics.length > 0 
-                                ? html`<span class="tags-inline">${topics.join(', ')}</span>`
-                                : html`<span class="empty-value">${this.msg.noTopics}</span>`
-                            }
+                            ${topics.length > 0
+                ? html`<span class="tags-inline">${topics.join(', ')}</span>`
+                : html`<span class="empty-value">${this.msg.noTopics}</span>`
+            }
                         </span>
                     </div>
 
@@ -358,10 +362,10 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                         <div class="summary-item summary-item-full">
                             <span class="summary-label">${this.msg.welcomeMessage}</span>
                             <span class="summary-value">
-                                ${thread?.welcomeMessage 
-                                    ? html`<span class="welcome-preview">${thread.welcomeMessage}</span>`
-                                    : html`<span class="empty-value">${this.msg.noWelcomeMessage}</span>`
-                                }
+                                ${thread?.welcomeMessage
+                    ? html`<span class="welcome-preview">${thread.welcomeMessage}</span>`
+                    : html`<span class="empty-value">${this.msg.noWelcomeMessage}</span>`
+                }
                             </span>
                         </div>
                     ` : ''}
@@ -369,10 +373,10 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                     <div class="summary-item">
                         <span class="summary-label">${this.msg.languages}</span>
                         <span class="summary-value">
-                            ${languages.length > 0 
-                                ? html`<span class="tags-inline">${languages.join(', ')}</span>`
-                                : html`<span class="empty-value">${this.msg.noLanguages}</span>`
-                            }
+                            ${languages.length > 0
+                ? html`<span class="tags-inline">${languages.join(', ')}</span>`
+                : html`<span class="empty-value">${this.msg.noLanguages}</span>`
+            }
                         </span>
                     </div>
                 </div>
@@ -397,10 +401,10 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                     value=${ifDefined(this.editedThreadDetails?.thread.avatar_url)}
                     nameValue=${ifDefined(this.editedThreadDetails?.thread.name)}
                     @value-changed=${(e: CustomEvent<string>) => {
-                        if (this.editedThreadDetails) {
-                            this.editedThreadDetails.thread.avatar_url = e.detail;
-                        }
-                    }}
+                    if (this.editedThreadDetails) {
+                        this.editedThreadDetails.thread.avatar_url = e.detail;
+                    }
+                }}
                 ></collab-messages-change-avatar-102025>
             `: ''}
 
@@ -421,11 +425,11 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                     .disabled=${['deleting'].includes(this.editedThreadDetails?.thread.status || '')}
                     .value=${this.editedThreadDetails?.thread.status}
                     @change=${(e: Event) => {
-                        if (this.editedThreadDetails) {
-                            this.editedThreadDetails.thread.status =
-                                (e.target as HTMLSelectElement).value as msg.ThreadStatus;
-                        }
-                    }}
+                if (this.editedThreadDetails) {
+                    this.editedThreadDetails.thread.status =
+                        (e.target as HTMLSelectElement).value as msg.ThreadStatus;
+                }
+            }}
                 >
                     <option value="active">${this.msg.statusActive}</option>
                     <option value="archived">${this.msg.statusArchived}</option>
@@ -457,10 +461,10 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                 .value=${this.editedThreadDetails?.thread.defaultTopics?.join(',')}
                 placeholder="+topic"
                 .onValueChanged=${(value: string) => {
-                    if (this.editedThreadDetails) {
-                        this.editedThreadDetails.thread.defaultTopics = value.split(',');
-                    }
-                }}
+                if (this.editedThreadDetails) {
+                    this.editedThreadDetails.thread.defaultTopics = value.split(',');
+                }
+            }}
                 id="topicsInput"
             ></collab-messages-input-tag-102025>
 
@@ -500,8 +504,14 @@ export class CollabMessagesThreadDetails extends StateLitElement {
     }
 
     private renderUsers() {
+
         const users = this.editedThreadDetails?.users || [];
         const isDm = this.threadDetails?.thread?.name?.startsWith('@');
+        const threadUsers = users.filter((user) => !user.kind);
+
+        const usersValids = this.editedThreadDetails?.thread.users.filter(user =>
+            threadUsers.some(tu => tu.userId === user.userId)
+        );
 
         return html`
         <div class="section users">
@@ -510,22 +520,17 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             </div>
             <ul>
                 ${repeat(
-            this.editedThreadDetails?.thread.users || [],
+            usersValids || [],
             ((user: { userId: string }) => user.userId) as any,
             ((user: { userId: string, auth: string }) => {
                 const details = users.find((us) => us.userId === user.userId);
                 return html`
-                                <li>
-                                    <img src="${details?.avatar_url}" alt="${details?.name}" width="32" height="32" />
-                                    <small>${details?.name}<b>(${user.auth})</b> - ${user.userId}</small>
-
-                                    ${!isDm
-                        ? html`<button class="remove" @click="${(e: MouseEvent) => this.removeUser(e, user.userId)}">${this.msg.remove}</button>`
-                        : ''
-                    }
-                                    
-                                </li>
-                    `;
+                        <li>
+                            ${this.renderAvatar(details?.avatar_url ? details.avatar_url : generateAgentAvatar(details?.name || ''))}
+                                <small>${details?.name}<b>(${user.auth})</b> - ${user.userId}</small>
+                                ${!isDm ? html`<button class="remove" @click="${(e: MouseEvent) => this.removeUser(e, user.userId)}">${this.msg.remove}</button>` : ''}            
+                            </li>
+                        `;
             }
             ) as any)}
             </ul>
@@ -550,8 +555,32 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         `
     }
 
+    private renderAvatar(value: string) {
+
+        if (value.trim().startsWith("<svg")) {
+            return html`<div class="agent-avatar-svg" .innerHTML=${value}></div>`;
+        }
+
+        if (this.isUrl(value)) {
+            return html`<img src="${value}" alt="${value}" width="32" height="32" />`;
+        }
+
+        return html`<div class="agent-avatar-emoji">${value}</div>`;
+    }
+
+    private isUrl(value: string): boolean {
+        try {
+            new URL(value);
+            return true;
+        } catch {
+            return value.startsWith("data:image");
+        }
+    }
+
     private renderAgents() {
-        const threadIntegrations: msg.ThreadIntegration[] = this.editedThreadDetails?.thread.integrations || [];
+
+        const agentsOpenClaw = this.editedThreadDetails?.thread.openClawAgents || [];
+        const isDm = this.threadDetails?.thread?.name?.startsWith('@');
 
         return html`
     <div class="section agents">
@@ -560,16 +589,15 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         </div>
     
         <ul>
-            ${threadIntegrations.length === 0
+            ${agentsOpenClaw.length === 0
                 ? html`<li class="empty-list"><small>${this.msg.noAgents}</small></li>`
                 : repeat(
-                    threadIntegrations,
-                    ((integration: msg.ThreadIntegration) => integration.integrationId) as any,
-                    ((integration: msg.ThreadIntegration) => {
-                        const agentInfo = this.findAgentInfo(integration.config?.agentId || '');
-                        const agentName = agentInfo?.agent?.name || integration.config?.agentId || 'Unknown';
-                        const integrationName = agentInfo?.integrationName || 'OpenClaw';
-                        const avatarUrl = agentInfo?.agent?.avatarUrl || this.generateAgentAvatar(agentName);
+                    agentsOpenClaw,
+                    ((agentOC: msg.OpenClawAgentBinding) => agentOC.agentId) as any,
+                    ((agentOC: msg.OpenClawAgentBinding) => {
+
+                        const agentName = agentOC.alias || agentOC.agentId || 'Unknown';
+                        const avatarUrl = generateAgentAvatar(agentName);
 
                         return html`
                             <li>
@@ -578,48 +606,49 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                                      width="32" 
                                      height="32" />
                                 <div class="agent-info">
-                                    <small class="agent-name">${agentName}</small>
-                                    <small class="agent-integration">${integrationName} <b>(${integration.status})</b></small>
+                                    <small class="agent-name">${agentName}<b>(${agentOC.enabled ? 'active' : 'disabled'})</b></small>
+                    
                                 </div>
-                                <div class="agent-actions">
-                                    <button
-                                        class=${integration?.status === 'active' ? 'remove' : 'activate'}
-                                        @click=${(e: MouseEvent) => this.updateStatusAgent(
-                            e,
-                            integration.integrationId,
-                            integration.status === 'active' ? 'disabled' : 'active'
-                        )}
-                                        >
-                                        ${integration?.status === 'active' ? this.msg.disable : this.msg.active}
+                                ${!isDm ? html`
+                                    <div class="agent-actions">
+                                        <button class=${agentOC.enabled ? 'remove' : 'activate'}>
+                                            ${agentOC.enabled ? this.msg.disable : this.msg.active}
                                         </button>
-                                </div>
+                                    </div>
+                                ` : nothing}
+                            
                             </li>
                         `;
                     }) as any
                 )
             }
         </ul>
-        
+
         ${this.labelErrorAgent ? html`<small class="saving-error">${collab_triangle_exclamation} ${this.labelErrorAgent}</small>` : ''}
         ${this.labelOkAgent ? html`<small class="saving-ok">${this.labelOkAgent}</small>` : ''}
-        
-        <details class="details-add-agent" ?open=${this.showAgentForm}>
-            <summary @click=${(e: Event) => {
-                const details = (e.target as HTMLElement).closest('details');
-                if (details) {
-                    e.preventDefault();
-                    this.showAgentForm = !this.showAgentForm;
-                    if (this.showAgentForm) {
-                        this.openAgentForm();
-                    } else {
-                        this.closeAgentForm();
+                
+        ${!isDm ? html`
+            <details class="details-add-agent" ?open=${this.showAgentForm}>
+                <summary @click=${(e: Event) => {
+                    const details = (e.target as HTMLElement).closest('details');
+                    if (details) {
+                        e.preventDefault();
+                        this.showAgentForm = !this.showAgentForm;
+                        if (this.showAgentForm) {
+                            this.openAgentForm();
+                        } else {
+                            this.closeAgentForm();
+                        }
                     }
-                }
-            }}>${this.msg.addAgent}</summary>
-            <div class="agent-form-content">
-                ${this.renderAgentFormContent()}
-            </div>
-        </details>
+                }}>${this.msg.addAgent}</summary>
+                <div class="agent-form-content">
+                    ${this.renderAgentFormContent()}
+                </div>
+            </details>
+        `: nothing}
+
+
+    
     </div>
     `;
     }
@@ -683,13 +712,15 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                         if (!agentData) return '';
                         const { agent } = agentData;
                         return html`
-                            <img src="${agent.avatarUrl || this.generateAgentAvatar(agent.name)}" 
+                            <img src="${agent.avatarUrl || generateAgentAvatar(agent.name)}" 
                                  alt="${agent.name}" 
                                  width="48" 
                                  height="48" />
                             <div>
                                 <strong>${agent.name}</strong>
-                                <small>ID: ${agent.senderId}</small>
+                                <small>ID: ${agent.id}</small>
+                                <small>UserId: ${agent.collabUserId}</small>
+
                             </div>
                         `;
                     })()}
@@ -720,13 +751,6 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         return null;
     }
 
-    private generateAgentAvatar(name: string): string {
-        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
-        const colorIndex = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
-        const bgColor = colors[colorIndex];
-        const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-        return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="${bgColor}"/><text x="40" y="40" font-family="Arial" font-size="28" fill="white" text-anchor="middle" dy=".35em">${initials}</text></svg>`)}`;
-    }
 
     private openAgentForm() {
         this.showAgentForm = true;
@@ -766,6 +790,34 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             const inboundToken = generateUUIDv7();
             const integrationId = generateUUIDv7();
 
+            const params: msg.RequestAddOrUpdateThreadOpenClawAgent = {
+                action: 'addOrUpdateThreadOpenClawAgent',
+                userId: this.userId,
+                collabUserId: agent.collabUserId,
+                agentId: agent.id,
+                alias: agent.name,
+                connectorId: integration.connectorId,
+                threadId: this.threadDetails.thread.threadId,
+                enabled: true,
+            }
+
+            const result = await msgAddOrUpdateThreadOpenClawAgent(params);
+
+            if (!result.success || !result.response?.thread) {
+                throw new Error(
+                    result.error || `Failed to add open claw agent: ${agent.name} in thread`
+                );
+            }
+
+            const thread = result.response.thread;
+            this.editedThreadDetails.thread = { ...thread };
+            const threadCache = await updateThread(thread.threadId, thread);
+            notifyThreadChange(threadCache);
+
+            this.labelOkAgent =
+                this.msg.successAddAgent || 'Agent added successfully.';
+
+            /*
             const threadIntegration: msg.ThreadIntegration = {
                 integrationId,
                 type: 'openclaw',
@@ -792,6 +844,8 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                 );
             }
 
+            
+
             const thread = result.response.thread;
 
             this.editedThreadDetails.thread = { ...thread };
@@ -801,7 +855,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
 
             this.labelOkAgent =
                 this.msg.successAddAgent || 'Agent added successfully.';
-
+*/
             this.closeAgentForm();
             this.requestUpdate();
 
@@ -818,6 +872,9 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         integrationId: string,
         status: "active" | "disabled"
     ) {
+
+        /*
+        
         this.labelErrorAgent = '';
         this.labelOkAgent = '';
 
@@ -827,6 +884,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             this.labelErrorAgent = this.msg.errorSaveThreadDeletStatus;
             return;
         }
+        
 
         const button = (e.target as HTMLElement).closest('button');
 
@@ -881,7 +939,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                 (err?.message || 'Unexpected error');
         } finally {
             button?.classList.remove('loading');
-        }
+        }*/
     }
 
     private renderBots() {

@@ -4,11 +4,14 @@ import { html, unsafeHTML } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { collab_user } from '/_102025_/l2/collabMessagesIcons.js';
+import { generateAgentAvatar } from '/_102025_/l2/collabMessagesHelper.js';
 
 @customElement('collab-messages-avatar-102025')
 export class CollabMessagesAvatar extends StateLitElement {
 
     @property() avatar: string = '';
+    @property() alt: string = '';
+
     @property({ type: String }) width = '30px';
     @property({ type: String }) height = '30px';
 
@@ -24,10 +27,12 @@ export class CollabMessagesAvatar extends StateLitElement {
 
         const isSvg = this.avatar.trim().startsWith('<svg');
 
+        const avatar = this.avatar ? this.avatar : generateAgentAvatar(this.alt || '.')
+
         return html`
         <div class="avatar">
-            ${this.avatar
-                ? isSvg ? html`${unsafeHTML(this.avatar)}` : html`<img src="${this.avatar}" alt="Avatar" />`
+            ${avatar
+                ? isSvg ? html`${unsafeHTML(avatar)}` : html`<img src="${avatar}" alt="${this.alt || 'Avatar'}" />`
                 : html`<div class="avatar-placeholder">${collab_user}</div>`
             }
         </div>`;

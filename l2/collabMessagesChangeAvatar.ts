@@ -2,7 +2,7 @@
 
 import { html, unsafeHTML, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import {  generateDefaultAvatar } from '/_102025_/l2/collabMessagesHelper.js';
+import {  generateAgentAvatar } from '/_102025_/l2/collabMessagesHelper.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
@@ -60,7 +60,7 @@ export class CollabChangeAvatar extends StateLitElement {
 
   firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties)
-    this.preview = this.value || generateDefaultAvatar(this.nameValue || '');
+    this.preview = this.value || generateAgentAvatar(this.nameValue || '');
   }
 
   render() {
