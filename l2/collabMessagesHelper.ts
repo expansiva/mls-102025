@@ -593,6 +593,32 @@ export const getTemporaryContext = (threadId: string, userId: string, prompt: st
     return context;
 };
 
+export async function findAgentInIntegrationsByUserId(collabUserId: string) {
+    try {
+        const integrations = await loadOpenClawIntegrations();
+
+        for (const integration of integrations) {
+            const agent = integration.agents?.find(
+                a => a.collabUserId === collabUserId
+            );
+
+            if (agent) {
+                return {
+                    name: agent.name,
+                    agentId: agent.id,
+                    connectorId: integration.connectorId
+                };
+            }
+        }
+
+        return null; 
+
+    } catch (err) {
+        console.error('Error on search user in integrations:', err);
+        return null;
+    }
+}
+
 export function generateUUIDv7(): string {
     const timestamp = Date.now();
     const timestampHex = timestamp.toString(16).padStart(12, '0');

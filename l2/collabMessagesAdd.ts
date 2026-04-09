@@ -3,12 +3,13 @@
 import { html, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { notifyThreadChange, notifyThreadCreate } from '/_102025_/l2/collabMessagesEvents.js';
-import { addThread, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { addThread, updateThread, getUser } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import {
     getUserId,
     getDmThreadByUsers,
     addMessage,
     createThreadDM,
+    findAgentInIntegrationsByUserId
 } from '/_102025_/l2/collabMessagesHelper.js';
 
 import {
@@ -16,7 +17,8 @@ import {
     msgUpdateThread,
     msgGetThreadUpdates,
     msgAddOrUpdateThreadBot,
-    msgAddThread
+    msgAddThread,
+    msgAddOrUpdateThreadOpenClawAgent
 } from '/_102025_/l2/shared/api.js';
 
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -472,21 +474,52 @@ export class CollabMessagesAdd extends StateLitElement {
         let avatar_url = '';
         const threadName = this.threadType === 'dm' ? `@${this.users.find((user) => user.userId === this.dmUser)?.name}` : this.threadName;
 
+
         if (this.threadType === 'dm') {
 
             this._topics = [];
             this._initialMessage = '';
             this._selectedAgent = '';
 
-            const alreadyExistThread = await getDmThreadByUsers(this.userId, this.dmUser);
-            if (alreadyExistThread) {
-                this.labelError = this.msg.threadDmAlreadyExist;
-                this.isLoading = false;
-                return;
-            }
-
             try {
+
+                const alreadyExistThread = await getDmThreadByUsers(this.userId, this.dmUser);
+                if (alreadyExistThread) {
+                    this.labelError = this.msg.threadDmAlreadyExist;
+                    this.isLoading = false;
+                    return;
+                }
+
+                const infoDm = await findAgentInIntegrationsByUserId(this.dmUser);
+                let isDmToAgent: boolean = !!infoDm;
+
+                
                 const thread = await createThreadDM(threadName, this.dmUser, this.group);
+                if (isDmToAgent && infoDm) {
+
+                    const params: msg.RequestAddOrUpdateThreadOpenClawAgent = {
+                        action: 'addOrUpdateThreadOpenClawAgent',
+                        userId: this.userId,
+                        collabUserId: this.dmUser,
+                        agentId: infoDm.agentId,
+                        alias: infoDm.name,
+                        connectorId: infoDm.connectorId,
+                        threadId: thread.threadId,
+                        enabled: true,
+                    }
+
+                    
+
+                    const result = await msgAddOrUpdateThreadOpenClawAgent(params);
+
+                    if (!result.success || !result.response?.thread) {
+                        throw new Error(
+                            result.error || `Failed to add open claw agent: ${infoDm.name} in thread`
+                        );
+                    }
+
+                }
+
                 if (this.onAddSuccess) this.onAddSuccess();
             } catch (err: any) {
                 console.error(err);

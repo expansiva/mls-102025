@@ -733,7 +733,7 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
 
         if (!value) {
             return html`<img src="${generateAgentAvatar(agent.name)}" alt="${agent.name}" />`;
-    
+
         }
 
         if (value.trim().startsWith("<svg")) {
@@ -915,6 +915,7 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
 
         this.clearStates();
         this.clearErrors();
+        this.actualIntegration = undefined;
         this.navigateTo('connectorDetails', true);
 
     }
@@ -949,6 +950,7 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.integrations = await loadOpenClawIntegrations();
         const actual = this.integrations.find((item) => item.connectorId === connectorId);
         if (actual) this.actualIntegration = actual;
+        else this.actualIntegration = undefined;
     }
 
     private async handleOpenConnectorDetails(connectorId: string) {
@@ -962,36 +964,16 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         };
         await this.getIntegration(connectorId)
         this.currentConnectorId = connectorId;
-        this.labelOkConnector = '';
-        this.labelErrorConnector = '';
-        this.labelOkAgent = '';
-        this.labelErrorAgent = '';
-        this.showDeleteConfirmation = false;
-        this.deleteConfirmationInput = '';
-        this.newAgentName = '';
-        this.newAgentAvatarUrl = '';
-        this.isTestingConnection = false;
-        this.connectionTestResult = 'none';
-        this.connectionTestMessage = '';
-        this.connectionTestLatency = 0;
+        this.clearErrors();
+        this.clearStates();
         this.navigateTo('connectorDetails', true);
     }
 
     private handleBackToMain() {
         this.currentConnectorId = '';
         this.editingConnector = null;
-        this.labelErrorConnector = '';
-        this.labelOkConnector = '';
-        this.labelOkAgent = '';
-        this.labelErrorAgent = '';
-        this.showDeleteConfirmation = false;
-        this.deleteConfirmationInput = '';
-        this.newAgentName = '';
-        this.newAgentAvatarUrl = '';
-        this.isTestingConnection = false;
-        this.connectionTestResult = 'none';
-        this.connectionTestMessage = '';
-        this.connectionTestLatency = 0;
+        this.clearErrors();
+        this.clearStates();
         this.navigateTo('main');
     }
 
@@ -1075,6 +1057,7 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
 
 
     private async handleSaveConnector() {
+
         if (!this.editingConnector) return;
 
         this.labelOkConnector = '';
@@ -1182,9 +1165,24 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
                 ];
             }
         }
+        await saveOpenClawIntegrations(this.integrations);
+    }
+
+    private async removeIntegration(connector: IOpenClawConnectorLocal) {
+
+        let integration = this.actualIntegration as msg.IOpenClawIntegration;
+        const { isNew: _, gatewayTokenChanged, inboundTokenChanged, ...connectorData } = connector;
+        if (!integration) return;
+
+        const index = this.integrations.findIndex(i => i.connectorId === integration.connectorId);
+
+        if (index !== -1) {
+            this.integrations.splice(index, 1);
+        }
 
         await saveOpenClawIntegrations(this.integrations);
     }
+
 
     private async saveOrUpdateOpenClawConnector(connector: IOpenClawConnectorLocal) {
 
@@ -1319,6 +1317,8 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
                 throw new Error(result.error || 'Failed to remove connector. Please try again.');
             };
 
+            await this.removeIntegration(this.editingConnector);
+            
             this.connectors = updatedConnectors;
             this.labelOkConnector = this.msg.successRemoveConnector;
             this.showDeleteConfirmation = false;
@@ -1408,7 +1408,6 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.labelOkAgent = '';
         this.labelErrorAgent = '';
 
-        // Validações
         if (!this.newAgentName.trim()) {
             this.labelErrorAgent = this.msg.errorAgentName;
             return;
@@ -1443,7 +1442,7 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
                 name: this.newAgentName.trim(),
                 avatarUrl: this.newAgentAvatarUrl || this.newAgentEmoji || '',
                 createdAt: Date.now().toString(),
-                collabUserId: result.response.collabUserId
+                collabUserId: result.response.collabUserId,
             };
 
             if (this.actualIntegration) {
