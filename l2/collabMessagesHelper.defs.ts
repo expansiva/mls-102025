@@ -6,41 +6,47 @@ export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesHelper.ts",
     "componentType": "tool",
-    "componentScope": "appFrontEnd"
+    "componentScope": "editor",
+    "devFidelity": "final",
+    "languages": [
+      "en",
+      "pt"
+    ],
+    "group": "CONNECT"
   },
   "references": {
     "imports": [
       {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
+        "ref": "/_102025_/l2/shared/api.js",
         "dependencies": [
           {
-            "name": "getTemporaryContext",
-            "type": "function"
+            "name": "msgGetUserUpdate"
           },
           {
-            "name": "notifyMessageSendChange",
-            "type": "function"
+            "name": "msgUpdateUserDetails"
           },
           {
-            "name": "notifyThreadChange",
-            "type": "function"
+            "name": "msgAddMessage"
           },
           {
-            "name": "notifyThreadCreate",
-            "type": "function"
+            "name": "msgAddThread"
+          },
+          {
+            "name": "msgAddParticipantToThread"
           }
         ]
       },
       {
-        "ref": "/_100554_/l2/aiAgentOrchestration.js",
+        "ref": "/_102025_/l2/collabMessagesEvents.js",
         "dependencies": [
           {
-            "name": "loadAgent",
-            "type": "function"
+            "name": "notifyMessageSendChange"
           },
           {
-            "name": "executeBeforePrompt",
-            "type": "function"
+            "name": "notifyThreadChange"
+          },
+          {
+            "name": "notifyThreadCreate"
           }
         ]
       },
@@ -48,16 +54,29 @@ export const asis: mls.defs.AsIs = {
         "ref": "/_102025_/l2/collabMessagesIndexedDB.js",
         "dependencies": [
           {
-            "name": "addThread",
-            "type": "function"
+            "name": "addThread"
           },
           {
-            "name": "listThreads",
-            "type": "function"
+            "name": "listThreads"
           },
           {
-            "name": "updateThread",
-            "type": "function"
+            "name": "updateThread"
+          }
+        ]
+      },
+      {
+        "ref": "/_102036_/l2/environmentContract.js",
+        "dependencies": [
+          {
+            "name": "environment"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "msg"
           }
         ]
       }
@@ -65,37 +84,38 @@ export const asis: mls.defs.AsIs = {
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Helper module for collaborative messaging features including FCM token registration, message handling with agent integration, thread management, and local storage persistence for chat preferences and notification settings",
+      "generalDescription": "Helper functions for collaborative messaging, notifications, and thread management.",
       "businessCapabilities": [
-        "Register FCM notification tokens",
-        "Send messages with optional bot context",
-        "Create and manage chat threads",
-        "Handle direct message threads",
-        "Persist chat preferences to localStorage",
-        "Manage notification preferences and audio settings",
-        "Load and migrate legacy localStorage data"
+        "User notification registration and management",
+        "Collaborative chat message handling",
+        "Direct message thread creation",
+        "User preferences and local storage management",
+        "Agent integration lookup"
       ],
       "technicalCapabilities": [
-        "Integrate with AI agents for message processing",
-        "Interact with IndexedDB for thread storage",
-        "Call messaging API endpoints",
-        "Generate cryptographically secure device IDs",
-        "Extract agent names from message prefixes",
-        "Merge bot context variables"
+        "Register and update notification tokens",
+        "Send and format chat messages",
+        "Create and manage threads and direct messages",
+        "Persist and retrieve user and chat preferences from localStorage",
+        "Internationalization for English and Portuguese",
+        "Generate UUIDv7 and SVG avatars",
+        "Change browser favicon for notifications"
       ],
       "implementedFeatures": [
-        "FCM token registration with device ID generation",
-        "Message sending with bot context support",
-        "Agent name extraction from @@ prefixed messages",
-        "Thread creation for groups and DMs",
-        "DM thread deduplication check",
-        "LocalStorage persistence for preferences",
-        "Legacy data migration from old keys",
-        "Notification preference management",
-        "Audio notification toggle",
-        "Last tab persistence",
-        "User ID management",
-        "Default chat preferences loading"
+        "Notification token registration and update",
+        "Add and format chat messages",
+        "Thread and DM thread creation",
+        "User and chat preference storage and retrieval",
+        "Internationalization (en, pt)",
+        "Agent avatar SVG generation",
+        "Favicon notification badge",
+        "UUIDv7 generation",
+        "Agent integration lookup"
+      ],
+      "constraints": [
+        "Relies on browser localStorage for persistence",
+        "Depends on external environment and API modules",
+        "Supports only 'en' and 'pt' languages for i18n"
       ]
     }
   }

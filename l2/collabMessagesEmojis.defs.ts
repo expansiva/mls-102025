@@ -5,29 +5,25 @@
 export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesEmojis.ts",
-    "componentType": "tool",
-    "componentScope": "editor"
+    "componentType": "other",
+    "componentScope": "appFrontEnd",
+    "devFidelity": "final"
   },
+  "references": {},
   "asIs": {
     "semantic": {
-      "generalDescription": "TypeScript module exporting emoji interface and static emoji dataset",
-      "businessCapabilities": [
-        "Provide emoji definitions for messaging system",
-        "Support emoji metadata including descriptions and aliases"
-      ],
+      "generalDescription": "Emoji list and interface for use in collaboration messages.",
+      "businessCapabilities": [],
       "technicalCapabilities": [
-        "Export IEmoji interface with unicode shortname and aliases fields",
-        "Export emojiList constant with 74 emoji entries",
-        "Map emoji characters to value identifiers and alias arrays"
+        "Defines emoji interface",
+        "Exports emoji list with unicode, shortname, aliases, and descriptions"
       ],
       "implementedFeatures": [
-        "TypeScript interface definition for emoji structure",
-        "Comprehensive static emoji dataset",
-        "Emoji shortcode alias system"
+        "IEmoji interface",
+        "emojiList array with emoji data"
       ],
       "constraints": [
-        "Interface property names unicode shortname aliases do not match emojiList property names text value alias",
-        "Static hardcoded data without dynamic loading capability"
+        "Only emojis listed in emojiList are available"
       ]
     }
   }

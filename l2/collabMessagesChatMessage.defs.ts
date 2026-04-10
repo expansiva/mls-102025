@@ -36,6 +36,14 @@ export const asis: mls.defs.AsIs = {
           {
             "name": "LitElement",
             "type": "class"
+          },
+          {
+            "name": "TemplateResult",
+            "type": "type"
+          },
+          {
+            "name": "until",
+            "type": "function"
           }
         ]
       },
@@ -94,19 +102,14 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
-        "dependencies": [
-          {
-            "name": "formatTimestamp",
-            "type": "function"
-          }
-        ]
-      },
-      {
         "ref": "/_102025_/l2/collabMessagesHelper.js",
         "dependencies": [
           {
             "name": "loadChatPreferences",
+            "type": "function"
+          },
+          {
+            "name": "formatTimestamp",
             "type": "function"
           },
           {
@@ -120,19 +123,42 @@ export const asis: mls.defs.AsIs = {
           {
             "name": "IThreadInfo",
             "type": "interface"
-          },
-          {
-            "name": "MessageReactions",
-            "type": "type"
-          },
-          {
-            "name": "IMessageReply",
-            "type": "interface"
           }
         ]
       },
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "/_102025_/l2/collabMessagesIndexedDB.js",
+        "dependencies": [
+          {
+            "name": "getMessage",
+            "type": "function"
+          },
+          {
+            "name": "updateMessage",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/api.js",
+        "dependencies": [
+          {
+            "name": "msgUpdateMessage",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "msg",
+            "type": "?"
+          }
+        ]
+      },
+      {
+        "ref": "/_102029_/l2/stateLitElement.js",
         "dependencies": [
           {
             "name": "StateLitElement",
@@ -142,40 +168,48 @@ export const asis: mls.defs.AsIs = {
       }
     ]
   },
+  "codeInsights": {
+    "deadCodeBlocks": [
+      "// this.positionReactionListPopup();"
+    ]
+  },
   "asIs": {
     "semantic": {
-      "generalDescription": "LitElement-based chat message component displaying messages with reactions translations replies and rich text support",
+      "generalDescription": "LitElement web component for rendering individual chat messages with support for reactions, replies, translations, and AI task results",
       "businessCapabilities": [
-        "Display chat messages with user/system distinction",
-        "Handle emoji reactions on messages",
-        "Support message threading and reply previews",
-        "Display message translations in multiple modes",
-        "Render rich text content with mentions and channel links",
-        "Show message status indicators",
-        "Provide message actions menu",
-        "Display user avatars and names",
-        "Render AI task messages with metadata",
-        "Show message timestamps"
+        "Display chat messages with user info and timestamps",
+        "Support message reactions with emoji",
+        "Support reply to messages with preview",
+        "Support message translation in multiple modes",
+        "Display AI task results and footers",
+        "Provide message actions: copy, reply, edit, delete",
+        "Rich text preview with mentions and channel links"
       ],
       "technicalCapabilities": [
-        "LitElement web component implementation",
-        "State management via StateLitElement",
-        "Custom event dispatching for interactions",
-        "Dynamic DOM creation for modals",
-        "CSS-based reaction picker positioning",
-        "Translation mode state handling",
-        "Message reaction toggle logic",
-        "Viewport-aware menu placement"
+        "LitElement-based web component architecture",
+        "State management via StateLitElement base class",
+        "IndexedDB integration for local message storage",
+        "API integration for message updates",
+        "Dynamic positioning of popups and menus",
+        "Caching of reply previews",
+        "Internationalization support for English and Portuguese",
+        "Custom event dispatching for user interactions"
       ],
       "implementedFeatures": [
-        "Message rendering with conditional styling",
-        "Reaction system with emoji picker",
-        "Reply functionality with preview",
-        "Internationalization support",
-        "Rich text preview with hover modals",
-        "Message menu with actions",
-        "Task result display with translation",
-        "Message footer rendering"
+        "Message rendering with user/system distinction",
+        "Reaction system with add/remove/view list functionality",
+        "Reply preview with click navigation",
+        "Translation modes: none, icon, text, iconText, trace",
+        "Message action menu with copy, reply, edit, delete",
+        "AI task result display with translation support",
+        "Mention and channel hover modals",
+        "Message status indicators for loading and failed states",
+        "Timestamp formatting based on user preferences"
+      ],
+      "constraints": [
+        "Requires actualThread context for full functionality",
+        "Depends on IndexedDB for message retrieval",
+        "Requires userId for reaction and reply operations"
       ]
     }
   }

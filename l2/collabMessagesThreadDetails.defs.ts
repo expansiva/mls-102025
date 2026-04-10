@@ -16,25 +16,29 @@ export const asis: mls.defs.AsIs = {
   },
   "references": {
     "webComponents": [
+      "collab-messages-thread-details-102025",
+      "collab-messages-change-avatar-102025",
       "collab-messages-input-tag-102025",
-      "collab-messages-add-participant-102025",
-      "collab-messages-change-avatar-102025"
+      "collab-messages-add-participant-102025"
     ],
     "imports": [
       {
         "ref": "lit",
         "dependencies": [
           {
-            "name": "html",
-            "type": "function"
+            "name": "html"
           },
           {
-            "name": "repeat",
-            "type": "function"
+            "name": "repeat"
           },
           {
-            "name": "ifDefined",
-            "type": "function"
+            "name": "ifDefined"
+          },
+          {
+            "name": "nothing"
+          },
+          {
+            "name": "until"
           }
         ]
       },
@@ -42,20 +46,16 @@ export const asis: mls.defs.AsIs = {
         "ref": "lit/decorators.js",
         "dependencies": [
           {
-            "name": "customElement",
-            "type": "function"
+            "name": "customElement"
           },
           {
-            "name": "property",
-            "type": "function"
+            "name": "property"
           },
           {
-            "name": "state",
-            "type": "function"
+            "name": "state"
           },
           {
-            "name": "query",
-            "type": "function"
+            "name": "query"
           }
         ]
       },
@@ -63,16 +63,13 @@ export const asis: mls.defs.AsIs = {
         "ref": "/_102025_/l2/collabMessagesIndexedDB.js",
         "dependencies": [
           {
-            "name": "updateThread",
-            "type": "function"
+            "name": "updateThread"
           },
           {
-            "name": "getUser",
-            "type": "function"
+            "name": "getUser"
           },
           {
-            "name": "deleteAllMessagesFromThread",
-            "type": "function"
+            "name": "deleteAllMessagesFromThread"
           }
         ]
       },
@@ -80,26 +77,21 @@ export const asis: mls.defs.AsIs = {
         "ref": "/_102025_/l2/collabMessagesIcons.js",
         "dependencies": [
           {
-            "name": "collab_triangle_exclamation",
-            "type": "constant"
+            "name": "collab_triangle_exclamation"
+          },
+          {
+            "name": "collab_floppy_disk"
+          },
+          {
+            "name": "collab_edit"
           }
         ]
       },
       {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
+        "ref": "/_102025_/l2/collabMessagesEvents.js",
         "dependencies": [
           {
-            "name": "notifyThreadChange",
-            "type": "function"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/stateLitElement.js",
-        "dependencies": [
-          {
-            "name": "StateLitElement",
-            "type": "class"
+            "name": "notifyThreadChange"
           }
         ]
       },
@@ -107,8 +99,59 @@ export const asis: mls.defs.AsIs = {
         "ref": "/_102025_/l2/collabMessagesHelper.js",
         "dependencies": [
           {
-            "name": "addMessage",
-            "type": "function"
+            "name": "addMessage"
+          },
+          {
+            "name": "loadOpenClawIntegrations"
+          },
+          {
+            "name": "generateUUIDv7"
+          },
+          {
+            "name": "generateAgentAvatar"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "msg",
+            "type": "?"
+          }
+        ]
+      },
+      {
+        "ref": "/_102029_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/api.js",
+        "dependencies": [
+          {
+            "name": "msgGetThreadUpdates"
+          },
+          {
+            "name": "msgRemoveParticipantFromThread"
+          },
+          {
+            "name": "msgAddOrUpdateThreadIntegration"
+          },
+          {
+            "name": "msgAddOrUpdateThreadBot"
+          },
+          {
+            "name": "msgAddOrUpdateThreadOpenClawAgent"
+          },
+          {
+            "name": "msgRemoveThreadOpenClawAgent"
+          },
+          {
+            "name": "msgUpdateThread"
           }
         ]
       },
@@ -123,50 +166,93 @@ export const asis: mls.defs.AsIs = {
       }
     ]
   },
+  "codeInsights": {
+    "i18nWarnings": [
+      "Thread name",
+      "Visibility",
+      "Status",
+      "Topics",
+      "Welcome message",
+      "Remove",
+      "Disable",
+      "Active",
+      "Group",
+      "Users",
+      "Bots",
+      "Agents",
+      "Automatic translation in multiple languages",
+      "Details",
+      "For each message, the language will be detected and translated into the languages above. Leave blank to avoid spending credits.",
+      "Please fill in all required fields.",
+      "Invalid user ID.",
+      "Save changes",
+      "Add agent",
+      "Cancel",
+      "Edit",
+      "Saved successfully",
+      "No changes.",
+      "Add Participant",
+      "Add Agent",
+      "User id or name",
+      "Auth:",
+      "Fill in all fields!",
+      "Error on remove user",
+      "Error on remove agent",
+      "Agent added successfully",
+      "Agent removed successfully",
+      "Thread details",
+      "Change avatar",
+      "The thread cannot be changed when status is \"deleting\"",
+      "The name must start with #",
+      "Select integration",
+      "Select agent",
+      "No integrations found",
+      "No agents in this integration",
+      "All agents already added",
+      "Already added",
+      "Save",
+      "No agents added",
+      "No topics defined",
+      "No languages defined",
+      "No message defined"
+    ]
+  },
   "asIs": {
     "semantic": {
-      "generalDescription": "Thread details management component for collaborative messaging system allowing configuration of thread properties, participants, and bots",
+      "generalDescription": "Collab thread details organism for viewing and editing thread info, users, bots, and agents.",
       "businessCapabilities": [
-        "Manage thread metadata including name, status, visibility, and avatar",
-        "Configure thread default topics and welcome messages",
-        "Manage thread participants with add and remove capabilities",
-        "Manage thread bots with disable functionality",
-        "Configure automatic translation languages",
-        "Handle thread lifecycle states including active, archived, deleted, and deleting",
-        "Support distinct behaviors for direct messages, channels, and file channels"
+        "View thread details",
+        "Edit thread details",
+        "Add/remove participants",
+        "Add/remove agents",
+        "Add/remove bots"
       ],
       "technicalCapabilities": [
-        "Lit-based reactive web component extending StateLitElement",
-        "IndexedDB integration for local thread state persistence",
-        "Real-time thread change notifications via notifyThreadChange",
-        "Form validation with HTML5 pattern attributes",
-        "Internationalization support for English and Portuguese",
-        "REST API integration via mls.api namespace",
-        "Conditional rendering based on thread type detection"
+        "LitElement-based web component",
+        "State management with @state and @property",
+        "Integration with IndexedDB",
+        "Dynamic rendering based on thread type",
+        "i18n support for en and pt",
+        "Agent and bot management",
+        "Avatar handling",
+        "Async data loading"
       ],
       "implementedFeatures": [
-        "Thread name editing with regex pattern validation requiring # prefix for channels",
-        "Status selection with active, archived, deleted options and deleting restriction",
-        "Visibility configuration supporting public, private, company, and team levels",
-        "Default topics input with validation pattern ^\\+[a-zA-Z0-9-]+$",
-        "Welcome message textarea for channel threads",
-        "Language tags input with locale pattern validation",
-        "Avatar change component integration for channels",
-        "Participant list rendering with user details and authorization levels",
-        "Participant removal with loading state management",
-        "Bot list rendering with status display",
-        "Bot disabling with API integration",
-        "Form dirty checking via JSON serialization comparison",
-        "Automatic deletion of messages when archiving or deleting threads"
+        "Thread details view/edit",
+        "User management",
+        "Agent management",
+        "Bot management",
+        "Avatar change",
+        "i18n strings",
+        "Integration loading",
+        "Status/visibility editing",
+        "Topic/language editing"
       ],
       "constraints": [
-        "Thread name must start with # character for channel threads",
-        "Thread details cannot be modified when status is deleting",
-        "Direct message threads disable name, visibility, and avatar editing",
-        "File channel threads restrict editing capabilities",
-        "Topic values must match pattern ^\\+[a-zA-Z0-9-]+$",
-        "Language codes must match pattern ^[a-z]{2}$|^[a-z]{2}-[A-Z]{2}$",
-        "Form requires all mandatory fields before submission"
+        "Thread cannot be edited when status is 'deleting'",
+        "Name must start with # for channels",
+        "Languages must match pattern",
+        "Topics must match pattern"
       ]
     }
   }

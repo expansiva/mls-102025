@@ -7,7 +7,7 @@ export const asis: mls.defs.AsIs = {
     "fileReference": "_102025_/l2/collabMessagesMoments.ts",
     "componentType": "molecule",
     "componentScope": "appFrontEnd",
-    "devFidelity": "scaffold"
+    "devFidelity": "draft"
   },
   "references": {
     "imports": [
@@ -34,7 +34,7 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "/_102029_/l2/stateLitElement.js",
         "dependencies": [
           {
             "name": "StateLitElement",
@@ -44,23 +44,20 @@ export const asis: mls.defs.AsIs = {
       }
     ]
   },
-  "codeInsights": {
-    "todos": [
-      "In develpoment"
-    ]
-  },
   "asIs": {
     "semantic": {
-      "generalDescription": "Lit-based web component for messages moments with development placeholder",
+      "generalDescription": "Web component displaying a development placeholder message.",
       "businessCapabilities": [],
       "technicalCapabilities": [
-        "Custom element registration",
-        "Reactive property binding",
-        "Lit HTML templating"
+        "Custom element using Lit library",
+        "Extends StateLitElement"
       ],
       "implementedFeatures": [
-        "Custom element definition with tag name collab-messages-moments-102025",
-        "Name property with default value Somebody"
+        "Renders a paragraph with 'In develpoment'"
+      ],
+      "constraints": [
+        "Component is in draft state",
+        "Displays static placeholder text only"
       ]
     }
   }

@@ -11,26 +11,65 @@ export const asis: mls.defs.AsIs = {
       "en",
       "pt"
     ],
-    "group": "CONNECT",
-    "devFidelity": "final"
+    "group": "CONNECT"
   },
   "references": {
     "webComponents": [
       "collab-messages-prompt-102025",
-      "collab-messages-task-info-102025",
-      "collab-messages-task-102025",
       "collab-messages-topics-102025",
-      "collab-messages-avatar-102025",
+      "collab-messages-chat-message-102025",
+      "collab-messages-task-102025",
+      "collab-messages-filter-102025",
+      "collab-messages-add-102025",
       "collab-messages-thread-details-102025",
       "collab-messages-user-modal-102025",
       "collab-messages-thread-modal-102025",
-      "collab-messages-filter-102025",
-      "collab-messages-add-102025",
-      "collab-messages-chat-message-102025",
       "collab-messages-rich-preview-text-102025",
       "collab-messages-text-code-102025"
     ],
     "imports": [
+      {
+        "ref": "lit",
+        "dependencies": [
+          {
+            "name": "html",
+            "type": "function"
+          },
+          {
+            "name": "LitElement",
+            "type": "class"
+          },
+          {
+            "name": "unsafeHTML",
+            "type": "function"
+          },
+          {
+            "name": "nothing",
+            "type": "constant"
+          }
+        ]
+      },
+      {
+        "ref": "lit/decorators.js",
+        "dependencies": [
+          {
+            "name": "customElement",
+            "type": "function"
+          },
+          {
+            "name": "property",
+            "type": "function"
+          },
+          {
+            "name": "state",
+            "type": "function"
+          },
+          {
+            "name": "query",
+            "type": "function"
+          }
+        ]
+      },
       {
         "ref": "/_102025_/l2/collabMessagesIcons.js",
         "dependencies": [
@@ -43,19 +82,15 @@ export const asis: mls.defs.AsIs = {
             "type": "constant"
           },
           {
-            "name": "collab_translate",
-            "type": "constant"
-          },
-          {
-            "name": "collab_circle_exclamation",
-            "type": "constant"
-          },
-          {
             "name": "collab_plus",
             "type": "constant"
           },
           {
             "name": "collab_folder_tree",
+            "type": "constant"
+          },
+          {
+            "name": "collab_bell",
             "type": "constant"
           }
         ]
@@ -78,48 +113,14 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/libCommom.js",
+        "ref": "/_102025_/l2/collabMessagesEvents.js",
         "dependencies": [
-          {
-            "name": "openElementInServiceDetails",
-            "type": "function"
-          },
-          {
-            "name": "clearServiceDetails",
-            "type": "function"
-          },
-          {
-            "name": "changeFavIcon",
-            "type": "function"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
-        "dependencies": [
-          {
-            "name": "getTemporaryContext",
-            "type": "function"
-          },
-          {
-            "name": "formatTimestamp",
-            "type": "function"
-          },
           {
             "name": "notifyThreadChange",
             "type": "function"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentOrchestration.js",
-        "dependencies": [
-          {
-            "name": "loadAgent",
-            "type": "function"
           },
           {
-            "name": "executeBeforePrompt",
+            "name": "notifyThreadNotification",
             "type": "function"
           }
         ]
@@ -170,6 +171,10 @@ export const asis: mls.defs.AsIs = {
           {
             "name": "updateLastMessageReadTime",
             "type": "function"
+          },
+          {
+            "name": "IDBThreadPerformanceCache",
+            "type": "interface"
           }
         ]
       },
@@ -193,8 +198,20 @@ export const asis: mls.defs.AsIs = {
             "type": "function"
           },
           {
-            "name": "defaultThreadImage",
-            "type": "constant"
+            "name": "generateAgentAvatar",
+            "type": "function"
+          },
+          {
+            "name": "getTemporaryContext",
+            "type": "function"
+          },
+          {
+            "name": "formatTimestamp",
+            "type": "function"
+          },
+          {
+            "name": "changeFavIcon",
+            "type": "function"
           },
           {
             "name": "IMessage",
@@ -206,6 +223,40 @@ export const asis: mls.defs.AsIs = {
           },
           {
             "name": "AGENTDEFAULT",
+            "type": "constant"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/api.js",
+        "dependencies": [
+          {
+            "name": "msgGetMessagesAfter",
+            "type": "function"
+          },
+          {
+            "name": "msgGetMessagesBefore",
+            "type": "function"
+          },
+          {
+            "name": "msgGetTaskUpdate",
+            "type": "function"
+          },
+          {
+            "name": "msgGetThreadUpdates",
+            "type": "function"
+          },
+          {
+            "name": "msgAddMessage",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "/_102036_/l2/environmentContract.js",
+        "dependencies": [
+          {
+            "name": "environment",
             "type": "constant"
           }
         ]
@@ -229,68 +280,120 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/aiAgentBase.js",
+        "ref": "/_102025_/l2/shared/interfaces.js",
         "dependencies": [
           {
-            "name": "IAgent",
-            "type": "interface"
+            "name": "msg",
+            "type": "?"
           }
         ]
       },
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "/_102029_/l2/stateLitElement.js",
         "dependencies": [
           {
             "name": "StateLitElement",
             "type": "class"
           }
         ]
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesTask.js"
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesTopics.js"
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesAvatar.js"
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesThreadDetails.js"
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesUserModal.js"
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesThreadModal.js"
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesFilter.js"
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesAdd.js"
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesRichPreviewText.js"
       }
+    ]
+  },
+  "codeInsights": {
+    "securityWarnings": [
+      "Uses unsafeHTML for rendering avatar HTML content"
+    ],
+    "i18nWarnings": [
+      "Loading messages...",
+      "No find any widget to show task details"
+    ],
+    "performanceHints": [
+      "Implements infinite scroll pagination for message history",
+      "Uses requestAnimationFrame for smooth scrolling operations",
+      "Implements scroll lock mechanism to prevent concurrent scroll handling"
     ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Chat interface component for Collab Messages system with thread management, message rendering, and AI agent integration",
+      "generalDescription": "Lit-based chat organism component supporting threaded conversations, task integration, agent mentions, and real-time updates with IndexedDB caching",
       "businessCapabilities": [
-        "Display and manage chat threads with status filtering (active, archived, deleting, deleted)",
-        "Send and receive messages with real-time updates",
-        "Handle AI agent interactions with special mention syntax",
-        "Manage thread participants and thread details",
-        "Support message threading with replies and reactions",
-        "Display task information linked to messages",
-        "Handle notification badges and unread message counts",
-        "Support message search and filtering by topics",
-        "Manage thread lifecycle (archive, delete, restore)",
-        "Support direct message threads with user avatars"
+        "Real-time chat messaging with thread support",
+        "Message threading and reply functionality",
+        "Task management integration within chat context",
+        "User and agent mention system (@ and @@)",
+        "Thread lifecycle management (active, archived, deleting, deleted)",
+        "Local message caching via IndexedDB",
+        "Notification handling and unread message tracking",
+        "Message search and filtering by topic",
+        "Direct messaging support",
+        "Welcome message display for new threads",
+        "Message grouping by date with relative time display"
       ],
       "technicalCapabilities": [
-        "LitElement-based web component with reactive state management",
-        "IndexedDB integration for local message caching and offline support",
-        "Server API integration for message synchronization (mls.api.msgGetMessagesAfter, mls.api.msgGetMessagesBefore, mls.api.msgAddMessage, mls.api.msgGetThreadUpdate, mls.api.msgGetTaskUpdate)",
-        "AI agent orchestration with dynamic agent loading and execution",
-        "Custom event handling for task changes, thread changes, and message sends",
-        "Scroll-based pagination for message history (infinite scroll)",
-        "Clipboard integration with custom copy formatting for chat content",
-        "Internationalization support with English and Portuguese",
-        "Responsive UI with mobile-friendly design",
-        "Web Components composition pattern for modular UI"
+        "LitElement-based web component architecture",
+        "State management via StateLitElement base class",
+        "Event-driven communication with CustomEvents",
+        "IndexedDB integration for offline message storage",
+        "REST API integration for server synchronization",
+        "Agent/Bot integration for automated responses",
+        "Multi-scene navigation (list, details, task, threadDetails, threadAdd)",
+        "Clipboard API integration for message copying",
+        "Scroll-based pagination (infinite scroll)",
+        "DOM manipulation for modal management",
+        "Date/time localization and formatting"
       ],
       "implementedFeatures": [
-        "Thread list view with grouping by prefix and status",
-        "Chat message view with date grouping and sender consolidation",
-        "Message prompt with @ mentions and @@ agent mentions",
-        "Topic filtering for messages",
-        "Thread search/filter functionality",
-        "Task detail view integration",
-        "Thread detail configuration view",
-        "Thread creation view",
-        "Welcome message display for new threads",
-        "Message status indicators (failed, loading, sent)",
-        "Unread message badge and scroll-to-unread behavior",
-        "Archive/Delete thread status display with date formatting",
-        "Copy-to-clipboard with formatted message extraction",
-        "Notification token registration for push notifications",
-        "Background thread synchronization"
+        "Thread list view with prefix-based grouping",
+        "Chat detail view with message history and status indicators",
+        "Task detail view with external widget integration",
+        "Thread settings and participant management views",
+        "New thread creation interface",
+        "Rich message input with autocomplete for mentions",
+        "Message status tracking (loading, failed, sent)",
+        "Unread message indicators and new message labels",
+        "Archive, delete, and restore thread operations",
+        "Real-time thread and message synchronization",
+        "Topic-based message filtering",
+        "Message reply functionality with preview",
+        "Rich text and code block rendering",
+        "Dynamic avatar generation",
+        "Notification badge handling for pending tasks",
+        "Scroll position preservation across scene transitions"
+      ],
+      "constraints": [
+        "Requires valid userId property to be set",
+        "Depends on IndexedDB for local message persistence",
+        "Requires environment configuration with agents and tasks support",
+        "Operates within specific group contexts (CONNECT, APPS, DOCS, CRM)",
+        "Requires server API availability for message synchronization",
+        "Browser support for Clipboard API required for copy functionality"
       ]
     }
   }

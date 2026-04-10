@@ -13,6 +13,9 @@ export const asis: mls.defs.AsIs = {
     ]
   },
   "references": {
+    "webComponents": [
+      "collab-messages-change-avatar-102025"
+    ],
     "imports": [
       {
         "ref": "lit",
@@ -24,6 +27,10 @@ export const asis: mls.defs.AsIs = {
           {
             "name": "unsafeHTML",
             "type": "function"
+          },
+          {
+            "name": "nothing",
+            "type": "constant"
           }
         ]
       },
@@ -32,54 +39,14 @@ export const asis: mls.defs.AsIs = {
         "dependencies": [
           {
             "name": "customElement",
-            "type": "?"
+            "type": "function"
           },
           {
             "name": "property",
-            "type": "?"
+            "type": "function"
           },
           {
             "name": "state",
-            "type": "?"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/stateLitElement.js",
-        "dependencies": [
-          {
-            "name": "StateLitElement",
-            "type": "class"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentBase.js",
-        "dependencies": [
-          {
-            "name": "IAgent",
-            "type": "interface"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
-        "dependencies": [
-          {
-            "name": "getTemporaryContext",
-            "type": "function"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentOrchestration.js",
-        "dependencies": [
-          {
-            "name": "loadAgent",
-            "type": "function"
-          },
-          {
-            "name": "executeBeforePrompt",
             "type": "function"
           }
         ]
@@ -88,8 +55,26 @@ export const asis: mls.defs.AsIs = {
         "ref": "/_102025_/l2/collabMessagesHelper.js",
         "dependencies": [
           {
-            "name": "defaultThreadImage",
+            "name": "generateAgentAvatar",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "/_102036_/l2/environmentContract.js",
+        "dependencies": [
+          {
+            "name": "environment",
             "type": "constant"
+          }
+        ]
+      },
+      {
+        "ref": "/_102029_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement",
+            "type": "class"
           }
         ]
       }
@@ -97,45 +82,49 @@ export const asis: mls.defs.AsIs = {
   },
   "codeInsights": {
     "securityWarnings": [
-      "Component uses unsafeHTML to render SVG content which requires trusted input to prevent XSS"
+      "Uses unsafeHTML for SVG rendering without explicit sanitization, potential XSS vulnerability"
+    ],
+    "accessibilityIssues": [
+      "Anchor tags used as buttons without role='button' or keyboard event handlers",
+      "File upload feature is hidden (display:none) making it inaccessible to users"
+    ],
+    "performanceHints": [
+      "Object URL created in onFileSelect but never revoked, potential memory leak"
     ],
     "deadCodeBlocks": [
-      "Message key saveButton defined in i18n objects but not referenced in render method",
-      "Change image button anchor has inline style display:none"
+      "File upload trigger button has display:none, making triggerFileInput method unreachable"
     ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Web component for changing thread/user avatars with AI generation and file upload",
+      "generalDescription": "LitElement web component for changing user avatars with AI generation capability",
       "businessCapabilities": [
-        "Change avatar",
-        "Generate avatar with AI",
-        "Upload image file",
-        "Describe avatar for AI generation",
-        "Cancel operation"
+        "Change user avatar image",
+        "Generate AI-powered SVG avatars from text descriptions",
+        "Upload custom avatar images from local files"
       ],
       "technicalCapabilities": [
-        "LitElement web component implementation",
-        "AI agent orchestration integration",
-        "File upload handling",
-        "SVG and image rendering",
-        "Custom event dispatching",
-        "State management with lit decorators",
-        "Internationalization support"
+        "LitElement-based web component implementation",
+        "SVG rendering using unsafeHTML directive",
+        "File API integration for image upload",
+        "Custom event dispatching for value changes",
+        "Integration with environment agents for AI generation",
+        "Internationalization support for English and Portuguese",
+        "State management using Lit decorators"
       ],
       "implementedFeatures": [
-        "AI avatar generation via agent _102025_agentGenerateAvatarSvg",
-        "File-based avatar upload with preview",
-        "Support for SVG and image avatar formats",
-        "Modal panel for AI generation interface",
-        "Loading state with spinner during generation",
-        "Cancel functionality to close panel"
+        "Avatar preview display supporting SVG and image formats",
+        "File input for custom avatar upload",
+        "AI generation panel with text prompt input",
+        "Loading state indicator during AI generation",
+        "Cancel and save actions",
+        "Conditional AI feature based on environment configuration"
       ],
       "constraints": [
-        "Requires AI agent _102025_agentGenerateAvatarSvg",
-        "Hardcoded default userId: 20250417120841.1000",
-        "Hardcoded default threadId: 20250825143728.1000",
-        "Uses unsafeHTML for SVG rendering"
+        "AI avatar generation requires environment.config.generateSvgAvatarEnabled() to return true",
+        "Default userId and threadId values are hardcoded",
+        "File upload UI element has inline style display:none",
+        "File input restricted to image/* mime types"
       ]
     }
   }

@@ -11,6 +11,9 @@ export const asis: mls.defs.AsIs = {
     "devFidelity": "scaffold"
   },
   "references": {
+    "webComponents": [
+      "collab-messages-tasks-102025"
+    ],
     "imports": [
       {
         "ref": "lit",
@@ -26,16 +29,16 @@ export const asis: mls.defs.AsIs = {
         "dependencies": [
           {
             "name": "customElement",
-            "type": "?"
+            "type": "function"
           },
           {
             "name": "state",
-            "type": "?"
+            "type": "function"
           }
         ]
       },
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "/_102029_/l2/stateLitElement.js",
         "dependencies": [
           {
             "name": "StateLitElement",
@@ -54,36 +57,28 @@ export const asis: mls.defs.AsIs = {
       }
     ]
   },
-  "codeInsights": {
-    "accessibilityIssues": [
-      "LI elements with click handlers lack button semantics and keyboard accessibility"
-    ]
-  },
   "asIs": {
     "semantic": {
-      "generalDescription": "CollabMessagesTasks component for displaying task lists and details",
+      "generalDescription": "Task list and details view component for collab messages.",
       "businessCapabilities": [
-        "Display task list with EM PROGRESSO status",
-        "Display task list with REVIEW status",
-        "Display task list with PENDENTE status",
-        "Display task details view",
-        "Navigate between list and detail views"
+        "Display tasks by stage",
+        "Show task details"
       ],
       "technicalCapabilities": [
-        "Manage view state using Lit state decorator",
-        "Handle click events for task selection",
-        "Render conditional views based on state"
+        "LitElement-based web component",
+        "State management with @state decorators",
+        "Conditional rendering based on state"
       ],
       "implementedFeatures": [
-        "Task list view with three hardcoded stages",
-        "Task detail view with back navigation",
-        "Hardcoded task items with icons and tags",
-        "Click interaction to open task details"
+        "Task list rendering",
+        "Task details rendering",
+        "Stage grouping",
+        "Basic navigation between list and details"
       ],
       "constraints": [
-        "Hardcoded Portuguese UI strings",
         "Hardcoded task data",
-        "In development placeholder in details view"
+        "No external data fetching",
+        "Portuguese and English mixed UI strings"
       ]
     }
   }

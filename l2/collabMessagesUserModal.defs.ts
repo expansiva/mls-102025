@@ -8,19 +8,35 @@ export const asis: mls.defs.AsIs = {
     "fileReference": "_102025_/l2/collabMessagesUserModal.ts",
     "componentType": "molecule",
     "componentScope": "appFrontEnd",
-    "languages": [
-      "en",
-      "pt"
-    ]
+    "devFidelity": "final"
   },
   "references": {
+    "webComponents": [
+      "collab-messages-user-modal-102025"
+    ],
     "imports": [
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "lit",
         "dependencies": [
           {
-            "name": "StateLitElement",
-            "type": "class"
+            "name": "html"
+          },
+          {
+            "name": "css"
+          }
+        ]
+      },
+      {
+        "ref": "lit/decorators.js",
+        "dependencies": [
+          {
+            "name": "customElement"
+          },
+          {
+            "name": "property"
+          },
+          {
+            "name": "state"
           }
         ]
       },
@@ -28,8 +44,7 @@ export const asis: mls.defs.AsIs = {
         "ref": "/_102025_/l2/collabMessagesIcons.js",
         "dependencies": [
           {
-            "name": "collab_message",
-            "type": "constant"
+            "name": "collab_message"
           }
         ]
       },
@@ -37,65 +52,75 @@ export const asis: mls.defs.AsIs = {
         "ref": "/_102025_/l2/collabMessagesHelper.js",
         "dependencies": [
           {
-            "name": "createThreadDM",
-            "type": "function"
+            "name": "createThreadDM"
           },
           {
-            "name": "getDmThreadByUsers",
-            "type": "function"
+            "name": "getDmThreadByUsers"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesEvents.js",
+        "dependencies": [
+          {
+            "name": "dispatchThreadOpen"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "msg"
+          }
+        ]
+      },
+      {
+        "ref": "/_102029_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement"
           }
         ]
       }
     ],
-    "statesRO": [],
-    "statesRW": [],
-    "statesWO": []
+    "statesRW": [
+      "ui.open",
+      "ui.isLoading",
+      "ui.errorMessage"
+    ]
   },
   "codeInsights": {
-    "todos": [],
-    "securityWarnings": [],
-    "unusedImports": [],
-    "deadCodeBlocks": [],
-    "accessibilityIssues": [],
-    "i18nWarnings": [],
-    "performanceHints": []
+    "i18nWarnings": [
+      "Carregando...",
+      "Mensagem",
+      "Loading...",
+      "Message"
+    ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Modal component for displaying user information and initiating direct message threads",
+      "generalDescription": "User modal for direct messaging in Collab Messages.",
       "businessCapabilities": [
-        "Display user profile information including avatar, name, userId, and status",
-        "Initiate direct message conversation with selected user",
-        "Create new DM thread if one doesn't exist between users",
-        "Handle loading states during thread creation",
-        "Display error messages from thread operations"
+        "User direct messaging initiation",
+        "User info display"
       ],
       "technicalCapabilities": [
-        "Lit-based web component with reactive properties",
-        "Mouse event handling for modal interaction (hover, leave, click)",
-        "Global mouse move detection for click-outside-to-close behavior",
-        "Integration with messaging helper functions for thread management",
-        "Event firing to parent level for thread navigation",
-        "Conditional rendering based on user relationship (self vs other)",
-        "i18n support for English and Portuguese"
+        "LitElement-based modal component",
+        "i18n support for English and Portuguese",
+        "User interaction event handling",
+        "Dynamic thread creation and opening"
       ],
       "implementedFeatures": [
-        "User profile display with avatar, name, userId, and status indicator",
-        "Message button to start DM conversation (hidden for self)",
-        "Loading spinner during thread creation",
-        "Error message display",
-        "Auto-close on mouse leave or click outside",
-        "Manual close via destroy method",
-        "Thread existence check before creation",
-        "Thread creation with CONNECT type"
+        "User modal display",
+        "User info rendering",
+        "Direct message thread creation",
+        "Loading and error states",
+        "i18n message switching"
       ],
       "constraints": [
-        "Requires actualUserId and user properties to function",
-        "Mouse leave destroys modal immediately",
-        "Only creates DM threads between different users",
-        "Fires events to mls.actualLevel scope",
-        "Depends on mls.events and mls.actualLevel globals",
-        "Uses mls.msg.User type from global namespace"
+        "Only supports English and Portuguese for i18n",
+        "Modal closes on mouse leave or outside click"
       ]
     }
   }

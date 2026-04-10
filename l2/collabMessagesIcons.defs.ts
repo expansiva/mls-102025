@@ -6,7 +6,8 @@ export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesIcons.ts",
     "componentType": "molecule",
-    "componentScope": "appFrontEnd"
+    "componentScope": "appFrontEnd",
+    "devFidelity": "final"
   },
   "references": {
     "imports": [
@@ -15,8 +16,7 @@ export const asis: mls.defs.AsIs = {
         "dependencies": [
           {
             "name": "svg",
-            "type": "function",
-            "purpose": "SVG template literal function for creating lit SVG templates"
+            "type": "function"
           }
         ]
       }
@@ -24,48 +24,17 @@ export const asis: mls.defs.AsIs = {
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Collection of SVG icon constants for messaging and UI components using lit-html",
+      "generalDescription": "SVG icon exports for Collab messages UI",
       "businessCapabilities": [],
       "technicalCapabilities": [
-        "SVG icon rendering",
-        "lit-html template literals",
-        "Icon library management"
+        "Provides SVG icons as JS constants for UI",
+        "Exports icons for use in Collab front-end components"
       ],
       "implementedFeatures": [
-        "Message icon",
-        "Reply icon",
-        "Copy icon",
-        "Edit icon",
-        "Delete icon",
-        "Smile/emoji icon",
-        "Chevron down icon",
-        "Chevron right icon",
-        "Clock static icon",
-        "Users icon",
-        "User icon",
-        "Magnifying glass icon",
-        "Arrow up long icon",
-        "Minus icon",
-        "Ban icon",
-        "Dot icon",
-        "Bell icon",
-        "Money icon",
-        "Pause icon",
-        "Animated clock spinner icon",
-        "Check icon",
-        "Bug icon (12px)",
-        "Play icon",
-        "Bug icon (16px)",
-        "Chevron left icon",
-        "Gear/settings icon",
-        "Translate icon",
-        "Circle exclamation icon",
-        "Plus icon",
-        "Folder tree icon",
-        "Triangle exclamation icon",
-        "Bell slash icon",
-        "Xmark icon",
-        "Spinner clock icon"
+        "Exports multiple SVG icon constants"
+      ],
+      "constraints": [
+        "Only provides static SVG icons as JS constants"
       ]
     }
   }

@@ -6,9 +6,13 @@ export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesInputTag.ts",
     "componentType": "molecule",
-    "componentScope": "appFrontEnd"
+    "componentScope": "appFrontEnd",
+    "devFidelity": "final"
   },
   "references": {
+    "webComponents": [
+      "collab-messages-input-tag-102025"
+    ],
     "imports": [
       {
         "ref": "lit",
@@ -41,7 +45,7 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "/_102029_/l2/stateLitElement.js",
         "dependencies": [
           {
             "name": "StateLitElement",
@@ -52,37 +56,42 @@ export const asis: mls.defs.AsIs = {
     ]
   },
   "codeInsights": {
-    "securityWarnings": [
-      "Dynamic RegExp construction with user-provided pattern property may lead to ReDoS if pattern is not sanitized"
+    "accessibilityIssues": [
+      "Input element lacks aria-label or associated label for screen readers"
     ],
     "performanceHints": [
-      "Usage of deprecated keyCode property instead of key for keyboard events"
+      "Uses deprecated keyCode property instead of key for keyboard events"
     ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Lit-based web component for inputting and managing tags with validation support",
+      "generalDescription": "Tag input web component for managing string tags with keyboard interaction and validation",
       "businessCapabilities": [
-        "Tag input and collection management",
-        "Tag validation against regex patterns",
-        "Duplicate tag prevention",
-        "Tag deletion functionality"
+        "Manage collections of string tags",
+        "Validate tag input against regex patterns",
+        "Prevent duplicate tag entries"
       ],
       "technicalCapabilities": [
-        "Custom form input element with value getter/setter",
-        "Keyboard event handling for Enter, Comma and Backspace keys",
-        "Real-time validation feedback with CSS classes",
-        "Lit reactive updates",
-        "Public API for programmatic tag manipulation"
+        "Handle keyboard events for tag manipulation",
+        "Perform regex pattern validation",
+        "Provide visual error feedback",
+        "Support two-way data binding via comma-separated values"
       ],
       "implementedFeatures": [
-        "Tag addition via Enter key or comma character",
-        "Tag deletion via Backspace when input is empty",
-        "Regex pattern validation for tag format",
-        "Visual feedback for invalid and duplicate tags",
-        "Comma-separated value serialization",
-        "Placeholder support",
-        "Custom change callback support"
+        "Add tags via Enter key",
+        "Add tags via comma key",
+        "Delete last tag via Backspace when input empty",
+        "Pattern-based validation with visual error indication",
+        "Duplicate tag detection with visual feedback",
+        "Programmatic tag management via public methods",
+        "Placeholder text support",
+        "Reflective error state attribute"
+      ],
+      "constraints": [
+        "Tags serialized as comma-separated strings",
+        "No maximum tag length enforcement",
+        "No maximum tag count limit",
+        "Depends on StateLitElement base class"
       ]
     }
   }

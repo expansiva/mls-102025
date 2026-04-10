@@ -9,16 +9,30 @@ export const asis: mls.defs.AsIs = {
     "componentScope": "appFrontEnd"
   },
   "references": {
-    "webComponents": [
-      "collab-messages-topics-102025"
-    ],
     "imports": [
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "lit",
         "dependencies": [
           {
-            "name": "StateLitElement",
-            "type": "class"
+            "name": "html",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "lit/decorators.js",
+        "dependencies": [
+          {
+            "name": "customElement",
+            "type": "function"
+          },
+          {
+            "name": "property",
+            "type": "function"
+          },
+          {
+            "name": "state",
+            "type": "function"
           }
         ]
       },
@@ -27,66 +41,49 @@ export const asis: mls.defs.AsIs = {
         "dependencies": [
           {
             "name": "collab_chevron_down",
-            "type": "constant"
+            "type": "?"
           },
           {
             "name": "collab_chevron_right",
-            "type": "constant"
+            "type": "?"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": []
+      },
+      {
+        "ref": "/_102029_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement",
+            "type": "class"
           }
         ]
       }
-    ],
-    "statesRO": [],
-    "statesRW": [],
-    "statesWO": []
-  },
-  "codeInsights": {
-    "todos": [],
-    "securityWarnings": [],
-    "unusedImports": [],
-    "deadCodeBlocks": [],
-    "accessibilityIssues": [
-      "buttons lack aria-label or aria-pressed for selected state",
-      "expand/collapse icon is not keyboard accessible (div with click handler, no button or tabindex)",
-      "no aria-expanded attribute on expand control"
-    ],
-    "i18nWarnings": [
-      "hardcoded string 'all' in button"
-    ],
-    "performanceHints": [
-      "topics recalculated on every render in render() method",
-      "messages.forEach loops executed multiple times per render cycle"
     ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Lit-based web component for displaying and selecting message topics with expandable grouped view",
-      "businessCapabilities": [
-        "display message topics extracted from messages",
-        "group topics by prefix",
-        "allow topic selection via button click",
-        "show limited header topics with expand/collapse functionality"
-      ],
+      "generalDescription": "Web component for displaying and selecting message topics with grouping and expansion.",
+      "businessCapabilities": [],
       "technicalCapabilities": [
-        "extract topics from message content using regex pattern +[a-zA-Z0-9_]+",
-        "group topics by underscore prefix",
-        "render topic buttons with active state styling",
-        "dispatch custom event 'topic-selected' on selection",
-        "merge thread topics with extracted message topics"
+        "Topic extraction from messages",
+        "Topic grouping by prefix",
+        "Dynamic topic selection and event dispatch",
+        "Expandable/collapsible topic groups UI"
       ],
       "implementedFeatures": [
-        "topic extraction from message strings",
-        "topic grouping by prefix",
-        "expandable/collapsible topic groups",
-        "header topics limited to 3 items with fallback to thread topics",
-        "selected topic persistence in header",
-        "custom event dispatch for topic selection"
+        "Topic extraction from message content",
+        "+topic syntax parsing",
+        "Topic grouping by prefix",
+        "Header topics selection",
+        "Topic selection event dispatch",
+        "Expandable/collapsible UI for topics"
       ],
       "constraints": [
-        "topics must match pattern +[a-zA-Z0-9_]+",
-        "maximum 3 topics in header view",
-        "selected topic always visible in header even if not in top 3",
-        "relies on parent to provide messages and threadTopics via properties"
+        "Topics must start with '+' and contain only alphanumeric or underscore characters"
       ]
     }
   }

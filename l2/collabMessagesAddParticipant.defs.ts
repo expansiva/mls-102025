@@ -5,22 +5,43 @@
 export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesAddParticipant.ts",
-    "componentType": "organism",
+    "componentType": "molecule",
     "componentScope": "appFrontEnd",
     "languages": [
       "en",
       "pt"
     ],
+    "group": "collabMessages",
     "devFidelity": "final"
   },
   "references": {
+    "webComponents": [
+      "collab-messages-add-participant-102025"
+    ],
     "imports": [
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "lit",
         "dependencies": [
           {
-            "name": "StateLitElement",
-            "type": "class"
+            "name": "html",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "lit/decorators.js",
+        "dependencies": [
+          {
+            "name": "customElement",
+            "type": "function"
+          },
+          {
+            "name": "property",
+            "type": "function"
+          },
+          {
+            "name": "state",
+            "type": "function"
           }
         ]
       },
@@ -38,48 +59,96 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
+        "ref": "/_102025_/l2/collabMessagesEvents.js",
         "dependencies": [
           {
             "name": "notifyThreadChange",
             "type": "function"
           }
         ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/api.js",
+        "dependencies": [
+          {
+            "name": "msgAddParticipantToThread",
+            "type": "function"
+          },
+          {
+            "name": "msgGetThreadUpdates",
+            "type": "function"
+          },
+          {
+            "name": "msgGetUsers",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesIcons.js",
+        "dependencies": [
+          {
+            "name": "collab_floppy_disk",
+            "type": "constant"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "msg",
+            "type": "?"
+          }
+        ]
+      },
+      {
+        "ref": "/_102029_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement",
+            "type": "class"
+          }
+        ]
       }
+    ]
+  },
+  "codeInsights": {
+    "accessibilityIssues": [
+      "Input element lacks explicit id attribute for label association",
+      "Label element lacks for attribute explicitly linking to input"
     ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Lit web component for adding participants to a collaboration message thread with user autocomplete and permission selection",
+      "generalDescription": "LitElement web component for adding participants to a collaboration thread with autocomplete user search and permission selection",
       "businessCapabilities": [
-        "Add participant to message thread",
+        "Add participant to collaboration thread",
         "Search and select users from available list",
-        "Assign user permissions (admin, moderator, read, write, none)",
-        "Validate required form fields",
-        "Display operation success or error feedback"
+        "Assign permission levels to participants"
       ],
       "technicalCapabilities": [
-        "Real-time user autocomplete with keyboard navigation",
-        "Internationalization support for English and Portuguese",
-        "Integration with messaging API for user management",
-        "IndexedDB synchronization for thread and user data",
-        "Custom event dispatching on participant addition",
-        "Form state management with loading indicators"
+        "LitElement-based web component implementation",
+        "Autocomplete dropdown with keyboard navigation",
+        "Form validation and error handling",
+        "IndexedDB integration for local cache updates",
+        "REST API integration for participant management",
+        "Custom event dispatching",
+        "Internationalization support",
+        "Loading state management"
       ],
       "implementedFeatures": [
-        "Text input with autocomplete suggestions dropdown",
-        "Keyboard navigation for suggestions (ArrowUp, ArrowDown, Enter, Tab)",
-        "Permission level selection dropdown",
-        "Submit button with loading spinner state",
-        "Success and error message display",
-        "Automatic suggestion filtering on input",
-        "Blur handling with delayed cleanup"
+        "Real-time user filtering with suggestions dropdown",
+        "Permission level selection",
+        "Form submission with validation",
+        "Success and error feedback messages",
+        "Local cache synchronization",
+        "Thread update notifications"
       ],
       "constraints": [
         "Requires actualThread and userId properties to be set",
-        "Validates that userIdOrName and auth fields are populated",
-        "Success message auto-clears after 3 seconds",
-        "Suggestions dropdown closes 200ms after blur event"
+        "All form fields must be filled before submission",
+        "Suggestions dropdown closes on blur with 200ms delay"
       ]
     }
   }

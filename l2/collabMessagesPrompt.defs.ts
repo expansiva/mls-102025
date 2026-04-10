@@ -11,7 +11,7 @@ export const asis: mls.defs.AsIs = {
       "en",
       "pt"
     ],
-    "group": "collabMessages"
+    "devFidelity": "final"
   },
   "references": {
     "webComponents": [
@@ -19,20 +19,40 @@ export const asis: mls.defs.AsIs = {
     ],
     "imports": [
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "lit",
         "dependencies": [
           {
-            "name": "StateLitElement",
-            "type": "class"
+            "name": "html",
+            "type": "function"
+          },
+          {
+            "name": "ifDefined",
+            "type": "function"
+          },
+          {
+            "name": "nothing",
+            "type": "constant"
           }
         ]
       },
       {
-        "ref": "/_100554_/l2/aiAgentBase.js",
+        "ref": "lit/decorators.js",
         "dependencies": [
           {
-            "name": "IAgent",
-            "type": "interface"
+            "name": "customElement",
+            "type": "function"
+          },
+          {
+            "name": "property",
+            "type": "function"
+          },
+          {
+            "name": "state",
+            "type": "function"
+          },
+          {
+            "name": "query",
+            "type": "function"
           }
         ]
       },
@@ -41,7 +61,7 @@ export const asis: mls.defs.AsIs = {
         "dependencies": [
           {
             "name": "collab_arrow_up_long",
-            "type": "?"
+            "type": "constant"
           }
         ]
       },
@@ -63,86 +83,93 @@ export const asis: mls.defs.AsIs = {
         "dependencies": [
           {
             "name": "emojiList",
-            "type": "?"
+            "type": "constant"
+          }
+        ]
+      },
+      {
+        "ref": "/_102036_/l2/environmentContract.js",
+        "dependencies": [
+          {
+            "name": "environment",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "msg",
+            "type": "interface"
+          }
+        ]
+      },
+      {
+        "ref": "/_102029_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement",
+            "type": "class"
           }
         ]
       },
       {
         "ref": "/_102025_/l2/collabMessagesAvatar.js"
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesRichTextParser.js",
+        "dependencies": [
+          {
+            "name": "parseInlineRichText",
+            "type": "function"
+          },
+          {
+            "name": "RichToken",
+            "type": "type"
+          }
+        ]
       }
-    ],
-    "statesRO": [
-      "mls.stor.files"
-    ],
-    "statesRW": [
-      "ui.mentionActive",
-      "ui.mentionQuery",
-      "ui.mentionSuggestions",
-      "ui.mentionIndex",
-      "ui.allUsers",
-      "ui.allAgents",
-      "ui.alreadyLoadingAgents",
-      "ui.lastScopeLoaded",
-      "ui.replyingTo",
-      "ui.text",
-      "ui.actualMention"
     ]
-  },
-  "codeInsights": {
-    "todos": [],
-    "securityWarnings": [],
-    "unusedImports": [],
-    "deadCodeBlocks": [],
-    "accessibilityIssues": [],
-    "i18nWarnings": [
-      "Responding to",
-      "Cancel reply",
-      "Replying to"
-    ],
-    "performanceHints": []
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Chat message input component with autocomplete for users, agents, and emojis",
+      "generalDescription": "Message prompt input component with rich text preview, user and agent mentions, and emoji autocomplete",
       "businessCapabilities": [
         "Message composition",
         "User mention autocomplete",
         "Agent mention autocomplete",
         "Emoji autocomplete",
+        "Rich text formatting preview",
         "Reply to message",
-        "Multi-language support (EN/PT)"
+        "Send message"
       ],
       "technicalCapabilities": [
         "Lit-based web component",
-        "Textarea auto-resize",
-        "Caret position calculation",
-        "Mention suggestion dropdown",
+        "IndexedDB integration for users and threads",
+        "Environment integration for agents",
+        "Rich text parsing and rendering",
+        "Dynamic textarea auto-resizing",
+        "Caret position calculation for dropdown positioning",
         "Keyboard navigation for suggestions",
-        "Dynamic agent loading from files",
-        "Visual viewport resize handling",
-        "Custom event dispatch for textarea resize"
+        "Custom event dispatching"
       ],
       "implementedFeatures": [
-        "@user mention autocomplete with avatar",
-        "@@agent mention autocomplete with avatar",
-        "::emoji autocomplete",
-        "Reply preview with cancel",
-        "Ctrl+Enter to send",
-        "Dynamic textarea height adjustment",
-        "Mention suggestion keyboard navigation (ArrowUp/ArrowDown/Tab/Enter)",
-        "Agent filtering by scope",
-        "User mention markdown conversion on send"
+        "Rich text preview overlay",
+        "User mention suggestions (@)",
+        "Agent mention suggestions (@@)",
+        "Emoji suggestions (::)",
+        "Message reply functionality",
+        "Auto-resizing textarea",
+        "Ctrl+Enter send shortcut",
+        "Agent loading by scope"
       ],
       "constraints": [
-        "Requires threadId for user autocomplete",
-        "Requires scope property for agent filtering",
-        "Agents must have 'public' visibility",
-        "Agent files must export createAgent function",
-        "Emoji suggestions limited to 10 results",
-        "Max textarea height 200px",
-        "Min textarea height 40px"
+        "Requires threadId for user loading",
+        "Depends on environment.getAgents() for agent metadata",
+        "Requires visualViewport API support",
+        "Fixed positioning for mention dropdown"
       ]
     }
   }
 }
-    

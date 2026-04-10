@@ -11,22 +11,16 @@ export const asis: mls.defs.AsIs = {
     "languages": [
       "en",
       "pt"
-    ]
+    ],
+    "devFidelity": "final"
   },
   "references": {
-    "webComponents": [
-      "collab-messages-task-102025"
-    ],
     "imports": [
       {
         "ref": "lit",
         "dependencies": [
           {
             "name": "html",
-            "type": "function"
-          },
-          {
-            "name": "css",
             "type": "function"
           }
         ]
@@ -49,37 +43,6 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
-        "dependencies": [
-          {
-            "name": "StateLitElement",
-            "type": "class"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
-        "dependencies": [
-          {
-            "name": "getNextPendentStep",
-            "type": "function"
-          },
-          {
-            "name": "getTotalCost",
-            "type": "function"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentOrchestration.js",
-        "dependencies": [
-          {
-            "name": "executeNextStep",
-            "type": "function"
-          }
-        ]
-      },
-      {
         "ref": "/_102025_/l2/collabMessagesIndexedDB.js",
         "dependencies": [
           {
@@ -93,88 +56,101 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
+        "ref": "/_102025_/l2/shared/api.js",
+        "dependencies": [
+          {
+            "name": "msgGetTaskUpdate",
+            "type": "function"
+          }
+        ]
+      },
+      {
         "ref": "/_102025_/l2/collabMessagesIcons.js",
         "dependencies": [
           {
             "name": "collab_money",
-            "type": "constant"
+            "type": "?"
           },
           {
             "name": "collab_pause",
-            "type": "constant"
+            "type": "?"
           },
           {
             "name": "collab_bell",
-            "type": "constant"
+            "type": "?"
           },
           {
             "name": "collab_chevron_right",
-            "type": "constant"
+            "type": "?"
           },
           {
             "name": "collab_clock",
-            "type": "constant"
+            "type": "?"
           },
           {
             "name": "collab_check",
-            "type": "constant"
+            "type": "?"
           },
           {
             "name": "collab_bug",
-            "type": "constant"
+            "type": "?"
           },
           {
             "name": "collab_play",
-            "type": "constant"
+            "type": "?"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "* as msg",
+            "type": "?"
+          }
+        ]
+      },
+      {
+        "ref": "/_102029_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement",
+            "type": "class"
           }
         ]
       }
     ]
   },
-  "codeInsights": {
-    "i18nWarnings": [
-      "Task"
-    ]
-  },
   "asIs": {
     "semantic": {
-      "generalDescription": "LitElement web component rendering a task card with status icon, title, cost, and execution timer for AI agent tasks",
+      "generalDescription": "Task card component for Collab messages with timer, status, and cost display.",
       "businessCapabilities": [
-        "Display task information including title and cost",
-        "Visualize task status through icons (pending, paused, in progress, done, failed, waiting for user)",
-        "Track and display elapsed time for task execution",
-        "Enable continuation of task execution via continue button",
-        "Handle task click events and dispatch custom events",
-        "Load task data from IndexedDB",
-        "Initialize execution context for AI agent tasks",
-        "Support multiple languages (English and Portuguese)"
+        "Display task summary in message threads",
+        "Show task status and timer",
+        "Show task cost",
+        "Handle task click events"
       ],
       "technicalCapabilities": [
-        "LitElement-based web component with reactive state management",
-        "Timer implementation using setInterval for tracking execution time",
-        "Integration with IndexedDB for local task storage",
-        "API integration via mls.api.msgGetTaskUpdate",
-        "Conditional rendering based on task state and properties",
-        "Custom event dispatching for task interactions",
-        "CSS class manipulation for time-based styling",
-        "Type-safe internationalization with message dictionaries"
+        "LitElement-based web component",
+        "Supports i18n for English and Portuguese",
+        "Fetches and syncs task data from IndexedDB and API",
+        "Renders dynamic icons based on task status",
+        "Implements timer logic for task steps"
       ],
       "implementedFeatures": [
-        "Task card rendering with header containing icon, title, price and timer",
-        "Dynamic status icon selection based on task state",
-        "Timer display formatting as MM:SS",
-        "Continue button for resuming tasks",
-        "Task loading and context initialization",
-        "Owner verification for task continuation eligibility",
-        "Notification badge for waiting-for-user status",
-        "Responsive click handling with event propagation control"
+        "Task card rendering",
+        "Status icon rendering",
+        "Timer for task steps",
+        "Cost calculation and display",
+        "i18n message switching",
+        "Task data fetching and syncing",
+        "Custom event dispatch on click"
       ],
       "constraints": [
-        "Requires browser environment with window.setInterval support",
-        "Depends on mls.api for backend task updates",
-        "Requires taskId, threadId, userId, and messageid properties to be set",
-        "Timer resets when task changes or step changes",
-        "Continue functionality only available when task is in progress and owned by current user"
+        "Only supports 'en' and 'pt' languages as defined",
+        "Minimum cost output is $0.01 if no steps",
+        "Timer resets on step change or clarification",
+        "No abstraction of task data structure"
       ]
     }
   }

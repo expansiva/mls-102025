@@ -6,7 +6,7 @@
 export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesThreadModal.ts",
-    "componentType": "organism",
+    "componentType": "molecule",
     "componentScope": "appFrontEnd",
     "languages": [
       "en",
@@ -16,32 +16,32 @@ export const asis: mls.defs.AsIs = {
   },
   "references": {
     "webComponents": [
+      "collab-messages-thread-modal-102025",
       "collab-messages-avatar-102025"
     ],
     "imports": [
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "lit",
         "dependencies": [
           {
-            "name": "StateLitElement",
-            "type": "class"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/libCommom.js",
-        "dependencies": [
-          {
-            "name": "getDateFormated",
+            "name": "html",
             "type": "function"
           }
         ]
       },
       {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
+        "ref": "lit/decorators.js",
         "dependencies": [
           {
-            "name": "formatTimestamp",
+            "name": "customElement",
+            "type": "function"
+          },
+          {
+            "name": "property",
+            "type": "function"
+          },
+          {
+            "name": "state",
             "type": "function"
           }
         ]
@@ -60,49 +60,74 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
+        "ref": "/_102025_/l2/collabMessagesHelper.js",
+        "dependencies": [
+          {
+            "name": "getDateFormated",
+            "type": "function"
+          },
+          {
+            "name": "formatTimestamp",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesEvents.js",
+        "dependencies": [
+          {
+            "name": "dispatchThreadOpen",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "*",
+            "type": "?"
+          }
+        ]
+      },
+      {
+        "ref": "/_102029_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement",
+            "type": "class"
+          }
+        ]
+      },
+      {
         "ref": "/_102025_/l2/collabMessagesAvatar.js"
       }
     ]
   },
-  "codeInsights": {
-    "securityWarnings": [
-      "Type assertion 'as any' used with event name 'collabMessages'"
-    ],
-    "accessibilityIssues": [
-      "Modal lacks aria-modal and role='dialog' attributes",
-      "Button lacks aria-label for loading state"
-    ]
-  },
   "asIs": {
     "semantic": {
-      "generalDescription": "Modal component for displaying message thread details and navigation",
+      "generalDescription": "Modal component for displaying a thread's details in Collab Messages.",
       "businessCapabilities": [
-        "Display thread metadata including name avatar user count status and last message time",
-        "Navigate to thread channel via event firing",
-        "Show loading state during navigation",
-        "Display error messages from failed operations"
+        "Display thread details in a modal",
+        "Show thread participants and status",
+        "Open thread channel"
       ],
       "technicalCapabilities": [
-        "Lit-based web component with reactive state management",
-        "Event-driven communication with parent application via mls.events.fire",
-        "Auto-close on mouse leave and outside click detection",
-        "Date formatting and localization support for en and pt"
+        "LitElement-based web component",
+        "i18n support for English and Portuguese",
+        "Handles mouse events for modal close",
+        "Displays loading and error states"
       ],
       "implementedFeatures": [
-        "Thread information display with avatar",
-        "User count indicator with icon",
-        "Last message timestamp formatting",
-        "Online status indicator",
-        "Channel navigation button with loading spinner",
+        "Thread modal UI",
+        "Avatar and thread info display",
+        "Open channel button with loading state",
         "Error message display",
-        "Auto-close behavior on mouse leave",
-        "Global mouse move detection for outside click handling"
+        "i18n message switching"
       ],
       "constraints": [
-        "Requires mls.events.fire API for navigation",
-        "Depends on mls.msg.ThreadPerformanceCache type definition",
-        "Auto-closes on mouse leave or outside click",
-        "Requires collab-messages-avatar-102025 web component"
+        "Only works with provided thread data",
+        "Closes on mouse leave or outside click"
       ]
     }
   }

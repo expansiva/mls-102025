@@ -9,9 +9,6 @@ export const asis: mls.defs.AsIs = {
     "componentScope": "appFrontEnd"
   },
   "references": {
-    "webComponents": [
-      "collab-messages-avatar-102025"
-    ],
     "imports": [
       {
         "ref": "lit",
@@ -40,7 +37,7 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "/_102029_/l2/stateLitElement.js",
         "dependencies": [
           {
             "name": "StateLitElement",
@@ -56,28 +53,48 @@ export const asis: mls.defs.AsIs = {
             "type": "constant"
           }
         ]
+      },
+      {
+        "ref": "/_102025_/l2/collabMessagesHelper.js",
+        "dependencies": [
+          {
+            "name": "generateAgentAvatar",
+            "type": "function"
+          }
+        ]
       }
+    ]
+  },
+  "codeInsights": {
+    "securityWarnings": [
+      "Uses unsafeHTML for SVG rendering which could lead to XSS if avatar content is not properly sanitized"
     ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "LitElement web component for displaying user avatars with support for SVG, images, or fallback icons",
+      "generalDescription": "Lit-based web component for displaying user or agent avatars with support for SVG and image formats",
       "businessCapabilities": [
-        "Display user avatar image",
-        "Show default user icon when no avatar provided"
+        "Display user/agent avatar images",
+        "Display SVG-based avatars",
+        "Generate fallback avatars when none provided",
+        "Show placeholder icon for missing avatars"
       ],
       "technicalCapabilities": [
-        "Render SVG content using unsafeHTML",
-        "Render image URLs using img tag",
-        "Dynamic CSS custom properties for sizing",
-        "Reactive property updates"
+        "Lit web component implementation",
+        "Reactive property binding",
+        "CSS custom properties for dynamic sizing",
+        "SVG rendering via unsafeHTML",
+        "Image tag rendering",
+        "Custom element registration"
       ],
       "implementedFeatures": [
-        "SVG avatar rendering",
-        "Image avatar rendering",
-        "Default placeholder icon",
-        "Configurable width and height properties",
-        "CSS custom property injection for dimensions"
+        "Avatar property binding",
+        "Alt text support with default fallback",
+        "Width and height configuration via CSS variables",
+        "SVG content detection and rendering",
+        "Image source rendering",
+        "Placeholder icon fallback using collab_user",
+        "Dynamic style updates on property changes"
       ]
     }
   }

@@ -6,9 +6,9 @@
 export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesSyncNotifications.ts",
-    "componentType": "tool",
-    "componentScope": "appFrontEnd",
-    "group": "collabMessages"
+    "componentType": "service",
+    "componentScope": "editor",
+    "devFidelity": "final"
   },
   "references": {
     "imports": [
@@ -16,16 +16,16 @@ export const asis: mls.defs.AsIs = {
         "ref": "/_102025_/l2/collabMessagesHelper.js",
         "dependencies": [
           {
-            "name": "getUserId",
-            "type": "function"
+            "name": "getUserId"
           },
           {
-            "name": "loadNotificationDeviceId",
-            "type": "function"
+            "name": "loadNotificationDeviceId"
           },
           {
-            "name": "loadNotificationPreferencesAudio",
-            "type": "function"
+            "name": "loadNotificationPreferencesAudio"
+          },
+          {
+            "name": "changeFavIcon"
           }
         ]
       },
@@ -33,119 +33,99 @@ export const asis: mls.defs.AsIs = {
         "ref": "/_102025_/l2/collabMessagesIndexedDB.js",
         "dependencies": [
           {
-            "name": "getThread",
-            "type": "function"
+            "name": "getThread"
           },
           {
-            "name": "updateThread",
-            "type": "function"
+            "name": "updateThread"
           },
           {
-            "name": "getMessage",
-            "type": "function"
+            "name": "getMessage"
           },
           {
-            "name": "addMessages",
-            "type": "function"
+            "name": "addMessages"
           },
           {
-            "name": "getAllThreads",
-            "type": "function"
+            "name": "getAllThreads"
           },
           {
-            "name": "addThread",
-            "type": "function"
+            "name": "addThread"
           },
           {
-            "name": "getCompactUTC",
-            "type": "function"
+            "name": "getCompactUTC"
+          },
+          {
+            "name": "updateMessage"
           }
         ]
       },
       {
-        "ref": "/_100554_/l2/libCommom.js",
+        "ref": "/_102025_/l2/collabMessagesEvents.js",
         "dependencies": [
           {
-            "name": "changeFavIcon",
-            "type": "function"
+            "name": "notifyThreadChange"
+          },
+          {
+            "name": "notifyMessageChange"
+          },
+          {
+            "name": "notifyThreadNotification"
           }
         ]
       },
       {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
+        "ref": "/_102025_/l2/shared/api.js",
         "dependencies": [
           {
-            "name": "notifyThreadChange",
-            "type": "function"
+            "name": "msgGetMessage"
+          },
+          {
+            "name": "msgGetThreadUpdates"
+          }
+        ]
+      },
+      {
+        "ref": "/_102036_/l2/environmentContract.js",
+        "dependencies": [
+          {
+            "name": "environment"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "*"
           }
         ]
       }
-    ],
-    "statesRO": [
-      "mls.services['102025_serviceCollabMessages_left']",
-      "mls.stor.cache",
-      "mls.api",
-      "mls.msg.MessagePerformanceCache"
-    ],
-    "statesRW": [
-      "threadSyncMap",
-      "hasNotificationMessages",
-      "syncTimeout"
-    ]
-  },
-  "codeInsights": {
-    "todos": [],
-    "securityWarnings": [],
-    "unusedImports": [],
-    "deadCodeBlocks": [],
-    "accessibilityIssues": [],
-    "i18nWarnings": [
-      "Erro on play notification audio:"
-    ],
-    "performanceHints": [
-      "Audio element created on every listenToThreadEvents call - consider singleton pattern",
-      "setTimeout with 500ms for batching thread sync operations"
     ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Service worker message handler for real-time chat notification synchronization with IndexedDB persistence",
+      "generalDescription": "Handles sync and notification logic for collaborative message threads.",
       "businessCapabilities": [
-        "Listen to push notification events from service worker",
-        "Synchronize thread updates in background",
-        "Play audio notification for new messages",
-        "Update favicon badge for unread messages",
-        "Toggle UI badge indicator on message service",
-        "Batch thread sync operations with debouncing",
-        "Handle thread status changes",
-        "Persist messages and threads to IndexedDB"
+        "Notification delivery for message threads",
+        "Syncing message and thread updates"
       ],
       "technicalCapabilities": [
-        "Service Worker message event handling",
-        "IndexedDB CRUD operations for threads and messages",
-        "Audio playback for notifications",
-        "Favicon manipulation",
-        "DOM service locator pattern (mls.services)",
-        "Debounced batch processing with Map-based queue",
-        "Async/await error handling",
-        "Date/ISO string manipulation"
+        "Service worker message event handling",
+        "Thread and message sync with IndexedDB",
+        "Notification sound playback",
+        "FavIcon change on notification",
+        "Thread and message update via API",
+        "Notification preference handling"
       ],
       "implementedFeatures": [
-        "Thread synchronization queue with Map-based state",
-        "Background thread update fetching via API",
-        "Notification sound playback with volume control",
-        "Unread message badge on favicon and service UI",
-        "Conditional notification based on document visibility and active thread",
-        "Message persistence with footers preservation",
-        "Thread status change detection",
-        "Multi-thread pending update chaining"
+        "listenToThreadEvents function for service worker messages",
+        "Thread and message update background sync",
+        "Notification sound and FavIcon update",
+        "Thread sync queue management"
       ],
       "constraints": [
-        "Requires service worker registration",
-        "Depends on mls global object for API, cache, and services",
-        "Audio file path hardcoded to ./l3/_100529_/audio/collabNotification.mp3",
-        "500ms debounce delay for sync operations",
-        "Requires userId and optional deviceId for API calls"
+        "Only works with service worker messaging",
+        "Depends on environment.notifications API",
+        "Audio notification depends on user preferences"
       ]
     }
   }

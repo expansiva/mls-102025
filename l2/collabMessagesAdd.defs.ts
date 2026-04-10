@@ -10,7 +10,9 @@ export const asis: mls.defs.AsIs = {
     "languages": [
       "en",
       "pt"
-    ]
+    ],
+    "group": "COLLAB",
+    "devFidelity": "final"
   },
   "references": {
     "webComponents": [
@@ -25,8 +27,8 @@ export const asis: mls.defs.AsIs = {
             "type": "function"
           },
           {
-            "name": "css",
-            "type": "function"
+            "name": "nothing",
+            "type": "constant"
           }
         ]
       },
@@ -52,16 +54,7 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
-        "dependencies": [
-          {
-            "name": "StateLitElement",
-            "type": "class"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentHelper.js",
+        "ref": "/_102025_/l2/collabMessagesEvents.js",
         "dependencies": [
           {
             "name": "notifyThreadChange",
@@ -70,32 +63,6 @@ export const asis: mls.defs.AsIs = {
           {
             "name": "notifyThreadCreate",
             "type": "function"
-          },
-          {
-            "name": "getTemporaryContext",
-            "type": "function"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentOrchestration.js",
-        "dependencies": [
-          {
-            "name": "loadAgent",
-            "type": "function"
-          },
-          {
-            "name": "executeBeforePrompt",
-            "type": "function"
-          }
-        ]
-      },
-      {
-        "ref": "/_100554_/l2/aiAgentBase.js",
-        "dependencies": [
-          {
-            "name": "IAgent",
-            "type": "interface"
           }
         ]
       },
@@ -108,6 +75,10 @@ export const asis: mls.defs.AsIs = {
           },
           {
             "name": "updateThread",
+            "type": "function"
+          },
+          {
+            "name": "getUser",
             "type": "function"
           }
         ]
@@ -130,6 +101,57 @@ export const asis: mls.defs.AsIs = {
           {
             "name": "createThreadDM",
             "type": "function"
+          },
+          {
+            "name": "findAgentInIntegrationsByUserId",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/api.js",
+        "dependencies": [
+          {
+            "name": "msgGetUsers",
+            "type": "function"
+          },
+          {
+            "name": "msgUpdateThread",
+            "type": "function"
+          },
+          {
+            "name": "msgGetThreadUpdates",
+            "type": "function"
+          },
+          {
+            "name": "msgAddOrUpdateThreadBot",
+            "type": "function"
+          },
+          {
+            "name": "msgAddThread",
+            "type": "function"
+          },
+          {
+            "name": "msgAddOrUpdateThreadOpenClawAgent",
+            "type": "function"
+          }
+        ]
+      },
+      {
+        "ref": "/_102036_/l2/environmentContract.js",
+        "dependencies": [
+          {
+            "name": "environment",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "ref": "/_102025_/l2/shared/interfaces.js",
+        "dependencies": [
+          {
+            "name": "msg",
+            "type": "?"
           }
         ]
       },
@@ -143,57 +165,75 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
+        "ref": "/_102029_/l2/stateLitElement.js",
+        "dependencies": [
+          {
+            "name": "StateLitElement",
+            "type": "class"
+          }
+        ]
+      },
+      {
         "ref": "/_102025_/l2/collabMessagesInputTag.js"
       }
     ]
   },
   "codeInsights": {
-    "todos": [],
-    "securityWarnings": [],
-    "unusedImports": [],
-    "deadCodeBlocks": [],
-    "accessibilityIssues": [],
-    "i18nWarnings": [],
-    "performanceHints": []
+    "unusedImports": [
+      "getUser"
+    ],
+    "deadCodeBlocks": [
+      "const agentName = '_102025_/l2/agents/agentGenerateAvatarSvg'",
+      "private extractSvgFromContext(context: any): string | null { return context?.task?.iaCompressed?.nextSteps?.[0]?.interaction?.payload?.[0]?.result ?? null; }"
+    ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "LitElement component for adding new message threads (DM or Channel) with support for bot configuration, AI avatar generation, and multilingual settings",
+      "generalDescription": "LitElement web component for creating new messaging threads (DM or Channel) with configuration options for visibility, groups, bots, and AI avatars",
       "businessCapabilities": [
-        "Create direct message (DM) threads between users",
-        "Create public/private/company/team channel threads",
-        "Configure thread metadata (name, group, visibility)",
-        "Set up automatic translation for multiple languages",
-        "Install and configure AI agent bots in threads",
+        "Create direct message threads between users",
+        "Create public or private channel threads",
+        "Configure thread visibility levels (public, private, company, team)",
+        "Assign threads to business groups (CRM, TASK, DOCS, CONNECT, APPS)",
+        "Enable automatic translation for multiple languages",
+        "Install and configure agent bots for channels",
         "Set initial welcome messages for channels",
-        "Generate thread avatars using AI",
-        "Validate thread creation forms"
+        "Generate AI avatars for channel threads",
+        "Prevent duplicate DM thread creation"
       ],
       "technicalCapabilities": [
-        "LitElement-based reactive web component",
-        "Integration with messaging API (mls.api.msg*)",
-        "IndexedDB local storage operations",
-        "Dynamic agent module loading and execution",
-        "Form validation and error handling",
-        "Internationalization (i18n) support for EN/PT",
-        "State management using Lit decorators"
+        "LitElement-based web component with reactive state management",
+        "Form validation for required fields and patterns",
+        "Integration with messaging API endpoints",
+        "IndexedDB operations for local thread caching",
+        "Event-driven architecture with thread change notifications",
+        "Agent/bot integration for automated responses",
+        "AI avatar generation via environment agents",
+        "Internationalization support for English and Portuguese",
+        "Dynamic user and agent loading from backend"
       ],
       "implementedFeatures": [
-        "DM thread creation with user selection",
-        "Channel thread creation with name validation (must start with #)",
-        "Thread visibility configuration (public, private, company, team)",
-        "Thread group selection (CRM, TASK, DOCS, CONNECT, APPS)",
-        "Language tag input for auto-translation",
-        "Agent bot selection and configuration",
-        "Initial message configuration for channels",
-        "AI avatar generation via agent execution",
-        "Form validation with error messaging"
+        "Thread type selection radio buttons (DM vs Channel)",
+        "User dropdown selection for DM threads",
+        "Channel name input with # prefix validation",
+        "Visibility dropdown (public, private, company, team)",
+        "Group dropdown (CRM, TASK, DOCS, CONNECT, APPS)",
+        "Language tag input with pattern validation",
+        "Collapsible bot configuration section",
+        "Collapsible initial message configuration section",
+        "Collapsible AI avatar generation section",
+        "Form validation with error messaging",
+        "Loading state management during submission",
+        "Success and error notification labels",
+        "Duplicate DM thread detection"
       ],
       "constraints": [
         "Channel names must start with '#' character",
-        "DM threads require valid user selection",
-        "User ID is required for thread creation",
-        "Only one DM thread allowed per user pair"
+        "DM threads require valid user selection from available users",
+        "Cannot create duplicate DM threads with the same user",
+        "Language tags must match pattern ^[a-z]{2}$ or ^[a-z]{2}-[A-Z]{2}$",
+        "Bot configuration only available for channel threads",
+        "AI avatar generation requires environment feature flag enabled"
       ]
     }
   }

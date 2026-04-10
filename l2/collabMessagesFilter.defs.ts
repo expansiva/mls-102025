@@ -6,15 +6,9 @@ export const asis: mls.defs.AsIs = {
   "meta": {
     "fileReference": "_102025_/l2/collabMessagesFilter.ts",
     "componentType": "molecule",
-    "componentScope": "appFrontEnd",
-    "languages": [
-      "pt"
-    ]
+    "componentScope": "appFrontEnd"
   },
   "references": {
-    "webComponents": [
-      "collab-messages-filter-102025"
-    ],
     "imports": [
       {
         "ref": "lit",
@@ -47,7 +41,7 @@ export const asis: mls.defs.AsIs = {
         ]
       },
       {
-        "ref": "/_100554_/l2/stateLitElement.js",
+        "ref": "/_102029_/l2/stateLitElement.js",
         "dependencies": [
           {
             "name": "StateLitElement",
@@ -60,48 +54,36 @@ export const asis: mls.defs.AsIs = {
         "dependencies": [
           {
             "name": "collab_magnifying_glass",
-            "type": "constant"
+            "type": "?"
           }
         ]
       }
     ]
   },
   "codeInsights": {
-    "unusedImports": [
-      "state"
-    ],
     "i18nWarnings": [
       "Fechar pesquisa",
       "Buscar"
-    ],
-    "accessibilityIssues": [
-      "Button uses title attribute without aria-label",
-      "Missing aria-expanded state on toggle button"
     ]
   },
   "asIs": {
     "semantic": {
-      "generalDescription": "Expandable search filter component with toggle functionality and real-time input handling",
+      "generalDescription": "Collapsible search filter component",
       "businessCapabilities": [
-        "Filter content by text query",
-        "Toggle search input visibility",
-        "Clear search query on close"
+        "Search query input",
+        "Toggle expand state"
       ],
       "technicalCapabilities": [
-        "Dispatch custom search-change events",
-        "Handle keyboard Escape key",
-        "Manage input focus on expand",
-        "Toggle CSS classes for visual states"
+        "Lit web component",
+        "Custom event dispatching",
+        "Keyboard event handling"
       ],
       "implementedFeatures": [
-        "Expandable search input",
-        "Keyboard navigation with Escape key",
-        "Real-time input change dispatch",
-        "Icon button toggle",
-        "Click-outside-to-toggle behavior"
-      ],
-      "constraints": [
-        "Fixed 100ms timeout for focus management"
+        "Expandable container",
+        "Search input with query binding",
+        "Escape key handling",
+        "Custom search-change event",
+        "Focus management on expand"
       ]
     }
   }
