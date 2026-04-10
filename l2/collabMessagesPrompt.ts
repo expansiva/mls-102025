@@ -8,17 +8,14 @@ import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
 import { environment } from '/_102036_/l2/environmentContract.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
-
 import '/_102025_/l2/collabMessagesAvatar.js';
 import { parseInlineRichText, RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
-
 
 /// **collab_i18n_start**
 const message_pt = {
     replyingTo: 'Respondendo a',
     cancelReply: 'Cancelar resposta'
 }
-
 const message_en = {
     replyingTo: 'Responding to',
     cancelReply: 'Cancel reply'
