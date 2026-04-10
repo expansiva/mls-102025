@@ -31,7 +31,8 @@ import {
     msgListOpenClawConnectors,
     msgAddOrUpdateOpenClawConnector,
     msgRemoveOpenClawConnector,
-    msgCreateOpenClawAgent
+    msgCreateOpenClawAgent,
+    msgDeleteOpenClawAgent
 } from '/_102025_/l2/shared/api.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
@@ -125,6 +126,14 @@ const message_pt = {
     errorAgentNameInvalid: 'Nome deve conter apenas letras e números, e começar com uma letra',
 
     creatingAgent: 'Criando agente...',
+
+    // Delete agent
+    deleteAgentTitle: 'Remover agente',
+    deleteAgentWarning: 'Tem certeza que deseja remover este agente? Esta ação não pode ser desfeita.',
+    deleteAgentAlsoDeleteFiles: 'Também excluir arquivos associados',
+    deletingAgent: 'Removendo...',
+    successRemoveAgent: 'Agente removido com sucesso',
+    errorRemoveAgent: 'Erro ao remover agente',
 };
 
 const message_en = {
@@ -213,6 +222,14 @@ const message_en = {
     errorAgentWorkspace: 'Workspace is required',
     errorAgentNameInvalid: 'Name must contain only letters and numbers, and start with a letter',
     creatingAgent: 'Creating agent...',
+
+    // Delete agent
+    deleteAgentTitle: 'Remove agent',
+    deleteAgentWarning: 'Are you sure you want to remove this agent? This action cannot be undone.',
+    deleteAgentAlsoDeleteFiles: 'Also delete associated files',
+    deletingAgent: 'Removing...',
+    successRemoveAgent: 'Agent removed successfully',
+    errorRemoveAgent: 'Error removing agent',
 };
 
 type MessageType = typeof message_en;
@@ -269,6 +286,12 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
     @state() newAgentEmoji: string = '';
     @state() newAgentSoulMd: string = '';
     @state() newAgentIdentityMd: string = '';
+
+    // Delete agent states
+    @state() showDeleteAgentConfirmation: boolean = false;
+    @state() agentToDelete: msg.IOpenClawAgent | null = null;
+    @state() deleteAgentFiles: boolean = false;
+    @state() isDeletingAgent: boolean = false;
 
     @property() labelOkConnector: string = '';
     @property() labelErrorConnector: string = '';
@@ -389,6 +412,7 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
             ${!connector.isNew ? this.renderAgentSection() : html`${nothing}`}
             ${!connector.isNew ? this.renderDeleteSection(connector) : html`${nothing}`}
             
+            ${this.renderDeleteAgentModal()}
         </div>`;
     }
 
@@ -723,13 +747,55 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
                 <span class="agent-sender-id">${agent.id}</span>
             
             </div>
-            <div class="agent-actions" style="display:none"> 
-                <button class="btn-icon" @click=${() => this.handleOpenEditAgent(agent)} title="${this.msg.editConnector}">
-                    ${collab_edit}
-                </button>
-                <button class="btn-icon btn-danger" @click=${() => this.handleDisableAgent(agent.id)} title="${this.msg.confirmRemoveAgent}">
+            <div class="agent-actions">
+                <button class="btn-icon btn-danger" @click=${() => this.handleOpenDeleteAgentConfirmation(agent)} title="${this.msg.confirmRemoveAgent}">
                     ${collab_trash}
                 </button>
+            </div>
+        </div>`;
+    }
+
+    private renderDeleteAgentModal() {
+        if (!this.showDeleteAgentConfirmation || !this.agentToDelete) return nothing;
+
+        const agent = this.agentToDelete;
+
+        return html`
+        <div class="modal-overlay" @click=${this.handleCloseDeleteAgentConfirmation}>
+            <div class="modal-content" @click=${(e: Event) => e.stopPropagation()}>
+                <div class="modal-header">
+                    <h4>${collab_warning} ${this.msg.deleteAgentTitle}</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="agent-to-delete-preview">
+                        <div class="agent-avatar">
+                            ${this.renderAvatar(agent)}
+                        </div>
+                        <div class="agent-info">
+                            <span class="agent-name">${agent.name}</span>
+                            <span class="agent-sender-id">${agent.id}</span>
+                        </div>
+                    </div>
+                    <p class="delete-agent-warning">${this.msg.deleteAgentWarning}</p>
+                    <label class="checkbox-label">
+                        <input 
+                            type="checkbox" 
+                            .checked=${this.deleteAgentFiles}
+                            @change=${this.handleDeleteAgentFilesChange}
+                        />
+                        ${this.msg.deleteAgentAlsoDeleteFiles}
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click=${this.handleCloseDeleteAgentConfirmation} ?disabled=${this.isDeletingAgent}>
+                        ${this.msg.cancel}
+                    </button>
+                    <button class="btn-danger" @click=${this.handleConfirmDeleteAgent} ?disabled=${this.isDeletingAgent}>
+                        ${this.isDeletingAgent
+                ? html`<span class="loader"></span> ${this.msg.deletingAgent}`
+                : html`${collab_trash} ${this.msg.deleteConfirmButton}`}
+                    </button>
+                </div>
             </div>
         </div>`;
     }
@@ -953,6 +1019,11 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         this.showGatewayToken = false;
         this.showInboundToken = false;
         this.copiedToken = null;
+        // Clear delete agent states
+        this.showDeleteAgentConfirmation = false;
+        this.agentToDelete = null;
+        this.deleteAgentFiles = false;
+        this.isDeletingAgent = false;
     }
 
 
@@ -1499,9 +1570,92 @@ export class CollabMessagesSettingsOpenClaw extends StateLitElement {
         }
     }
 
+    // ========== DELETE AGENT HANDLERS ==========
+    private handleOpenDeleteAgentConfirmation(agent: msg.IOpenClawAgent) {
+        this.agentToDelete = agent;
+        this.deleteAgentFiles = false;
+        this.showDeleteAgentConfirmation = true;
+    }
+
+    private handleCloseDeleteAgentConfirmation() {
+        this.showDeleteAgentConfirmation = false;
+        this.agentToDelete = null;
+        this.deleteAgentFiles = false;
+    }
+
+    private handleDeleteAgentFilesChange(e: Event) {
+        const input = e.target as HTMLInputElement;
+        this.deleteAgentFiles = input.checked;
+    }
+
+    private async handleConfirmDeleteAgent() {
+        
+        if (!this.agentToDelete || !this.editingConnector) return;
+
+        this.isDeletingAgent = true;
+
+        try {
+            const result = await msgDeleteOpenClawAgent({
+                userId: this.userId,
+                connectorId: this.editingConnector.connectorId,
+                agentId: this.agentToDelete.id,
+                deleteFiles: this.deleteAgentFiles
+            });
+
+            console.info(result);
+
+            if (!result.success || !result.response) {
+                throw new Error(result.error || this.msg.errorRemoveAgent);
+            }
+
+            // Remove agent from local integration
+            if (this.actualIntegration) {
+                const updatedAgents = this.actualIntegration.agents.filter(
+                    a => a.id !== this.agentToDelete!.id
+                );
+
+                this.actualIntegration = {
+                    ...this.actualIntegration,
+                    agents: updatedAgents
+                };
+
+                // Update integrations array
+                const index = this.integrations.findIndex(
+                    i => i.connectorId === this.editingConnector!.connectorId
+                );
+                if (index !== -1) {
+                    this.integrations = [
+                        ...this.integrations.slice(0, index),
+                        this.actualIntegration,
+                        ...this.integrations.slice(index + 1)
+                    ];
+                }
+
+                await saveOpenClawIntegrations(this.integrations);
+            }
+
+            this.handleCloseDeleteAgentConfirmation();
+            this.labelOkAgent = this.msg.successRemoveAgent;
+
+            // Clear success message after a few seconds
+            setTimeout(() => {
+                this.labelOkAgent = '';
+            }, 3000);
+
+        } catch (err: any) {
+            this.labelErrorAgent = err.message || this.msg.errorRemoveAgent;
+        } finally {
+            this.isDeletingAgent = false;
+        }
+
+    }
 
     private async handleDisableAgent(agentId: string) {
-
+        // Find the agent and open delete confirmation
+        const agent = this.actualIntegration?.agents.find(a => a.id === agentId);
+        if (agent) {
+            this.handleOpenDeleteAgentConfirmation(agent);
+        }
     }
 
     private handleToggleTokenVisibility(type: 'gateway' | 'inbound') {

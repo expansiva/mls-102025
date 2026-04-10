@@ -4,18 +4,23 @@ import { html, ifDefined, nothing } from 'lit';
 import { customElement, property, state, query, } from 'lit/decorators.js';
 import { collab_arrow_up_long } from '/_102025_/l2/collabMessagesIcons.js';
 import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
+
 import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
+
 import { environment } from '/_102036_/l2/environmentContract.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+
 import '/_102025_/l2/collabMessagesAvatar.js';
 import { parseInlineRichText, RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
+
 
 /// **collab_i18n_start**
 const message_pt = {
     replyingTo: 'Respondendo a',
     cancelReply: 'Cancelar resposta'
 }
+
 const message_en = {
     replyingTo: 'Responding to',
     cancelReply: 'Cancel reply'
@@ -61,7 +66,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     @property() threadId?: string;
     @property() placeholder?: string;
     @property() scope?: string;
-    
+
     @property({
         type: Boolean,
         converter: (value: string | null) => value === 'true'
@@ -196,17 +201,17 @@ export class CollabMessagesPrompt extends StateLitElement {
 
     private calculatePosition() {
         if (!this.mentionSuggestionsElement || !this.wrapper || !this.textArea) return;
-        
+
         const coords = this.getCaretCoordinates();
         if (!coords) return;
-        
+
         const wrapperRect = this.wrapper.getBoundingClientRect();
         const suggestionsHeight = this.mentionSuggestionsElement.offsetHeight || 150;
-        
+
         // Posiciona acima do textarea, alinhado com o cursor X
         const left = Math.max(wrapperRect.left, Math.min(coords.x, wrapperRect.right - 200));
         const top = wrapperRect.top - suggestionsHeight - 4;
-        
+
         this.mentionSuggestionsElement.style.position = "fixed";
         this.mentionSuggestionsElement.style.left = `${left}px`;
         this.mentionSuggestionsElement.style.top = `${top}px`;
@@ -217,14 +222,20 @@ export class CollabMessagesPrompt extends StateLitElement {
         const minHeight = 40;
         if (this.textArea) {
             const prevHeight = this.textArea.offsetHeight;
-            
-            // Temporariamente seta auto para calcular o scrollHeight real
+
+            if (!this.text || this.text.trim() === '') {
+                this.textArea.style.height = `${minHeight}px`;
+            } else {
+                this.textArea.style.height = 'auto';
+                const newCalculatedHeight = Math.max(minHeight, Math.min(this.textArea.scrollHeight, maxHeight));
+                this.textArea.style.height = `${newCalculatedHeight}px`;
+            }
+
             this.textArea.style.height = 'auto';
-            
-            // Calcula a nova altura respeitando min e max
+
             const newCalculatedHeight = Math.max(minHeight, Math.min(this.textArea.scrollHeight, maxHeight));
             this.textArea.style.height = `${newCalculatedHeight}px`;
-            
+
             const newHeight = this.textArea.offsetHeight;
             if (newHeight !== prevHeight) {
                 this.dispatchEvent(new CustomEvent('textarea-resize', {
@@ -252,10 +263,10 @@ export class CollabMessagesPrompt extends StateLitElement {
 
     private renderRichToken(token: RichToken) {
         const marker = (m?: string) => m ? html`<span class="marker">${m}</span>` : nothing;
-        
+
         switch (token.type) {
             case 'text':
-                return html`${token.value.split('\n').map((part, idx) => 
+                return html`${token.value.split('\n').map((part, idx) =>
                     idx === 0 ? html`${part}` : html`<br />${part}`
                 )}`;
             case 'bold':
@@ -601,6 +612,7 @@ export class CollabMessagesPrompt extends StateLitElement {
 
         this.replyingTo = undefined;
         this.text = '';
+        await this.updateComplete;
         this.adjustTextAreaHeight();
     }
 }

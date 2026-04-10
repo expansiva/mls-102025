@@ -325,7 +325,6 @@ export function msgListThreadOpenClawAgents(
 	);
 }
 
-
 export function msgAddOrUpdateThreadOpenClawAgent(
 	args: Omit<msg.RequestAddOrUpdateThreadOpenClawAgent, "action">
 ) {
@@ -351,6 +350,7 @@ export function msgRemoveThreadOpenClawAgent(
 export function msgCreateOpenClawAgent (
 	args: Omit<msg.RequestCreateOpenClawAgent , "action">
 ) {
+
 	return handleRequest<msg.ResponseCreateOpenClawAgent >(
 		post<msg.ResponseCreateOpenClawAgent >({
 			action: "createOpenClawAgent",
@@ -358,6 +358,19 @@ export function msgCreateOpenClawAgent (
 		})
 	);
 }
+
+export function msgDeleteOpenClawAgent   (
+	args: Omit<msg.RequestDeleteOpenClawAgent , "action">
+) {
+
+	return handleRequest<msg.ResponseDeleteOpenClawAgent   >(
+		post<msg.ResponseDeleteOpenClawAgent   >({
+			action: "deleteOpenClawAgent",
+			...args
+		})
+	);
+}
+
 
 export function msgListOpenClawAvailableAgents  (
 	args: Omit<msg.RequestListOpenClawAvailableAgents  , "action">
