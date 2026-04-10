@@ -77,9 +77,7 @@ collab-messages-prompt-102025 {
                     overflow-x: hidden;
                     z-index: 1;
                     background-color: #fff;
-                    color: @text-primary-color;
-                    
-                    // ⚠️ CRÍTICO: Estas propriedades DEVEM ser idênticas ao textarea
+                    color: #000000;
                     padding: 4px 4px;
                     border: 1px solid transparent;
                     border-radius: 8px;
@@ -94,8 +92,7 @@ collab-messages-prompt-102025 {
                     word-break: break-word;
                     -webkit-text-size-adjust: 100%;
                     text-rendering: auto;
-                    
-                    // Todos os elementos internos herdam as mesmas métricas
+    
                     * {
                         font-family: inherit;
                         font-size: inherit;
@@ -103,8 +100,7 @@ collab-messages-prompt-102025 {
                         letter-spacing: inherit;
                         word-spacing: inherit;
                     }
-                    
-                    // Marcadores sutis (só cor muda, não tamanho)
+
                     .marker {
                         color: @grey-color-darker;
                         font-weight: inherit;
@@ -113,12 +109,10 @@ collab-messages-prompt-102025 {
                         opacity: 0.5;
                     }
                     
-                    // Inline code - SEM mudança de fonte para manter alinhamento
                     .inline-code {
                         background-color: @grey-color-light;
                         color: #d63384;
                         border-radius: 2px;
-                        // NÃO mudar font-family ou font-size aqui!
                     }
                     
                     // Mentions
@@ -151,20 +145,20 @@ collab-messages-prompt-102025 {
                         color: @link-color;
                     }
                     
-                    // Bold - agora pode usar bold com fonte monospace
+                    // Bold -
                     strong {
                         font-weight: bold;
-                        color: @text-primary-color;
+                        color: #000000;
                     }
                     
                     em {
                         font-style: italic;
-                        color: @text-primary-color;
+                        color: #000000;
                     }
                     
                     del {
                         text-decoration: line-through;
-                        color: @text-primary-color-lighter;
+                        color: #000000;
                     }
                 }
             }
