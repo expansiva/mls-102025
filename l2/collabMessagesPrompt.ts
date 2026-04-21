@@ -129,22 +129,19 @@ export class CollabMessagesPrompt extends StateLitElement {
 
     private async getAgents() {
 
-        if (!this.threadId) return;
-        const thread = await getThread(this.threadId.trim());
-        if (!thread) return;
-
+        const thread = await getThread(this.threadId?.trim() || '');
         const agentsFiles = await environment.getAgents();
-
-        const usersAgent = this.allUsers.filter((user) => user.kind === 'synthetic_agent' && thread.openClawAgents?.some((item) => item.collabUserId === user.userId));
+        const usersAgent = this.allUsers.filter((user) => user.kind === 'synthetic_agent' && thread?.openClawAgents?.some((item) => item.collabUserId === user.userId));
 
         const agentsPublic = agentsFiles.map((agent: msg.IAgentMeta) => {
             const { visibility, agentName, avatar_url, agentDescription, scope } = agent;
             if (visibility === 'public') {
+
                 let inScope = this.scope ? false : true;
-                if (this.scope && scope) {
-                    inScope = scope.includes(this.scope);
-                }
-                if (!this.scope && scope) inScope = false;
+                if (this.scope === '*') inScope = true;
+                else if (this.scope && scope) inScope = scope.includes(this.scope);
+                else if (!this.scope && scope) inScope = false;
+
                 if (inScope) {
                     return {
                         name: agentName,
@@ -167,6 +164,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         });
 
         this.allAgents = [...agentsPublic, ...agentsAsUser] as IMentionAgent[];
+
     }
 
     private getCaretCoordinates(): { x: number, y: number } | null {

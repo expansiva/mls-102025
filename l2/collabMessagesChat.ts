@@ -429,6 +429,7 @@ export class CollabMessagesChat extends StateLitElement {
                 .onSend=${this.handleSend.bind(this)}
                 placeholder=${this.msg.promptPlaceholder}
                 @textarea-resize=${this.handlePromptResize}
+                scope="*"
             ></collab-messages-prompt-102025>
         `;
     }
