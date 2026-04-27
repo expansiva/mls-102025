@@ -2,7 +2,7 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { StateLitElement } from '/_102027_/l2/stateLitElement.js';
 
 import '/_102025_/l2/collabMessagesSettingsOpenClaw.js';
 import '/_102025_/l2/collabMessagesSettingsChatPreferences.js';

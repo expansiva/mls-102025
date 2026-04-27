@@ -24,7 +24,7 @@ import {
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
-import { StateLitElement } from '/_100554_/l2/stateLitElement.js';
+import { StateLitElement } from '/_102027_/l2/stateLitElement.js';
 
 
 @customElement('collab-messages-settings-integrations-102025')
