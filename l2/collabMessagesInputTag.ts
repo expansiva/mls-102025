@@ -94,14 +94,14 @@ export class CollabMessagesInputTag extends StateLitElement {
         const { value } = this.input;
         this.hasError = false;
 
-        if (event.keyCode === 13) {
+        if (event.key === 'Enter') {
             this._addTag(value);
             if (this.onValueChanged) this.onValueChanged(this.value);
-        } else if (event.keyCode === 188) {
+        } else if (event.key === ',' || event.key === ' ') {
             event.preventDefault();
             this._addTag(value);
             if (this.onValueChanged) this.onValueChanged(this.value);
-        } else if (event.keyCode === 8 && value.length === 0) {
+        } else if (event.key === 'Backspace' && value.length === 0) {
             if (this.allowDelete) {
                 this._deleteTag(this.tags.length - 1);
                 if (this.onValueChanged) this.onValueChanged(this.value);
