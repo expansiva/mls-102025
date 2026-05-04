@@ -1,6 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesPrompt.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, ifDefined, nothing } from 'lit';
+import { html, nothing } from 'lit';
+import { ifDefined } from 'lit/directives/if-defined.js';
 import { customElement, property, state, query, } from 'lit/decorators.js';
 import { collab_arrow_up_long } from '/_102025_/l2/collabMessagesIcons.js';
 import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';

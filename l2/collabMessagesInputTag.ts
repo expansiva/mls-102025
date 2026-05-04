@@ -1,7 +1,8 @@
 /// <mls fileReference="_102025_/l2/collabMessagesInputTag.ts" enhancement="_102027_/l2/enhancementLit" />
 
 
-import { html, ifDefined } from 'lit';
+import { html } from 'lit';
+import { ifDefined } from 'lit/directives/if-defined.js';
 import { customElement, property, query } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 

@@ -671,6 +671,7 @@ export class CollabMessagesSettings extends StateLitElement {
     }
 
     private renderAgent(integrationId: string, agent: msg.IOpenClawAgent) {
+        // need to review
         return html`
         <div class="agent-card">
             <div class="agent-avatar">
@@ -678,7 +679,7 @@ export class CollabMessagesSettings extends StateLitElement {
             </div>
             <div class="agent-info">
                 <span class="agent-name">${agent.name}</span>
-                <span class="agent-sender-id">${agent.senderId}</span>
+                <span class="agent-sender-id">${agent.id}</span>
                 <span class="agent-id">${agent.id}</span>
 
             </div>
@@ -817,6 +818,7 @@ export class CollabMessagesSettings extends StateLitElement {
     private handleAddIntegration() {
         const newIntegration: IOpenClawIntegrationLocal = {
             id: generateUUIDv7(),
+            connectorId:'',// need to review
             name: '',
             url: '',
             bearerToken: generateUUIDv7(),
@@ -955,7 +957,7 @@ export class CollabMessagesSettings extends StateLitElement {
             id: agentId,
             name: this.newAgentName.trim(),
             avatarUrl: this.newAgentAvatarUrl || generateAgentAvatar(this.newAgentName),
-            senderId: `integration:openclaw:${sanitizedName}`,
+            collabUserId:'', // need to review
             createdAt: new Date().toISOString()
         };
 

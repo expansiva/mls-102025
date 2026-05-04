@@ -1,6 +1,9 @@
 /// <mls fileReference="_102025_/l2/collabMessagesThreadDetails.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, repeat, ifDefined, nothing, until } from 'lit';
+import { html, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { until } from 'lit/directives/until.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
 
 import { updateThread, getUser, deleteAllMessagesFromThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
@@ -625,7 +628,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                                     <div class="agent-actions">
                                         <button
                                             class="remove"
-                                            @click=${()=> this.removeAgentOpenClaw(agentOC)}
+                                            @click=${() => this.removeAgentOpenClaw(agentOC)}
                                          >
 
                                          ${this.isLoadingAgents ? html`<span class="loader"></span>` : html`${this.msg.remove}`}

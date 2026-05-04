@@ -1,6 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesFilter.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, classMap } from 'lit';
+import { html } from 'lit';
+import {  classMap } from 'lit/directives/class-map.js';
 import { customElement, state, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { collab_magnifying_glass } from '/_102025_/l2/collabMessagesIcons.js'
