@@ -1,6 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesChangeAvatar.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, unsafeHTML, nothing } from "lit";
+import { html,  nothing } from "lit";
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, property, state } from "lit/decorators.js";
 import {  generateAgentAvatar } from '/_102025_/l2/collabMessagesHelper.js';
 import { environment } from '/_102036_/l2/environmentContract.js';

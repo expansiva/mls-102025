@@ -1,6 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesChat.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, LitElement, unsafeHTML, nothing } from 'lit';
+import { html, LitElement,  nothing } from 'lit'; 
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import {
     collab_chevron_left,

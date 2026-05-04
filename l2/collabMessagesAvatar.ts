@@ -1,6 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesAvatar.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, unsafeHTML } from 'lit';
+import { html,  } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { collab_user } from '/_102025_/l2/collabMessagesIcons.js';

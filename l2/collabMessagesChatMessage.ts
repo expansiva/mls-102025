@@ -1,6 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesChatMessage.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, nothing, LitElement, TemplateResult, until } from 'lit';
+import { html, nothing, LitElement, TemplateResult } from 'lit';
+import {until } from 'lit/directives/until.js';
 import { customElement, property, state } from 'lit/decorators.js';
 import {
     collab_translate,
