@@ -41,8 +41,7 @@ import '/_102025_/l2/collabMessagesChat.js';
 import '/_102025_/l2/collabMessagesTasks.js';
 import '/_102025_/l2/collabMessagesApps.js';
 import '/_102025_/l2/collabMessagesMoments.js';
-import '/_102025_/l2/collabMessagesSettings.js';
-import '/_102025_/l2/collabMessagesFindtask.js';
+import '/_102025_/l2/collabMessagesSettingsGeral.js';
 import '/_102025_/l2/collabMessagesTabMenu.js'
 
 /// **collab_i18n_start** 
@@ -328,7 +327,7 @@ export class CollabMessages extends CollabLitElement {
 
     renderSettings() {
         this.groupSelected = 'SETTINGS';
-        return html`<collab-messages-settings-102025 ></collab-messages-settings-102025>`
+        return html`<collab-messages-settings-geral-102025 ></collab-messages-settings-geral-102025>`
     }
 
 
