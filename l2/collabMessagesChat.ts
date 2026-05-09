@@ -1888,7 +1888,8 @@ export class CollabMessagesChat extends StateLitElement {
 
         if (threadUpdated?.thread.threadId === this.actualThread?.thread.threadId) {
             this.actualThread = threadUpdated;
-            if (this.actualThread && this.actualThread.thread.unreadCount && this.actualThread.thread.unreadCount > 0) {
+            if (this.actualThread) {
+                const hasUnreadMessages = !!(this.actualThread.thread.unreadCount && this.actualThread.thread.unreadCount > 0);
                 const chatEl = this.querySelector('.chat-container') as HTMLElement | null;
                 if (chatEl) {
                     const isScrolledToBottom = chatEl.scrollTop + chatEl.clientHeight >= chatEl.scrollHeight - 1;
@@ -1897,7 +1898,7 @@ export class CollabMessagesChat extends StateLitElement {
                 const messagesInDb = await getMessagesByThreadId(this.actualThread.thread.threadId, this.messagesLimit, 0);
                 this.actualMessages = messagesInDb;
                 this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
-                await this.updateLastMessage(this.actualThread);
+                if (hasUnreadMessages) await this.updateLastMessage(this.actualThread);
             }
         }
 
