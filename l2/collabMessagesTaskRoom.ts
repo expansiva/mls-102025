@@ -155,8 +155,17 @@ export class CollabMessagesTaskRoom extends StateLitElement {
 
     private toMessageView(message: msg.Message, index: number): IMessage {
         const previous = this.messages[index - 1];
+        const {
+            taskId,
+            taskTitle,
+            taskStatus,
+            taskResults,
+            taskResultsTranslated,
+            taskTitleTranslated,
+            ...messageWithoutTaskCard
+        } = message;
         return {
-            ...message,
+            ...messageWithoutTaskCard,
             isSame: !!previous && previous.senderId === message.senderId,
             footers: []
         };
