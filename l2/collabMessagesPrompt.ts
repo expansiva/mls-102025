@@ -480,11 +480,6 @@ export class CollabMessagesPrompt extends StateLitElement {
 
 
     private async handleKeyDown(e: KeyboardEvent) {
-        if (e.key === "Enter" && e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            await this.handleSend();
-            return;
-        }
         if (this.mentionActive) {
             const mention = this.mentionSuggestions[this.mentionIndex];
             if (e.key === 'ArrowDown') {
@@ -505,6 +500,12 @@ export class CollabMessagesPrompt extends StateLitElement {
                     this.selectMention(mention);
                 }
             }
+            return;
+        }
+
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            await this.handleSend();
         }
     }
 

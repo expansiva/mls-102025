@@ -23,12 +23,22 @@ export const threadSyncMap = new Map<string, boolean>();
 let hasNotificationMessages: boolean = false;
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 let notificationSound: HTMLAudioElement | null = null;
+const pendingNotificationThreads = new Set<string>();
 
 export function removeThreadFromSync(threadId: string) {
 	threadSyncMap.delete(threadId);
 }
 
+export function clearThreadNotification(threadId: string) {
+	pendingNotificationThreads.delete(threadId);
+	if (pendingNotificationThreads.size === 0) {
+		hasNotificationMessages = false;
+	}
+}
+
 export async function checkIfNotificationUnread(): Promise<boolean> {
+
+	if (pendingNotificationThreads.size > 0) return true;
 
 	const threads = await getAllThreads();
 	let hasPendingMessages: boolean = false;
@@ -202,8 +212,6 @@ async function updateThreadInBackground(
 			) || [];
 
 		const hasMessagesToCache = (response.messages?.length || 0) > 0;
-		const hasNewMessages = newMessagesFiltered.length > 0;
-
 		if (!statusChanged && !hasMessagesToCache) return;
 
 		if (statusChanged && !hasMessagesToCache) {
@@ -265,10 +273,7 @@ async function updateThreadInBackground(
 
 		notifyThreadChange(thread);
 
-		if (newMessagesFiltered.length > 0) {
-			hasNotificationMessages = true;
-			await showThreadNotificationIfNeeded(threadId);
-		}
+		await showThreadNotificationIfNeeded(threadId);
 
 	} catch (err: any) {
 		throw new Error(
@@ -278,8 +283,25 @@ async function updateThreadInBackground(
 	}
 }
 
+function getActiveChat(): any {
+	const search = (root: ParentNode): any => {
+		const chat = root.querySelector?.('collab-messages-chat-102025') as any;
+		if (chat) return chat;
+
+		const elements = Array.from(root.querySelectorAll?.('*') || []) as Element[];
+		for (const element of elements) {
+			if (element.shadowRoot) {
+				const found = search(element.shadowRoot);
+				if (found) return found;
+			}
+		}
+	};
+
+	return search(document);
+}
+
 function shouldShowThreadNotification(threadId: string): boolean {
-	const chat = document.querySelector('collab-messages-102025')?.querySelector('collab-messages-chat-102025') as any;
+	const chat = getActiveChat();
 	const actualThreadId = chat?.actualThread?.thread?.threadId;
 	const isThreadOpened = actualThreadId === threadId;
 	return !isThreadOpened || document.visibilityState === 'hidden';
@@ -287,10 +309,12 @@ function shouldShowThreadNotification(threadId: string): boolean {
 
 async function showThreadNotificationIfNeeded(threadId: string) {
 	if (!shouldShowThreadNotification(threadId)) {
-		hasNotificationMessages = false;
+		clearThreadNotification(threadId);
 		return;
 	}
 
+	pendingNotificationThreads.add(threadId);
+	hasNotificationMessages = true;
 	changeFavIcon(true);
 	notifyThreadNotification(true);
 

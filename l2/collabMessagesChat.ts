@@ -11,7 +11,7 @@ import {
     collab_bell
 } from '/_102025_/l2/collabMessagesIcons.js';
 
-import { removeThreadFromSync, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { removeThreadFromSync, clearThreadNotification, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 
 import {
@@ -1811,6 +1811,7 @@ export class CollabMessagesChat extends StateLitElement {
             });
 
             removeThreadFromSync(threadId);
+            clearThreadNotification(threadId);
 
             if (!result.success) {
                 if (result.statusCode === 403) {
