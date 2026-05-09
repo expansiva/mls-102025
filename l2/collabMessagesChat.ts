@@ -11,7 +11,7 @@ import {
     collab_bell
 } from '/_102025_/l2/collabMessagesIcons.js';
 
-import { removeThreadFromSync, clearThreadNotification, clearTaskNotification, hasThreadNotificationPending, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { removeThreadFromSync, clearThreadNotification, clearTaskNotification, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 
 import {
@@ -141,6 +141,7 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private welcomeMessage: string = '';
     @state() private usersAvaliables: msg.User[] = [];
     @state() private elementTaskDetails: HTMLElement | undefined;
+    @state() private taskNotificationNavDirection: 'up' | 'down' | '' = '';
 
     @property() group: 'CONNECT' | 'APPS' | 'DOCS' | 'CRM' = 'CONNECT';
     @property() userId: string | undefined;
@@ -212,6 +213,8 @@ export class CollabMessagesChat extends StateLitElement {
 
         if (changedProperties.has('actualMessagesParsed') && this.actualMessagesParsed !== undefined) {
             await this.verifyChatScroll();
+            await this.updateComplete;
+            this.updateTaskNotificationNavDirection();
         }
     }
 
@@ -374,7 +377,37 @@ export class CollabMessagesChat extends StateLitElement {
                         ${this.isLoadingMessages ? html`<div class="unread-messages">Loading messages...</div>` : html``}
                         ${this.isThreadError ? html`<div class="error-messages">${this.threadErrorMsg}</div>` : html``}
                     </div>
+                ${this.renderTaskNotificationNav()}
                 ${this.renderPrompt()}`
+    }
+
+    private renderTaskNotificationNav() {
+        if (!this.actualThread) return nothing;
+        const taskId = this.getFirstPendingTaskNotificationInView();
+        if (!taskId) return nothing;
+        const direction = this.taskNotificationNavDirection || 'up';
+        if (!this.taskNotificationNavDirection) return nothing;
+        return html`
+            <button
+                class="task-notification-nav ${direction}"
+                @click=${() => this.scrollToTaskNotification(taskId)}
+                title="Go to updated task"
+            >
+                ${this.renderTaskNotificationNavIcon(direction)}
+            </button>
+        `;
+    }
+
+    private renderTaskNotificationNavIcon(direction: 'up' | 'down' | '') {
+        const rotate = direction === 'down' ? 'rotate(180 12 12)' : '';
+        return html`
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                <g transform="${rotate}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 14l5-5 5 5"></path>
+                    <path d="M7 19l5-5 5 5"></path>
+                </g>
+            </svg>
+        `;
     }
 
     private renderWelcomeMessage() {
@@ -888,6 +921,7 @@ export class CollabMessagesChat extends StateLitElement {
         if (this.scrollLock) return;
         
         this.removeAllModal();
+        this.updateTaskNotificationNavDirection();
         if (this.isChangeTopics) {
             this.isChangeTopics = false;
             return;
@@ -944,6 +978,47 @@ export class CollabMessagesChat extends StateLitElement {
 
             this.isLoadingMoreMessages = false;
         }
+    }
+
+    private getFirstPendingTaskNotificationInView(): string {
+        if (!this.actualThread) return '';
+        const pendingTaskIds = getPendingTaskNotificationsForThread(this.actualThread.thread.threadId);
+        if (pendingTaskIds.length === 0) return '';
+        const renderedTasks = Array.from(this.querySelectorAll('collab-messages-task-102025')) as HTMLElement[];
+        const found = renderedTasks.find((item) => pendingTaskIds.includes(item.getAttribute('taskid') || ''));
+        return found?.getAttribute('taskid') || '';
+    }
+
+    private getTaskNotificationElement(taskId: string): HTMLElement | null {
+        if (!taskId) return null;
+        return this.querySelector(`collab-messages-task-102025[taskid="${taskId}"]`) as HTMLElement | null;
+    }
+
+    private updateTaskNotificationNavDirection() {
+        const taskId = this.getFirstPendingTaskNotificationInView();
+        const taskEl = this.getTaskNotificationElement(taskId);
+        if (!this.messageContainer || !taskEl) {
+            if (this.taskNotificationNavDirection) this.taskNotificationNavDirection = '';
+            return;
+        }
+
+        const containerRect = this.messageContainer.getBoundingClientRect();
+        const taskRect = taskEl.getBoundingClientRect();
+        let nextDirection: 'up' | 'down' | '' = '';
+        if (taskRect.bottom < containerRect.top) nextDirection = 'up';
+        else if (taskRect.top > containerRect.bottom) nextDirection = 'down';
+
+        if (this.taskNotificationNavDirection !== nextDirection) {
+            this.taskNotificationNavDirection = nextDirection;
+        }
+    }
+
+    private async scrollToTaskNotification(taskId: string) {
+        const taskEl = this.getTaskNotificationElement(taskId);
+        if (!taskEl) return;
+        taskEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await this.nextFrame();
+        this.updateTaskNotificationNavDirection();
     }
 
     private groupThreadsByPrefix(threads: IFilteredThreads[]) {

@@ -25,6 +25,7 @@ let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 let notificationSound: HTMLAudioElement | null = null;
 const pendingNotificationThreads = new Set<string>();
 const pendingTaskRoomNotifications = new Set<string>();
+const pendingTaskRoomParentThreads = new Map<string, string>();
 
 export function removeThreadFromSync(threadId: string) {
 	threadSyncMap.delete(threadId);
@@ -39,6 +40,7 @@ export function clearThreadNotification(threadId: string) {
 
 export function clearTaskNotification(taskId: string) {
 	pendingTaskRoomNotifications.delete(taskId);
+	pendingTaskRoomParentThreads.delete(taskId);
 	if (pendingNotificationThreads.size === 0 && pendingTaskRoomNotifications.size === 0) {
 		hasNotificationMessages = false;
 	}
@@ -50,6 +52,15 @@ export function hasThreadNotificationPending(threadId: string): boolean {
 
 export function hasTaskNotificationPending(taskId: string): boolean {
 	return pendingTaskRoomNotifications.has(taskId);
+}
+
+export function getPendingTaskNotificationsForThread(threadId: string): string[] {
+	const result: string[] = [];
+	for (const taskId of pendingTaskRoomNotifications) {
+		const parentThreadId = pendingTaskRoomParentThreads.get(taskId);
+		if (parentThreadId === threadId) result.push(taskId);
+	}
+	return result;
 }
 
 export async function checkIfNotificationUnread(): Promise<boolean> {
@@ -343,7 +354,10 @@ async function showThreadNotificationIfNeeded(target: { threadId: string; taskId
 	}
 
 	pendingNotificationThreads.add(threadId);
-	if (taskId) pendingTaskRoomNotifications.add(taskId);
+	if (taskId) {
+		pendingTaskRoomNotifications.add(taskId);
+		pendingTaskRoomParentThreads.set(taskId, threadId);
+	}
 	hasNotificationMessages = true;
 	const parentThread = await getThread(threadId);
 	if (parentThread) notifyThreadChange(parentThread);

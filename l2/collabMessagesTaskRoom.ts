@@ -1,7 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesTaskRoom.ts" enhancement="_102027_/l2/enhancementLit" />
 
 import { html, nothing } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property, state, query } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { msgAddMessage, msgEnsureTaskRoom, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
@@ -23,8 +23,11 @@ export class CollabMessagesTaskRoom extends StateLitElement {
     @state() private messages: msg.Message[] = [];
     @state() private loading = false;
     @state() private error = '';
+    @state() private showScrollToBottom = false;
+    @query('.task-room-messages') private messagesContainer?: HTMLElement;
 
     private ensuredKey = '';
+    private lastRenderedMessageCount = 0;
 
     connectedCallback() {
         super.connectedCallback();
@@ -41,6 +44,16 @@ export class CollabMessagesTaskRoom extends StateLitElement {
     async updated(changedProperties: Map<PropertyKey, unknown>) {
         if (changedProperties.has('task') || changedProperties.has('message') || changedProperties.has('userId')) {
             await this.ensureRoom();
+        }
+        if (changedProperties.has('messages')) {
+            await this.updateComplete;
+            const el = this.messagesContainer;
+            if (!el) return;
+            const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+            if (this.messages.length > this.lastRenderedMessageCount && !isAtBottom) {
+                this.showScrollToBottom = true;
+            }
+            this.lastRenderedMessageCount = this.messages.length;
         }
     }
 
@@ -60,7 +73,7 @@ export class CollabMessagesTaskRoom extends StateLitElement {
 
         return html`
             <div class="task-room">
-                <div class="task-room-messages">
+                <div class="task-room-messages" @scroll=${this.onMessagesScroll}>
                     ${displayMessages.map((item) => html`
                         <collab-messages-chat-message-102025
                             .message=${item}
@@ -70,6 +83,16 @@ export class CollabMessagesTaskRoom extends StateLitElement {
                         ></collab-messages-chat-message-102025>
                     `)}
                 </div>
+                ${this.showScrollToBottom ? html`
+                    <button class="task-room-scroll-nav" @click=${this.scrollToBottom} title="Go to latest message">
+                        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                            <g transform="rotate(180 12 12)" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M7 14l5-5 5 5"></path>
+                                <path d="M7 19l5-5 5 5"></path>
+                            </g>
+                        </svg>
+                    </button>
+                ` : nothing}
                 <collab-messages-prompt-102025
                     .threadId=${this.roomThread.threadId}
                     .userId=${userId}
@@ -80,6 +103,22 @@ export class CollabMessagesTaskRoom extends StateLitElement {
                 ></collab-messages-prompt-102025>
             </div>
         `;
+    }
+
+    private onMessagesScroll() {
+        const el = this.messagesContainer;
+        if (!el) return;
+        const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+        if (this.showScrollToBottom === isAtBottom) {
+            this.showScrollToBottom = !isAtBottom;
+        }
+    }
+
+    private scrollToBottom = async () => {
+        const el = this.messagesContainer;
+        if (!el) return;
+        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+        this.showScrollToBottom = false;
     }
 
     private async ensureRoom() {

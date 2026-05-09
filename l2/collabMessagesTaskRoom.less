@@ -14,6 +14,7 @@ collab-messages-task-room-102025 {
         flex: 1;
         height: 100%;
         min-height: 0;
+        position: relative;
     }
 
     .task-room-messages {
@@ -34,6 +35,28 @@ collab-messages-task-room-102025 {
     collab-messages-chat-message-102025 {
         display: flex;
         width: 100%;
+    }
+
+    .task-room-scroll-nav {
+        position: absolute;
+        right: 14px;
+        bottom: 72px;
+        z-index: 5;
+        width: 36px;
+        height: 36px;
+        border: 1px solid @grey-color-light;
+        border-radius: 50%;
+        background: @bg-primary-color;
+        color: @success-color;
+        box-shadow: rgba(0, 0, 0, .2) 0 2px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+
+        &:hover {
+            background: @bg-primary-color-focus;
+        }
     }
 
     .task-room-empty,
