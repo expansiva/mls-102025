@@ -11,7 +11,7 @@ import {
     collab_bell
 } from '/_102025_/l2/collabMessagesIcons.js';
 
-import { removeThreadFromSync, clearThreadNotification, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { removeThreadFromSync, clearThreadNotification, hasThreadNotificationPending, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 
 import {
@@ -491,6 +491,7 @@ export class CollabMessagesChat extends StateLitElement {
                     (total, item) => total + (item.thread?.unreadCount || 0),
                     0
                 );
+                const hasPendingNotification = items.some((item) => hasThreadNotificationPending(item.thread.threadId));
                 const pendingTasksCount = items.reduce(
                     (total, item) => total + (item?.thread?.pendingTasks?.length || 0),
                     0
@@ -508,7 +509,7 @@ export class CollabMessagesChat extends StateLitElement {
 
 
                 return html`
-                        <li class="thread-group">
+                        <li class="thread-group ${hasPendingNotification ? 'has-notification' : ''}">
                             <details>
                                 <summary class="group-title">
                                     <div class="thread-group-avatar">
@@ -525,7 +526,7 @@ export class CollabMessagesChat extends StateLitElement {
                                         </div>
                                         <div class="thread-group-summary">
                                             <span class="last-group-message">${items.length} Threads </span>
-                                            ${unreadCount > 0 ? html`<span class="unread-count">${unreadCount}</span>` : nothing}
+                                            ${unreadCount > 0 ? html`<span class="unread-count">${unreadCount}</span>` : hasPendingNotification ? html`<span class="unread-count">•</span>` : nothing}
                                         </div>
                                     </div>                                
                                 </summary>
@@ -560,6 +561,7 @@ export class CollabMessagesChat extends StateLitElement {
         let userMessageId = lastMessage.slice(0, firstColonIndex);
         let userMessage = lastMessage.slice(firstColonIndex + 1);
         const unreadCount = item.thread.unreadCount || 0;
+        const hasPendingNotification = hasThreadNotificationPending(item.thread.threadId);
         const pendingTasksCount = item.thread.pendingTasks?.length || 0;
 
         const now = new Date();
@@ -588,7 +590,7 @@ export class CollabMessagesChat extends StateLitElement {
         return html`
         <li .item=${item} threadId=${item.thread.threadId} 
             @click=${() => this.onThreadClick(item)} 
-            class="thread-item">
+            class="thread-item ${hasPendingNotification ? 'has-notification' : ''}">
             <div class="thread-item-avatar">
                 ${threadAvatar.startsWith('<') && threadAvatar.endsWith('>') ?
                 html`${unsafeHTML(threadAvatar)}` :
@@ -609,7 +611,7 @@ export class CollabMessagesChat extends StateLitElement {
                         `: nothing
             }
                     
-                    ${unreadCount > 0 ? html`<span class="unread-count">${unreadCount}</span>` : nothing}
+                    ${unreadCount > 0 ? html`<span class="unread-count">${unreadCount}</span>` : hasPendingNotification ? html`<span class="unread-count">•</span>` : nothing}
                 </div>
             </div>
         </li>

@@ -36,6 +36,10 @@ export function clearThreadNotification(threadId: string) {
 	}
 }
 
+export function hasThreadNotificationPending(threadId: string): boolean {
+	return pendingNotificationThreads.has(threadId);
+}
+
 export async function checkIfNotificationUnread(): Promise<boolean> {
 
 	if (pendingNotificationThreads.size > 0) return true;

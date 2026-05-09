@@ -151,6 +151,21 @@ collab-messages-chat-102025 {
             background: @grey-color-light;
         }
 
+        .thread-group.has-notification summary,
+        .thread-item.has-notification {
+            background-color: @bg-primary-color-focus;
+        }
+
+        .thread-group.has-notification .thread-group-name,
+        .thread-item.has-notification .thread-name {
+            font-weight: 700;
+        }
+
+        .thread-group.has-notification .last-group-message,
+        .thread-item.has-notification .last-message {
+            color: @text-primary-color;
+        }
+
         .tasks-pendings-count {
             position: relative;
             display: inline-block;
@@ -412,5 +427,4 @@ collab-messages-chat-102025 {
     }
 
 }
-
 
