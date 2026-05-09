@@ -23,6 +23,8 @@ export class CollabMessagesTaskRoom extends StateLitElement {
     @state() private loading = false;
     @state() private error = '';
 
+    private ensuredKey = '';
+
     async updated(changedProperties: Map<PropertyKey, unknown>) {
         if (changedProperties.has('task') || changedProperties.has('message') || changedProperties.has('userId')) {
             await this.ensureRoom();
@@ -75,6 +77,11 @@ export class CollabMessagesTaskRoom extends StateLitElement {
             return;
         }
 
+        const key = this.getEnsureKey(userId, parentThreadId, this.task);
+        if (this.roomThread && this.ensuredKey === key) return;
+        if (this.loading && this.ensuredKey === key) return;
+        this.ensuredKey = key;
+
         this.loading = true;
         this.error = '';
         const result = await msgEnsureTaskRoom({
@@ -91,6 +98,7 @@ export class CollabMessagesTaskRoom extends StateLitElement {
 
         this.task = result.response.task;
         this.roomThread = result.response.thread;
+        this.ensuredKey = this.getEnsureKey(userId, parentThreadId, result.response.task);
         await this.loadMessages();
     }
 
@@ -139,6 +147,10 @@ export class CollabMessagesTaskRoom extends StateLitElement {
 
     private getParentThreadId() {
         return this.task?.taskRoom?.parentThreadId || this.message?.threadId || '';
+    }
+
+    private getEnsureKey(userId: string, parentThreadId: string, task: msg.TaskData) {
+        return `${task.PK}|${userId}|${parentThreadId}|${task.taskRoom?.threadId || ''}`;
     }
 
     private toMessageView(message: msg.Message, index: number): IMessage {
