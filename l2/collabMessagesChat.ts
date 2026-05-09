@@ -1716,12 +1716,25 @@ export class CollabMessagesChat extends StateLitElement {
         const messageId2 = `${this.actualThread?.thread.threadId}/${this.actualMessage?.createAt}`;
 
         let rc = await environment.tasks.openTaskDetails(messageId2, this.actualTask.PK || '', this.actualTask, this.actualMessage);
+        if (this.hasStudioTaskDetailHost()) return;
         if (!rc.openLocal) rc = this.createLocalTaskDetails(this.actualTask, this.actualMessage);
         if (!rc.openLocal) return;
 
         this.activeScenerie = 'task'
         this.elementTaskDetails = rc.element;
 
+    }
+
+    private hasStudioTaskDetailHost(): boolean {
+        const roots: ParentNode[] = [document];
+        if (window.parent && window.parent !== window) {
+            try {
+                roots.push(window.parent.document);
+            } catch {
+                // Cross-origin parent is not inspectable; fall back to local behavior.
+            }
+        }
+        return roots.some(root => !!root.querySelector('service-detail-100554'));
     }
 
     private createLocalTaskDetails(task: msg.TaskData, message: IMessage): { openLocal: boolean, element: HTMLElement | undefined } {
