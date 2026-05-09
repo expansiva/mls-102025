@@ -62,7 +62,7 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
         if (this.sharedMonaco) return;
 
         const editorEl = document.createElement('mls-editor-100529') as IHTMLEditorElement;
-        editorEl.style.cssText = 'width:100%; height:100%';
+        editorEl.style.cssText = 'width:100%; height: calc(100% - 102px)';
 
         const model = this.createModel();
         const ed1 = monaco.editor.create(editorEl, this.editorConf as monaco.editor.IEditorOptions);
