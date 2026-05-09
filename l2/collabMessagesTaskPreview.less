@@ -1,13 +1,16 @@
 /// <mls fileReference="_102025_/l2/collabMessagesTaskPreview.less" enhancement="_102025_/l2/enhancementLit" />
 collab-messages-task-preview-102025 {
     
- display: block;
+    display: flex;
+    flex-direction: column;
     border: 1px solid @grey-color;
     padding: 1rem;
     border-radius: 8px;
     background: @bg-secondary-color-lighter;
     font-family: var(--font-family-primary);
-    height: calc(100% - 50px);
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
     position: relative;
 
     .tabAction {
@@ -94,7 +97,8 @@ collab-messages-task-preview-102025 {
         background: @bg-primary-color;
         border-radius: 5px;
         border: 1px solid @grey-color;
-        height: calc(100% - 70px);
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
     }
 
@@ -130,4 +134,3 @@ collab-messages-task-preview-102025 {
         }
     }
 }
-
