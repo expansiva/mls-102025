@@ -494,6 +494,8 @@ export class CollabMessages extends CollabLitElement {
         const hasPendingMessages = await checkIfNotificationUnread();
         if (hasPendingMessages) {
             changeFavIcon(true);
+        } else {
+            changeFavIcon(false);
         }
     }
 
@@ -547,4 +549,3 @@ interface IThreadInfo {
 
 type ITabType = 'CRM' | 'TASK' | 'MOMENTS' | 'CONNECT' | 'APPS' | 'SETTINGS' | 'Add' | 'Loading';
 type IScenery = 'tabs' | 'settings' | 'findTask'
-

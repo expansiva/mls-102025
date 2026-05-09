@@ -22,6 +22,7 @@ import * as msg from '/_102025_/l2/shared/interfaces.js';
 export const threadSyncMap = new Map<string, boolean>();
 let hasNotificationMessages: boolean = false;
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
+let notificationSound: HTMLAudioElement | null = null;
 
 export function removeThreadFromSync(threadId: string) {
 	threadSyncMap.delete(threadId);
@@ -42,7 +43,7 @@ export async function checkIfNotificationUnread(): Promise<boolean> {
 
 export async function listenToThreadEvents() {
 
-	const notificationSound: HTMLAudioElement | null = await getNotificationSound();
+	notificationSound = await getNotificationSound();
 
 	navigator.serviceWorker.addEventListener('message', async (event) => {
 
@@ -61,30 +62,9 @@ export async function listenToThreadEvents() {
 		threadId = parts[0];
 
 		await enqueueThreadForSync(reference);
-		let isThreadOpened: boolean = false;
-
-
-		const chat = document.querySelector('collab-messages-102025')?.querySelector('collab-messages-chat-102025') as any;
-		const actualThreadId = chat?.actualThread?.thread?.threadId;
-		if (actualThreadId === threadId) {
-			isThreadOpened = true;
+		if ((window as any).isTraceNotification) {
+			console.info(`[NOTIFICATION] : queued ${typeNotification} ${threadId}`);
 		}
-
-		if (typeNotification === 'thread-update' && (!isThreadOpened || (isThreadOpened && document.visibilityState === 'hidden')
-			&& hasNotificationMessages)
-
-		) {
-			changeFavIcon(true);
-
-			notifyThreadNotification(true);
-			const audioEnabled = loadNotificationPreferencesAudio();
-			if (audioEnabled && notificationSound) {
-				notificationSound.currentTime = 0;
-				notificationSound.play().catch(err => console.warn('Erro on play notification audio:', err));
-			}
-		}
-
-		hasNotificationMessages = false;
 
 
 	});
@@ -238,6 +218,7 @@ async function updateThreadInBackground(
 
 			notifyThreadChange(thread);
 			hasNotificationMessages = true;
+			await showThreadNotificationIfNeeded(threadId);
 			return;
 		}
 
@@ -286,6 +267,7 @@ async function updateThreadInBackground(
 
 		if (newMessagesFiltered.length > 0) {
 			hasNotificationMessages = true;
+			await showThreadNotificationIfNeeded(threadId);
 		}
 
 	} catch (err: any) {
@@ -293,6 +275,29 @@ async function updateThreadInBackground(
 			err?.message ||
 			'Unexpected error while updating thread in background'
 		);
+	}
+}
+
+function shouldShowThreadNotification(threadId: string): boolean {
+	const chat = document.querySelector('collab-messages-102025')?.querySelector('collab-messages-chat-102025') as any;
+	const actualThreadId = chat?.actualThread?.thread?.threadId;
+	const isThreadOpened = actualThreadId === threadId;
+	return !isThreadOpened || document.visibilityState === 'hidden';
+}
+
+async function showThreadNotificationIfNeeded(threadId: string) {
+	if (!shouldShowThreadNotification(threadId)) {
+		hasNotificationMessages = false;
+		return;
+	}
+
+	changeFavIcon(true);
+	notifyThreadNotification(true);
+
+	const audioEnabled = loadNotificationPreferencesAudio();
+	if (audioEnabled && notificationSound) {
+		notificationSound.currentTime = 0;
+		notificationSound.play().catch(err => console.warn('Erro on play notification audio:', err));
 	}
 }
 
