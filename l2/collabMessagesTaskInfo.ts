@@ -88,7 +88,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         }
         return html`
             ${this.isClarificationPending ? html`<button class="viewraw" @click=${() => this.clickForceViewRaw(false)}>Clarification</button>` : ''}
-            <div style="height: calc(100% - 3rem);">
+            <div class="tab-shell">
                 <div class="tabs">
                     ${aux}
                     <div
@@ -111,7 +111,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
                     >Workflow</div>
 
                 </div>
-                <div class="content">
+                <div class="content ${this.activeTab}">
                     ${this.renderTabContent()}
                 </div>
             </div>

@@ -4,6 +4,37 @@ collab-messages-task-log-preview-102025 {
     
     display: block;
 
-}
+    .task-feedback.workflow {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+    }
 
+    .workflow-step-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: .75rem;
+        align-items: center;
+        width: 100%;
+        border: 1px solid @grey-color;
+        background: @bg-primary-color;
+        color: @text-primary-color;
+        border-radius: 4px;
+        padding: .6rem .75rem;
+        cursor: pointer;
+        text-align: left;
+
+        &:hover {
+            background: @bg-secondary-color-lighter;
+        }
+
+        span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+}
 

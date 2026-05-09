@@ -25,7 +25,7 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
     @state() private stepMap = new Map<number, any>();
     @state() private navigationStack: number[] = [];
     @state() private currentStepId: number | null = null;
-    @state() private allSteps: mls.msg.AIPayload[] = [];
+    @state() private allSteps: any[] = [];
 
     private lastStepId = 0;
 
@@ -97,7 +97,7 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
         `;
     }
 
-    renderStepDetails(step: mls.msg.AIPayload | undefined) {
+    renderStepDetails(step: any | undefined) {
         if (!step && this.currentStepId === 0) {
             return this.renderRaw();
         }
@@ -112,6 +112,8 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
             case 'flexible': return this.renderFlexible(step);
             case 'tool': return this.renderTools(step);
             case 'result': return this.renderResult(step);
+            case 'dynamicWorkflow':
+            case 'staticWorkflow': return this.renderWorkflow(step);
             default: return html`Not found type: renderStepDetails`;
         }
     }
@@ -160,6 +162,23 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
         return html` <collab-messages-task-preview-result-102025 .step=${step} .message=${this.message}  .task=${this.task} key="${step.stepId}"></collab-messages-task-preview-result-102025> `;
     }
 
+    renderWorkflow(step: { stepId: number, type: string, workflowName?: string, status?: string, nextSteps?: any[] }) {
+        return html`
+            <div class="workflow-step">
+                <div class="workflow-step-title">${step.workflowName || this.task?.title || 'Workflow'}</div>
+                <div class="workflow-step-meta">
+                    <span>Step ${step.stepId}</span>
+                    <span>${step.type}</span>
+                    <span>${step.status || 'pending'}</span>
+                </div>
+                <p>Messages and updates for this workflow are handled in the Chat tab.</p>
+                ${step.nextSteps?.length
+                    ? html`<button @click=${() => this.navigateToStep(step.nextSteps?.[0]?.stepId)}>Open next step</button>`
+                    : html``}
+            </div>
+        `;
+    }
+
     //------IMPLEMENTATION--------
 
     private init() {
@@ -174,8 +193,8 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
                 this.navigationStack.push(i);
             }
         }
-        this.allSteps = getAllSteps(this.task.iaCompressed.nextSteps);
-        this.lastStepId = this.allSteps[this.allSteps.length - 1].stepId;
+        this.allSteps = getAllSteps(this.task.iaCompressed.nextSteps as any);
+        this.lastStepId = this.allSteps[this.allSteps.length - 1]?.stepId || 0;
     }
 
     private onTaskChange(e: Event) {
@@ -187,10 +206,10 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
         if (!this.task || !this.task.iaCompressed) return;
         this.stepMap.clear();
         this.buildStepMap(this.task.iaCompressed.nextSteps);
-        this.allSteps = getAllSteps(this.task.iaCompressed.nextSteps);
+        this.allSteps = getAllSteps(this.task.iaCompressed.nextSteps as any);
     }
 
-    private buildStepMap(steps: mls.msg.AIPayload[]) {
+    private buildStepMap(steps: any[]) {
         for (const step of steps) {
             this.stepMap.set(step.stepId, step);
             if (step.interaction?.payload) {
@@ -231,4 +250,3 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
     }
 
 }
-

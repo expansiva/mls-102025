@@ -18,6 +18,7 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
     @property({ type: String }) msize = '';
 
     @query('#elEditor') elEditor: IHTMLEditorElement | undefined;
+    private resizeObserver: ResizeObserver | undefined;
 
     private get sharedEditor(): IHTMLEditorElement {
         return (window as any).elEditorTaskView;
@@ -30,7 +31,13 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
     async firstUpdated() {
         if (this.mode === 'flexible') {
             this.mountEditor();
+            this.updateEditorContent();
         }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.resizeObserver?.disconnect();
     }
 
     updated(changedProps: Map<string, any>) {
@@ -45,6 +52,7 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
 
         if (changedProps.has('msize')) {
             this.sharedEditor?.setAttribute('msize', this.msize);
+            this.layoutEditor();
         }
     }
 
@@ -75,6 +83,15 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
         if (!this.elEditor) return;
         this.ensureEditorCreated();
         this.elEditor.appendChild(this.sharedEditor as any);
+        this.observeEditorHost();
+        this.layoutEditor();
+    }
+
+    private observeEditorHost(): void {
+        if (!this.elEditor) return;
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = new ResizeObserver(() => this.layoutEditor());
+        this.resizeObserver.observe(this.elEditor);
     }
 
     private createModel(): monaco.editor.ITextModel {
@@ -88,6 +105,21 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
         if (!ed1 || !this.task) return;
         const value = JSON.stringify(this.task, null, 2);
         ed1.getModel()?.setValue(value);
+        this.layoutEditor();
+    }
+
+    private layoutEditor(): void {
+        const editor = this.sharedMonaco;
+        const host = this.elEditor;
+        if (!editor || !host) return;
+        requestAnimationFrame(() => {
+            const rect = host.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                editor.layout({ width: rect.width, height: rect.height });
+            } else {
+                editor.layout();
+            }
+        });
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
@@ -95,7 +127,7 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
     render() {
         
         return html`
-            <div style="height: calc(100% - 41px);">
+            <div class="raw-shell">
                 <div class="tab-header">
                     <div class="tab-group-left">
                         <button class="tab-button ${this.mode === 'info' ? 'active' : ''}"

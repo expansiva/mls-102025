@@ -97,6 +97,37 @@ collab-messages-task-preview-102025 {
         height: calc(100% - 70px);
         overflow-y: auto;
     }
-}
 
+    .workflow-step {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        padding: 1rem;
+        color: @text-primary-color;
+
+        .workflow-step-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .workflow-step-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+
+            span {
+                border: 1px solid @grey-color;
+                border-radius: 4px;
+                padding: .15rem .4rem;
+                font-size: .75rem;
+                color: @text-primary-color-disabled;
+            }
+        }
+
+        p {
+            margin: 0;
+            color: @text-primary-color-disabled;
+        }
+    }
+}
 

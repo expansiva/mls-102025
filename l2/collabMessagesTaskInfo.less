@@ -3,7 +3,7 @@
 collab-messages-task-info-102025 {
 
     display: block;
-    overflow: auto;
+    overflow: hidden;
     font-family: @font-family-primary;
     font-weight: @font-weight-normal;
     line-height: 1.5;
@@ -32,7 +32,8 @@ collab-messages-task-info-102025 {
     .tabs {
         display: flex;
         border-bottom: 1px solid @grey-color;
-        margin-bottom: 1rem;
+        margin-bottom: 0;
+        flex-shrink: 0;
     }
 
     .tab {
@@ -54,11 +55,25 @@ collab-messages-task-info-102025 {
         color: @text-primary-color-lighter-focus;
     }
 
+    .tab-shell {
+        display: flex;
+        flex-direction: column;
+        height: calc(100% - 3rem);
+        min-height: 0;
+    }
+
     .content {
-        height: calc(100% - 1rem);
+        flex: 1;
+        min-height: 0;
         padding: 0.5rem 0;
+        overflow: auto;
+    }
+
+    .content.chat,
+    .content.step {
+        padding: 0;
+        overflow: hidden;
     }
 
 }
-
 

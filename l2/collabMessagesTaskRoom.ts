@@ -38,18 +38,19 @@ export class CollabMessagesTaskRoom extends StateLitElement {
         if (!this.roomThread) return nothing;
 
         const userId = this.getUserId();
+        const displayMessages = this.messages.map((item, index) => this.toMessageView(item, index));
         const actualThread: IThreadInfo = {
             thread: this.roomThread,
             users: this.roomUsers,
-            messages: this.messages
+            messages: displayMessages
         };
 
         return html`
             <div class="task-room">
                 <div class="task-room-messages">
-                    ${this.messages.map((item, index) => html`
+                    ${displayMessages.map((item) => html`
                         <collab-messages-chat-message-102025
-                            .message=${this.toMessageView(item, index)}
+                            .message=${item}
                             .actualThread=${actualThread}
                             .usersAvaliables=${this.roomUsers}
                             .userId=${userId}

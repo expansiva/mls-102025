@@ -62,6 +62,20 @@ export class CollabMessagesTaskLogPreview102025 extends StateLitElement {
 
   private async createFeedBack() {
     if (!this.task) return;
+    const firstStep = this.task.iaCompressed?.nextSteps?.[0] as any;
+    if (firstStep && (firstStep.type === 'dynamicWorkflow' || firstStep.type === 'staticWorkflow')) {
+      this.template = html`
+        <div class="task-feedback workflow">
+          <strong>${this.task.title || this.task.PK}</strong>
+          <button class="workflow-step-row" @click=${() => this.currentStepId = firstStep.stepId}>
+            <span>Step ${firstStep.stepId}</span>
+            <span>${firstStep.workflowName || firstStep.type}</span>
+            <span>${firstStep.status || this.task.status}</span>
+          </button>
+        </div>
+      `;
+      return;
+    }
     const firstAgent = getRootAgent(this.task);
     if (!firstAgent) return;
     const agentName = firstAgent.agentName;

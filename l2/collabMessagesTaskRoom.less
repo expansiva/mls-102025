@@ -9,12 +9,23 @@ collab-messages-task-room-102025 {
         grid-template-rows: minmax(0, 1fr) auto;
         gap: .75rem;
         height: 100%;
+        min-height: 0;
     }
 
     .task-room-messages {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
         min-height: 10rem;
+        height: 100%;
         overflow: auto;
+        overflow-x: hidden;
         padding-right: .25rem;
+    }
+
+    collab-messages-chat-message-102025 {
+        display: flex;
+        width: 100%;
     }
 
     .task-room-empty,
