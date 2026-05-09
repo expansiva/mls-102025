@@ -13,7 +13,7 @@ export const asis: mls.defs.AsIs = {
   "references": {
     "imports": [
       {
-        "ref": "/_100554_/l2/designSystemBase",
+        "ref": "/_102029_/l2/designSystemBase",
         "dependencies": [
           {
             "name": "IDesignSystemTokens",

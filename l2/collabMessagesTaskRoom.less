@@ -1,0 +1,30 @@
+/// <mls fileReference="_102025_/l2/collabMessagesTaskRoom.less" enhancement="enhancementStyle"/>
+
+collab-messages-task-room-102025 {
+    display: block;
+    height: 100%;
+
+    .task-room {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+        gap: .75rem;
+        height: 100%;
+    }
+
+    .task-room-messages {
+        min-height: 10rem;
+        overflow: auto;
+        padding-right: .25rem;
+    }
+
+    .task-room-empty,
+    .task-room-loading,
+    .task-room-error {
+        color: @text-primary-color-disabled;
+        padding: .75rem 0;
+    }
+
+    .task-room-error {
+        color: @error-color;
+    }
+}

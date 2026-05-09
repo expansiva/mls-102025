@@ -193,6 +193,17 @@ export function msgAddMessage(
 	);
 }
 
+export function msgEnsureTaskRoom(
+	args: Omit<msg.RequestEnsureTaskRoom, "action">
+) {
+	return handleRequest<msg.ResponseEnsureTaskRoom>(
+		post<msg.ResponseEnsureTaskRoom>({
+			action: "ensureTaskRoom",
+			...args
+		})
+	);
+}
+
 export function msgAddMessageAI(
 	args: Omit<msg.RequestAddMessageAI, "action">
 ) {

@@ -54,6 +54,7 @@ import {
 import { environment } from '/_102036_/l2/environmentContract.js';
 
 import '/_102025_/l2/collabMessagesTask.js';
+import '/_102025_/l2/collabMessagesTaskInfo.js';
 import '/_102025_/l2/collabMessagesTopics.js';
 import '/_102025_/l2/collabMessagesPrompt.js';
 import '/_102025_/l2/collabMessagesAvatar.js';
@@ -1714,12 +1715,23 @@ export class CollabMessagesChat extends StateLitElement {
         this.actualMessage = message;
         const messageId2 = `${this.actualThread?.thread.threadId}/${this.actualMessage?.createAt}`;
 
-        const rc = await environment.tasks.openTaskDetails(messageId2, this.actualTask.PK || '', this.actualTask, this.actualMessage);
+        let rc = await environment.tasks.openTaskDetails(messageId2, this.actualTask.PK || '', this.actualTask, this.actualMessage);
+        if (!rc.openLocal) rc = this.createLocalTaskDetails(this.actualTask, this.actualMessage);
         if (!rc.openLocal) return;
 
         this.activeScenerie = 'task'
         this.elementTaskDetails = rc.element;
 
+    }
+
+    private createLocalTaskDetails(task: msg.TaskData, message: IMessage): { openLocal: boolean, element: HTMLElement | undefined } {
+        const element = document.createElement('collab-messages-task-info-102025') as HTMLElement & {
+            task?: msg.TaskData,
+            message?: IMessage
+        };
+        element.task = task;
+        element.message = message;
+        return { openLocal: true, element };
     }
 
     private onReplyPreviewClick(ev: CustomEvent) {
