@@ -2,6 +2,7 @@
 
 import { html, LitElement,  nothing } from 'lit'; 
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { repeat } from 'lit/directives/repeat.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import {
     collab_chevron_left,
@@ -351,13 +352,13 @@ export class CollabMessagesChat extends StateLitElement {
                 @scroll=${this.onChatScroll} class="chat-container"
                 @copy=${this.onCopyChat}
             >
-                ${Object.keys(sortedObj).map((key, index) => {
+                ${repeat(Object.keys(sortedObj), (key) => key, (key) => {
             const threadMessages = sortedObj[key];
             const messageTime = this.parseLocalDate(key);
             const displayDate = this.formatMessageDate(messageTime.dateObject);
             return html`
                     <div class="message-time">${displayDate}</div>
-                        ${threadMessages.map((message) => {
+                        ${repeat(threadMessages, (message) => `${message.threadId}/${message.createAt}`, (message) => {
                 if (this.lastMessageReaded === message.createAt && this.unreadCountInSelectedThread) nextNeedShowLabel = true;
                 else nextNeedShowLabel = false;
                 return html`
