@@ -221,11 +221,12 @@ async function updateThreadInBackground(
 				(message) => message.senderId !== userId
 			) || [];
 
+		const hasMessagesToCache = (response.messages?.length || 0) > 0;
 		const hasNewMessages = newMessagesFiltered.length > 0;
 
-		if (!statusChanged && !hasNewMessages) return;
+		if (!statusChanged && !hasMessagesToCache) return;
 
-		if (statusChanged && !hasNewMessages) {
+		if (statusChanged && !hasMessagesToCache) {
 			const thread = await updateThread(
 				threadId,
 				response.thread,

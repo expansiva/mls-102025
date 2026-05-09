@@ -5,7 +5,8 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { msgAddMessage, msgEnsureTaskRoom, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
-import { IMessage, IThreadInfo } from '/_102025_/l2/collabMessagesHelper.js';
+import { IMessage, IThreadInfo, loadNotificationDeviceId } from '/_102025_/l2/collabMessagesHelper.js';
+import { addMessage, addMessages, addThread, getMessagesByThreadId, getThread, getCompactUTC, updateThread, updateUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 import '/_102025_/l2/collabMessagesChatMessage.js';
 import '/_102025_/l2/collabMessagesPrompt.js';
@@ -24,6 +25,18 @@ export class CollabMessagesTaskRoom extends StateLitElement {
     @state() private error = '';
 
     private ensuredKey = '';
+
+    connectedCallback() {
+        super.connectedCallback();
+        window.addEventListener('thread-change', this.onThreadChange);
+        window.addEventListener('message-change', this.onMessageChange);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        window.removeEventListener('thread-change', this.onThreadChange);
+        window.removeEventListener('message-change', this.onMessageChange);
+    }
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
         if (changedProperties.has('task') || changedProperties.has('message') || changedProperties.has('userId')) {
@@ -78,6 +91,12 @@ export class CollabMessagesTaskRoom extends StateLitElement {
             return;
         }
 
+        const knownThreadId = this.task.taskRoom?.threadId;
+        if (knownThreadId) {
+            await this.openKnownRoom(knownThreadId, userId);
+            return;
+        }
+
         const key = this.getEnsureKey(userId, parentThreadId, this.task);
         if (this.roomThread && this.ensuredKey === key) return;
         if (this.loading && this.ensuredKey === key) return;
@@ -99,18 +118,57 @@ export class CollabMessagesTaskRoom extends StateLitElement {
 
         this.task = result.response.task;
         this.roomThread = result.response.thread;
+        await this.cacheRoomThread(result.response.thread, '20000101000000.0000');
         this.ensuredKey = this.getEnsureKey(userId, parentThreadId, result.response.task);
-        await this.loadMessages();
+        await this.loadLocalMessages();
+        await this.syncMessages();
     }
 
-    private async loadMessages() {
+    private async openKnownRoom(threadId: string, userId: string) {
+        const key = `${threadId}|${userId}`;
+        if (this.roomThread?.threadId === threadId && this.ensuredKey === key) return;
+        this.ensuredKey = key;
+
+        const localThread = await getThread(threadId);
+        if (localThread) {
+            this.roomThread = localThread;
+            await this.loadLocalMessages();
+        } else {
+            this.roomThread = {
+                threadId,
+                name: this.task?.title || 'Task room',
+                users: [],
+                visibility: 'private',
+                status: 'active',
+                group: 'TASK',
+                history: [],
+                languages: [],
+                avatar_url: '',
+                createdAt: '',
+                kind: 'task-room',
+                taskRoom: {
+                    taskId: this.task?.PK || '',
+                    parentThreadId: this.getParentThreadId(),
+                    workflowType: this.task?.taskRoom?.workflowType || 'dynamicWorkflow'
+                }
+            };
+        }
+
+        await this.syncMessages();
+    }
+
+    private async syncMessages() {
         const userId = this.getUserId();
         if (!this.roomThread || !userId) return;
+        const localThread = await getThread(this.roomThread.threadId);
+        const lastOrderAt = this.getLastOrderAt(localThread);
+        const deviceId = loadNotificationDeviceId();
 
         const result = await msgGetThreadUpdates({
             threadId: this.roomThread.threadId,
             userId,
-            lastOrderAt: '20000101000000.0000'
+            lastOrderAt,
+            deviceId: deviceId || undefined
         });
 
         if (!result.success || !result.response) {
@@ -120,7 +178,18 @@ export class CollabMessagesTaskRoom extends StateLitElement {
 
         this.roomThread = result.response.thread || this.roomThread;
         this.roomUsers = result.response.users || [];
-        this.messages = result.response.messages || [];
+        await this.cacheRoomThread(this.roomThread, this.getResponseLastOrderAt(result.response.messages, lastOrderAt));
+        if (this.roomUsers.length) await updateUsers(this.roomUsers);
+        if (result.response.messages?.length) {
+            await addMessages(result.response.messages.map(message => ({ ...message, footers: [] })));
+        }
+        await this.loadLocalMessages();
+    }
+
+    private async loadLocalMessages() {
+        if (!this.roomThread) return;
+        const messages = await getMessagesByThreadId(this.roomThread.threadId, 100, 0);
+        this.messages = messages.sort((a, b) => a.orderAt.localeCompare(b.orderAt));
     }
 
     private async sendMessage(content: string, options: { replyTo?: string }) {
@@ -139,8 +208,61 @@ export class CollabMessagesTaskRoom extends StateLitElement {
             return;
         }
 
+        await addMessage({ ...result.response.message, footers: [] });
+        if (this.roomThread) {
+            await this.cacheRoomThread(
+                this.roomThread,
+                result.response.message.createAt,
+                `${result.response.message.senderId}:${result.response.message.content}`,
+                result.response.message.createAt
+            );
+        }
         this.messages = [...this.messages, result.response.message];
     }
+
+    private async cacheRoomThread(thread: msg.Thread, lastSync: string, lastMessage: string = '', lastMessageTime: string = '') {
+        const existing = await getThread(thread.threadId);
+        if (existing) {
+            this.roomThread = await updateThread(
+                thread.threadId,
+                thread,
+                lastMessage || existing.lastMessage || '',
+                lastMessageTime || existing.lastMessageTime || '',
+                existing.unreadCount || 0,
+                lastSync
+            );
+            return;
+        }
+        this.roomThread = await addThread(thread);
+        if (lastSync || lastMessage || lastMessageTime) {
+            this.roomThread = await updateThread(thread.threadId, thread, lastMessage, lastMessageTime, 0, lastSync);
+        }
+    }
+
+    private getLastOrderAt(thread: msg.ThreadPerformanceCache | undefined) {
+        if (thread?.lastSync) return thread.lastSync;
+        const lastMessage = this.messages[this.messages.length - 1];
+        if (lastMessage?.createAt) return lastMessage.createAt;
+        return '20000101000000.0000';
+    }
+
+    private getResponseLastOrderAt(messages: msg.Message[] | undefined, fallback: string) {
+        if (!messages?.length) return fallback || getCompactUTC();
+        return messages[messages.length - 1].createAt;
+    }
+
+    private onThreadChange = async (e: Event) => {
+        const thread = (e as CustomEvent).detail as msg.Thread;
+        if (!this.roomThread || thread.threadId !== this.roomThread.threadId) return;
+        this.roomThread = { ...this.roomThread, ...thread };
+        await this.loadLocalMessages();
+    };
+
+    private onMessageChange = async (e: Event) => {
+        const message = (e as CustomEvent).detail as msg.Message;
+        if (!this.roomThread || message.threadId !== this.roomThread.threadId) return;
+        await this.loadLocalMessages();
+    };
 
     private getUserId() {
         return this.userId || this.message?.senderId || '';
