@@ -1,13 +1,17 @@
 /// <mls fileReference="_102025_/l2/collabMessagesTaskRoom.less" enhancement="enhancementStyle"/>
 
 collab-messages-task-room-102025 {
-    display: block;
+    display: flex;
+    flex-direction: column;
     height: 100%;
+    min-height: 0;
+    flex: 1;
 
     .task-room {
-        display: grid;
-        grid-template-rows: minmax(0, 1fr) auto;
+        display: flex;
+        flex-direction: column;
         gap: .75rem;
+        flex: 1;
         height: 100%;
         min-height: 0;
     }
@@ -16,11 +20,15 @@ collab-messages-task-room-102025 {
         display: flex;
         flex-direction: column;
         align-items: stretch;
-        min-height: 10rem;
-        height: 100%;
+        flex: 1;
+        min-height: 0;
         overflow: auto;
         overflow-x: hidden;
         padding-right: .25rem;
+    }
+
+    collab-messages-prompt-102025 {
+        flex-shrink: 0;
     }
 
     collab-messages-chat-message-102025 {
