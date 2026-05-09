@@ -166,7 +166,7 @@ export class CollabMessagesChat extends StateLitElement {
     private savedScrollTop = 0;
     private hasMoreMessagesLocalDB = true;
     private hasMoreMessagesBefore: boolean = false;
-    private messagesLimit = 10;
+    private messagesLimit = 50;
     private messagesOffset = 0;
     private isLoadingMoreMessages = false;
     private isChangeTopics = false;
@@ -840,7 +840,33 @@ export class CollabMessagesChat extends StateLitElement {
         this.filteredThreads = this.getFilteredThreads(ordenedThreads);
     }
 
-    private async updateMessagesAfterScrollMore(newMessages: msg.MessagePerformanceCache[], container: HTMLElement, previousHeight: number) {
+    private getScrollAnchor(container: HTMLElement): IScrollAnchor | undefined {
+        const containerRect = container.getBoundingClientRect();
+        const messages = Array.from(container.querySelectorAll('collab-messages-chat-message-102025')) as HTMLElement[];
+        for (const message of messages) {
+            const rect = message.getBoundingClientRect();
+            if (rect.bottom >= containerRect.top) {
+                const messageId = message.getAttribute('messageid');
+                if (!messageId) return;
+                return {
+                    messageId,
+                    offsetTop: rect.top - containerRect.top
+                };
+            }
+        }
+    }
+
+    private restoreScrollAnchor(container: HTMLElement, anchor: IScrollAnchor | undefined) {
+        if (!anchor) return;
+        const target = container.querySelector(`collab-messages-chat-message-102025[messageid="${anchor.messageId}"]`) as HTMLElement | null;
+        if (!target) return;
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        container.scrollTop += targetRect.top - containerRect.top - anchor.offsetTop;
+        this.savedScrollTop = container.scrollTop;
+    }
+
+    private async updateMessagesAfterScrollMore(newMessages: msg.MessagePerformanceCache[], container: HTMLElement, anchor: IScrollAnchor | undefined) {
 
         this.actualMessages = [...this.actualMessages, ...newMessages];
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
@@ -848,9 +874,7 @@ export class CollabMessagesChat extends StateLitElement {
         await this.waitingForRenderCodesWebComponents();
         await this.nextFrame();
         await this.nextFrame();
-        const newHeight = container.scrollHeight;
-        container.scrollTop = newHeight - previousHeight;
-        this.savedScrollTop = container.scrollTop;
+        this.restoreScrollAnchor(container, anchor);
     }
 
     private async getBeforeMessagesInServer(thread: msg.ThreadPerformanceCache) {
@@ -942,7 +966,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.savedScrollTop = container.scrollTop;
         const threshold = 5;
         this.wasMessagesAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
-        const previousHeight = container.scrollHeight;
+        const scrollAnchor = this.getScrollAnchor(container);
 
         if (
             container.scrollTop === 0 &&
@@ -953,7 +977,7 @@ export class CollabMessagesChat extends StateLitElement {
         ) {
             this.isLoadingMoreMessages = true;
             const newMessages = await this.getBeforeMessagesInServer(this.actualThread.thread);
-            if (newMessages) await this.updateMessagesAfterScrollMore(newMessages.map(item => ({ ...item, footers: [], })), container, previousHeight);
+            if (newMessages) await this.updateMessagesAfterScrollMore(newMessages.map(item => ({ ...item, footers: [], })), container, scrollAnchor);
             this.isLoadingMoreMessages = false;
             return;
         }
@@ -975,10 +999,10 @@ export class CollabMessagesChat extends StateLitElement {
 
             if (newMessages.length > 0) {
                 this.messagesOffset = newOffset;
-                await this.updateMessagesAfterScrollMore(newMessages, container, previousHeight);
+                await this.updateMessagesAfterScrollMore(newMessages, container, scrollAnchor);
             } else {
                 const newMessages = await this.getBeforeMessagesInServer(this.actualThread.thread);
-                if (newMessages) await this.updateMessagesAfterScrollMore(newMessages.map(item => ({ ...item, footers: [], })), container, previousHeight);
+                if (newMessages) await this.updateMessagesAfterScrollMore(newMessages.map(item => ({ ...item, footers: [], })), container, scrollAnchor);
                 this.hasMoreMessagesLocalDB = false;
             }
 
@@ -2138,6 +2162,11 @@ interface IFilteredThreadsByStatus {
 
 interface IHTMLLiThreadItem extends HTMLElement {
     item: IThreadInfo
+}
+
+interface IScrollAnchor {
+    messageId: string;
+    offsetTop: number;
 }
 
 interface IFilteredThreads {
