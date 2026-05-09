@@ -15,6 +15,12 @@ import '/_102025_/l2/collabMessagesTaskRoom.js';
 export class CollabMessagesTaskInfo extends StateLitElement {
 
     private elParent: HTMLElement | undefined;
+    private contentPluginStyle: {
+        element: HTMLElement;
+        overflow: string;
+        height: string;
+        padding: string;
+    } | undefined;
     private forceViewRaw = false;
     private hasTodo = true;
     private currentStepId = 0;
@@ -37,6 +43,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         if (this.elParent) this.elParent.style.width = '';
+        this.restoreServiceDetailContainer();
         window.removeEventListener('task-change', this.onTaskChange.bind(this));
 
     }
@@ -49,6 +56,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
     async firstUpdated(changedProperties: Map<PropertyKey, unknown>) {
         super.firstUpdated(changedProperties);
+        this.normalizeServiceDetailContainer();
         window.addEventListener('task-change', this.onTaskChange.bind(this));
         if (this.interactionClarification) {
             this.setClarification();
@@ -228,6 +236,40 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         const task: mls.msg.TaskData = customEvent.detail.context.task;
         if (task.PK !== this.task.PK) return;
         this.task = task;
+    }
+
+    private normalizeServiceDetailContainer() {
+        const serviceDetail = this.closest('service-detail-100554');
+        const contentPlugin = this.closest('#contentPlugin') as HTMLElement | null;
+        if (!serviceDetail || !contentPlugin || this.contentPluginStyle) return;
+
+        this.contentPluginStyle = {
+            element: contentPlugin,
+            overflow: contentPlugin.style.overflow,
+            height: contentPlugin.style.height,
+            padding: contentPlugin.style.padding,
+        };
+
+        contentPlugin.style.overflow = 'hidden';
+        contentPlugin.style.height = '100%';
+        contentPlugin.style.padding = '0';
+
+        const wrapper = this.parentElement as HTMLElement | null;
+        if (wrapper) {
+            wrapper.style.height = '100%';
+            wrapper.style.minHeight = '0';
+            wrapper.style.display = 'flex';
+            wrapper.style.flexDirection = 'column';
+        }
+    }
+
+    private restoreServiceDetailContainer() {
+        if (!this.contentPluginStyle) return;
+        const { element, overflow, height, padding } = this.contentPluginStyle;
+        element.style.overflow = overflow;
+        element.style.height = height;
+        element.style.padding = padding;
+        this.contentPluginStyle = undefined;
     }
 
 }
