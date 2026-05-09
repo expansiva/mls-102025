@@ -9,7 +9,7 @@ export const asis: mls.defs.AsIs =
     "languages": [
       "en",
       "pt"
-    ],
+    ], 
     "devFidelity": "final"
   },
   "references": {
