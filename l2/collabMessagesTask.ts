@@ -46,6 +46,7 @@ export class CollabMessagesTask extends StateLitElement {
     @property() messageid: string = '';
     @property() lastChanged: string = '';
     @property() status: string = '';
+    @property({ type: Boolean }) notificationPending: boolean = false;
 
     @state() task: msg.TaskData | undefined;
     @state() context: msg.ExecutionContext | undefined;
@@ -106,10 +107,11 @@ export class CollabMessagesTask extends StateLitElement {
         const title = this.task?.title || '';
         const timeDisplay = this.formatTime(this.secondsPassed);
 
-        return html`<div @click=${this.onCardClick} class="card"> 
+        return html`<div @click=${this.onCardClick} class="card ${this.notificationPending ? 'has-notification' : ''}"> 
         <div class="card-header">
             ${this.renderIconTask()}
             <span class="card-title"> ${title}</span>
+            ${this.notificationPending ? html`<span class="task-room-notification">${collab_bell}</span>` : ''}
             <span class="card-price"> ${price ? collab_money : ''}${price}</span>
             ${this.lastStep ? html`<span class="${timeClass}">${timeDisplay}</span>` : ''}
         </div>

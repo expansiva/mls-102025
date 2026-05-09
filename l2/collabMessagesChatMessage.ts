@@ -17,6 +17,7 @@ import {
 import { loadChatPreferences, formatTimestamp } from '/_102025_/l2/collabMessagesHelper.js';
 import { getMessage, updateMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { msgUpdateMessage } from '/_102025_/l2/shared/api.js';
+import { hasTaskNotificationPending } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
@@ -159,6 +160,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                                     userId=${this.userId}
                                     title=${titleTranslated}
                                     status=${message.taskStatus}
+                                    .notificationPending=${hasTaskNotificationPending(message.taskId)}
                                     @taskclick=${() => { if (this.onTaskClick) this.onTaskClick(message?.taskId || '', message.createAt, message.threadId, message) }}
                                 >
                                 </collab-messages-task-102025>
@@ -889,5 +891,4 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
 
 }
-
 

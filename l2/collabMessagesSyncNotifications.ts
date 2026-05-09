@@ -24,6 +24,7 @@ let hasNotificationMessages: boolean = false;
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 let notificationSound: HTMLAudioElement | null = null;
 const pendingNotificationThreads = new Set<string>();
+const pendingTaskRoomNotifications = new Set<string>();
 
 export function removeThreadFromSync(threadId: string) {
 	threadSyncMap.delete(threadId);
@@ -36,13 +37,24 @@ export function clearThreadNotification(threadId: string) {
 	}
 }
 
+export function clearTaskNotification(taskId: string) {
+	pendingTaskRoomNotifications.delete(taskId);
+	if (pendingNotificationThreads.size === 0 && pendingTaskRoomNotifications.size === 0) {
+		hasNotificationMessages = false;
+	}
+}
+
 export function hasThreadNotificationPending(threadId: string): boolean {
 	return pendingNotificationThreads.has(threadId);
 }
 
+export function hasTaskNotificationPending(taskId: string): boolean {
+	return pendingTaskRoomNotifications.has(taskId);
+}
+
 export async function checkIfNotificationUnread(): Promise<boolean> {
 
-	if (pendingNotificationThreads.size > 0) return true;
+	if (pendingNotificationThreads.size > 0 || pendingTaskRoomNotifications.size > 0) return true;
 
 	const threads = await getAllThreads();
 	let hasPendingMessages: boolean = false;
@@ -230,7 +242,7 @@ async function updateThreadInBackground(
 
 			notifyThreadChange(thread);
 			hasNotificationMessages = true;
-			await showThreadNotificationIfNeeded(threadId);
+			await showThreadNotificationIfNeeded(getNotificationTarget(response.thread));
 			return;
 		}
 
@@ -277,7 +289,7 @@ async function updateThreadInBackground(
 
 		notifyThreadChange(thread);
 
-		await showThreadNotificationIfNeeded(threadId);
+		await showThreadNotificationIfNeeded(getNotificationTarget(response.thread));
 
 	} catch (err: any) {
 		throw new Error(
@@ -285,6 +297,17 @@ async function updateThreadInBackground(
 			'Unexpected error while updating thread in background'
 		);
 	}
+}
+
+function getNotificationTarget(thread: msg.Thread): { threadId: string; taskId?: string } {
+	if (thread.kind === 'task-room' && thread.taskRoom?.parentThreadId) {
+		return {
+			threadId: thread.taskRoom.parentThreadId,
+			taskId: thread.taskRoom.taskId
+		};
+	}
+
+	return { threadId: thread.threadId };
 }
 
 function getActiveChat(): any {
@@ -311,14 +334,19 @@ function shouldShowThreadNotification(threadId: string): boolean {
 	return !isThreadOpened || document.visibilityState === 'hidden';
 }
 
-async function showThreadNotificationIfNeeded(threadId: string) {
+async function showThreadNotificationIfNeeded(target: { threadId: string; taskId?: string }) {
+	const { threadId, taskId } = target;
 	if (!shouldShowThreadNotification(threadId)) {
 		clearThreadNotification(threadId);
+		if (taskId) clearTaskNotification(taskId);
 		return;
 	}
 
 	pendingNotificationThreads.add(threadId);
+	if (taskId) pendingTaskRoomNotifications.add(taskId);
 	hasNotificationMessages = true;
+	const parentThread = await getThread(threadId);
+	if (parentThread) notifyThreadChange(parentThread);
 	changeFavIcon(true);
 	notifyThreadNotification(true);
 

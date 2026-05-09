@@ -22,7 +22,22 @@ collab-messages-task-102025 {
         width: 100%;
         position: relative;
 
+        &.has-notification {
+            background-color: @bg-primary-color-focus;
+            border-left: 4px solid @success-color;
+        }
 
+        .task-room-notification {
+            display: flex;
+            align-items: center;
+            color: @success-color;
+            fill: @success-color;
+
+            svg {
+                width: 12px;
+                height: 12px;
+            }
+        }
 
         .task-icon {
 
@@ -176,5 +191,4 @@ collab-messages-task-102025 {
 
     }
 }
-
 
