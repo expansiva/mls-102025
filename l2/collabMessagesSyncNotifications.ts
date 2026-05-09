@@ -33,16 +33,25 @@ export function removeThreadFromSync(threadId: string) {
 
 export function clearThreadNotification(threadId: string) {
 	pendingNotificationThreads.delete(threadId);
-	if (pendingNotificationThreads.size === 0) {
+	if (pendingNotificationThreads.size === 0 && pendingTaskRoomNotifications.size === 0) {
 		hasNotificationMessages = false;
+		changeFavIcon(false);
+		notifyThreadNotification(false);
 	}
 }
 
 export function clearTaskNotification(taskId: string) {
+	const parentThreadId = pendingTaskRoomParentThreads.get(taskId);
 	pendingTaskRoomNotifications.delete(taskId);
 	pendingTaskRoomParentThreads.delete(taskId);
+	if (parentThreadId) {
+		const hasOtherTaskNotification = Array.from(pendingTaskRoomParentThreads.values()).some((threadId) => threadId === parentThreadId);
+		if (!hasOtherTaskNotification) pendingNotificationThreads.delete(parentThreadId);
+	}
 	if (pendingNotificationThreads.size === 0 && pendingTaskRoomNotifications.size === 0) {
 		hasNotificationMessages = false;
+		changeFavIcon(false);
+		notifyThreadNotification(false);
 	}
 }
 

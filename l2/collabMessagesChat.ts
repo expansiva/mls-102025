@@ -214,6 +214,7 @@ export class CollabMessagesChat extends StateLitElement {
         if (changedProperties.has('actualMessagesParsed') && this.actualMessagesParsed !== undefined) {
             await this.verifyChatScroll();
             await this.updateComplete;
+            await this.nextFrame();
             this.updateTaskNotificationNavDirection();
         }
     }
@@ -843,8 +844,12 @@ export class CollabMessagesChat extends StateLitElement {
         this.actualMessages = [...this.actualMessages, ...newMessages];
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         await this.updateComplete;
+        await this.waitingForRenderCodesWebComponents();
+        await this.nextFrame();
+        await this.nextFrame();
         const newHeight = container.scrollHeight;
         container.scrollTop = newHeight - previousHeight;
+        this.savedScrollTop = container.scrollTop;
     }
 
     private async getBeforeMessagesInServer(thread: msg.ThreadPerformanceCache) {
@@ -947,7 +952,7 @@ export class CollabMessagesChat extends StateLitElement {
         ) {
             this.isLoadingMoreMessages = true;
             const newMessages = await this.getBeforeMessagesInServer(this.actualThread.thread);
-            if (newMessages) this.updateMessagesAfterScrollMore(newMessages.map(item => ({ ...item, footers: [], })), container, previousHeight);
+            if (newMessages) await this.updateMessagesAfterScrollMore(newMessages.map(item => ({ ...item, footers: [], })), container, previousHeight);
             this.isLoadingMoreMessages = false;
             return;
         }
@@ -969,10 +974,10 @@ export class CollabMessagesChat extends StateLitElement {
 
             if (newMessages.length > 0) {
                 this.messagesOffset = newOffset;
-                this.updateMessagesAfterScrollMore(newMessages, container, previousHeight);
+                await this.updateMessagesAfterScrollMore(newMessages, container, previousHeight);
             } else {
                 const newMessages = await this.getBeforeMessagesInServer(this.actualThread.thread);
-                if (newMessages) this.updateMessagesAfterScrollMore(newMessages.map(item => ({ ...item, footers: [], })), container, previousHeight);
+                if (newMessages) await this.updateMessagesAfterScrollMore(newMessages.map(item => ({ ...item, footers: [], })), container, previousHeight);
                 this.hasMoreMessagesLocalDB = false;
             }
 
@@ -1507,6 +1512,7 @@ export class CollabMessagesChat extends StateLitElement {
             } else {
                 await this.addMessageIA(value, opt.agentName, opt.replyTo);
             }
+            await this.scrollMessagesToBottom();
         } catch (err: any) {
             throw new Error(err.message);
         }
@@ -1517,6 +1523,19 @@ export class CollabMessagesChat extends StateLitElement {
             const chatEl = this.querySelector('.chat-container') as HTMLElement | null;
             if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
         }
+    }
+
+    private async scrollMessagesToBottom() {
+        this.isSystemChangeScroll = true;
+        await this.updateComplete;
+        await this.waitingForRenderCodesWebComponents();
+        await this.nextFrame();
+        if (this.messageContainer) {
+            this.messageContainer.scrollTop = this.messageContainer.scrollHeight;
+            this.wasMessagesAtBottom = true;
+            this.updateTaskNotificationNavDirection();
+        }
+        this.isSystemChangeScroll = false;
     }
 
     private async addMessage(prompt: string, replyTo: string | undefined) {
@@ -1561,13 +1580,14 @@ export class CollabMessagesChat extends StateLitElement {
             message.isFailed = false;
             message.isFailedError = '';
 
-            this.updateMessage2(
+            await this.updateMessage2(
                 false,
                 true,
                 message,
                 result.response.message,
                 result.response.botOutputs
             );
+            await this.scrollMessagesToBottom();
 
         } catch (err: any) {
             message.isFailed = true;

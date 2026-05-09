@@ -4,6 +4,7 @@ import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { getTask, getMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { msgGetTaskUpdate } from '/_102025_/l2/shared/api.js';
+import { clearTaskNotification } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 import {
     collab_money,
@@ -205,6 +206,10 @@ export class CollabMessagesTask extends StateLitElement {
     }
 
     private onCardClick() {
+        if (this.taskid) {
+            clearTaskNotification(this.taskid);
+            this.notificationPending = false;
+        }
         const event = new CustomEvent('taskclick', {
             bubbles: true,
             composed: true

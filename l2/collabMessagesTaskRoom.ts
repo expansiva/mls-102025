@@ -7,6 +7,7 @@ import { msgAddMessage, msgEnsureTaskRoom, msgGetThreadUpdates } from '/_102025_
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { IMessage, IThreadInfo, loadNotificationDeviceId } from '/_102025_/l2/collabMessagesHelper.js';
 import { addMessage, addMessages, addThread, getMessagesByThreadId, getThread, getCompactUTC, updateThread, updateUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { clearTaskNotification } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 import '/_102025_/l2/collabMessagesChatMessage.js';
 import '/_102025_/l2/collabMessagesPrompt.js';
@@ -109,15 +110,21 @@ export class CollabMessagesTaskRoom extends StateLitElement {
         const el = this.messagesContainer;
         if (!el) return;
         const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
-        if (this.showScrollToBottom === isAtBottom) {
-            this.showScrollToBottom = !isAtBottom;
-        }
+        this.showScrollToBottom = !isAtBottom;
     }
 
     private scrollToBottom = async () => {
         const el = this.messagesContainer;
         if (!el) return;
         el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+        this.showScrollToBottom = false;
+    }
+
+    private async scrollMessagesToBottom() {
+        await this.updateComplete;
+        const el = this.messagesContainer;
+        if (!el) return;
+        el.scrollTop = el.scrollHeight;
         this.showScrollToBottom = false;
     }
 
@@ -229,6 +236,7 @@ export class CollabMessagesTaskRoom extends StateLitElement {
         if (!this.roomThread) return;
         const messages = await getMessagesByThreadId(this.roomThread.threadId, 100, 0);
         this.messages = messages.sort((a, b) => a.orderAt.localeCompare(b.orderAt));
+        if (this.task?.PK) clearTaskNotification(this.task.PK);
     }
 
     private async sendMessage(content: string, options: { replyTo?: string }) {
@@ -257,6 +265,7 @@ export class CollabMessagesTaskRoom extends StateLitElement {
             );
         }
         this.messages = [...this.messages, result.response.message];
+        await this.scrollMessagesToBottom();
     }
 
     private async cacheRoomThread(thread: msg.Thread, lastSync: string, lastMessage: string = '', lastMessageTime: string = '') {
