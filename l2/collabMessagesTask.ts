@@ -2,7 +2,7 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { getTask, getMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { getTask, getMessage, deleteTask } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { msgGetTaskUpdate } from '/_102025_/l2/shared/api.js';
 import { clearTaskNotification } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
@@ -158,6 +158,15 @@ export class CollabMessagesTask extends StateLitElement {
         }, 1000);
     }
 
+    private resetTimerState() {
+        this.secondsPassed = 0;
+        this.lastStep = undefined;
+        if (this.timerId) {
+            clearInterval(this.timerId);
+            this.timerId = undefined;
+        }
+    }
+
     private formatTime(seconds: number) {
         const min = Math.floor(seconds / 60).toString().padStart(2, '0');
         const sec = (seconds % 60).toString().padStart(2, '0');
@@ -186,7 +195,15 @@ export class CollabMessagesTask extends StateLitElement {
                 userId: this.userId
             });
 
-            if (!result.success || !result.response?.task) return;
+            if (!result.success || !result.response?.task) {
+                if (result.statusCode === 404) {
+                    await deleteTask(taskId);
+                    this.task = undefined;
+                    this.context = undefined;
+                    this.resetTimerState();
+                }
+                return;
+            }
 
             const message = await getMessage(messageId);
             if (!message) return;
