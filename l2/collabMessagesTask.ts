@@ -186,7 +186,7 @@ export class CollabMessagesTask extends StateLitElement {
 
         if (!shouldSync) return;
 
-        const messageId = `${this.threadId}/${this.messageid}`;
+        const messageId = this.normalizeMessageId(this.threadId, this.messageid);
 
         try {
             const result = await msgGetTaskUpdate({
@@ -232,6 +232,13 @@ export class CollabMessagesTask extends StateLitElement {
             composed: true
         });
         this.dispatchEvent(event);
+    }
+
+    private normalizeMessageId(threadId: string, messageIdOrOrderAt: string): string {
+        if (!messageIdOrOrderAt.includes('/')) return `${threadId}/${messageIdOrOrderAt}`;
+        const parts = messageIdOrOrderAt.split('/').filter(Boolean);
+        if (parts.length === 2) return messageIdOrOrderAt;
+        return `${parts[0]}/${parts[parts.length - 1]}`;
     }
 
     private getAllSteps(firstStep: msg.AIPayload[] | undefined): msg.AIPayload[] {

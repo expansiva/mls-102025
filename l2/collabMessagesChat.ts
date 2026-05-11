@@ -1905,7 +1905,7 @@ export class CollabMessagesChat extends StateLitElement {
 
         const result = await msgGetTaskUpdate({
             taskId,
-            messageId: `${threadId}/${createdAt}`,
+            messageId: this.normalizeTaskMessageId(threadId, createdAt),
             userId: this.userId
         });
 
@@ -1919,6 +1919,13 @@ export class CollabMessagesChat extends StateLitElement {
         }
 
         return result.response.task;
+    }
+
+    private normalizeTaskMessageId(threadId: string, messageIdOrOrderAt: string): string {
+        if (!messageIdOrOrderAt.includes('/')) return `${threadId}/${messageIdOrOrderAt}`;
+        const parts = messageIdOrOrderAt.split('/').filter(Boolean);
+        if (parts.length === 2) return messageIdOrOrderAt;
+        return `${parts[0]}/${parts[parts.length - 1]}`;
     }
 
     private async refreshThreadFromServer(threadId: string) {
