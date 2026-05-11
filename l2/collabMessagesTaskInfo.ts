@@ -89,10 +89,12 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     renderTab() {
 
         let aux: any = '';
+        const hasTaskRoom = this.canUseTaskRoom();
+        const activeTab = hasTaskRoom || this.activeTab !== 'chat' ? this.activeTab : 'todo';
 
         if (this.hasTodo) {
             aux = html`
-            <div class="tab ${this.activeTab === 'todo' ? 'active' : ''}" @click=${() => this.setTab('todo')} >Todo</div>`;
+            <div class="tab ${activeTab === 'todo' ? 'active' : ''}" @click=${() => this.setTab('todo')} >Todo</div>`;
         }
         return html`
             ${this.isClarificationPending ? html`<button class="viewraw" @click=${() => this.clickForceViewRaw(false)}>Clarification</button>` : ''}
@@ -100,27 +102,29 @@ export class CollabMessagesTaskInfo extends StateLitElement {
                 <div class="tabs">
                     ${aux}
                     <div
-                        class="tab ${this.activeTab === 'step' ? 'active' : ''}"
+                        class="tab ${activeTab === 'step' ? 'active' : ''}"
                         @click=${() => this.setTab('step')}
                     >Steps</div>
-                    <div
-                        class="tab ${this.activeTab === 'chat' ? 'active' : ''}"
-                        @click=${() => this.setTab('chat')}
-                    >Chat</div>
+                    ${hasTaskRoom ? html`
+                        <div
+                            class="tab ${activeTab === 'chat' ? 'active' : ''}"
+                            @click=${() => this.setTab('chat')}
+                        >Chat</div>
+                    ` : ''}
                     <div
                         style="display:none"
-                        class="tab ${this.activeTab === 'raw' ? 'active' : ''}"
+                        class="tab ${activeTab === 'raw' ? 'active' : ''}"
                         @click=${() => this.setTab('raw')}
                     >Raw</div>
                     <div
                         style="display:none"
-                        class="tab ${this.activeTab === 'workflow' ? 'active' : ''}"
+                        class="tab ${activeTab === 'workflow' ? 'active' : ''}"
                         @click=${() => this.setTab('workflow')}
                     >Workflow</div>
 
                 </div>
-                <div class="content ${this.activeTab}">
-                    ${this.renderTabContent()}
+                <div class="content ${activeTab}">
+                    ${this.renderTabContent(activeTab)}
                 </div>
             </div>
         `;
@@ -128,8 +132,8 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
     }
 
-    renderTabContent() {
-        switch (this.activeTab) {
+    renderTabContent(activeTab: 'workflow' | 'step' | 'raw' | 'todo' | 'chat') {
+        switch (activeTab) {
             case 'workflow': return html`workflow`;
             case 'step': return this.renderStep();
             case 'chat': return this.renderChat();
@@ -227,7 +231,15 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
 
     private setTab(tab: 'workflow' | 'step' | 'raw' | 'todo' | 'chat') {
+        if (tab === 'chat' && !this.canUseTaskRoom()) return;
         this.activeTab = tab;
+    }
+
+    private canUseTaskRoom() {
+        if (!this.task) return false;
+        if (this.task.taskRoom?.threadId || this.task.taskRoom?.workflowType) return true;
+        const firstStep = this.task.iaCompressed?.nextSteps?.[0] as { type?: string } | undefined;
+        return firstStep?.type === 'staticWorkflow' || firstStep?.type === 'dynamicWorkflow';
     }
 
     private onTaskChange(e: Event) {

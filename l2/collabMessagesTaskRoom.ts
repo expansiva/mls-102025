@@ -5,7 +5,7 @@ import { customElement, property, state, query } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { msgAddMessage, msgEnsureTaskRoom, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
-import { IMessage, IThreadInfo, loadNotificationDeviceId } from '/_102025_/l2/collabMessagesHelper.js';
+import { IMessage, IThreadInfo, loadNotificationDeviceId, getUserId as getCurrentUserId } from '/_102025_/l2/collabMessagesHelper.js';
 import { addMessage, addMessages, addThread, getMessagesByThreadId, getThread, getCompactUTC, updateThread, updateUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { clearTaskNotification } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
@@ -136,13 +136,28 @@ export class CollabMessagesTaskRoom extends StateLitElement {
             this.error = 'Missing parent thread or user for task room.';
             return;
         }
+        if (!this.canUseTaskRoom(this.task)) {
+            this.error = 'This task does not have a task room.';
+            return;
+        }
+        this.error = '';
 
         const knownThreadId = this.task.taskRoom?.threadId;
         if (knownThreadId) {
-            await this.openKnownRoom(knownThreadId, userId);
+            const localThread = await getThread(knownThreadId);
+            if (localThread?.users?.some(user => user.userId === userId)) {
+                await this.openKnownRoom(knownThreadId, userId, localThread);
+                return;
+            }
+            await this.ensureRoomOnServer(userId, parentThreadId);
             return;
         }
 
+        await this.ensureRoomOnServer(userId, parentThreadId);
+    }
+
+    private async ensureRoomOnServer(userId: string, parentThreadId: string) {
+        if (!this.task) return;
         const key = this.getEnsureKey(userId, parentThreadId, this.task);
         if (this.roomThread && this.ensuredKey === key) return;
         if (this.loading && this.ensuredKey === key) return;
@@ -170,12 +185,12 @@ export class CollabMessagesTaskRoom extends StateLitElement {
         await this.syncMessages();
     }
 
-    private async openKnownRoom(threadId: string, userId: string) {
+    private async openKnownRoom(threadId: string, userId: string, knownThread?: msg.ThreadPerformanceCache) {
         const key = `${threadId}|${userId}`;
         if (this.roomThread?.threadId === threadId && this.ensuredKey === key) return;
         this.ensuredKey = key;
 
-        const localThread = await getThread(threadId);
+        const localThread = knownThread || await getThread(threadId);
         if (localThread) {
             this.roomThread = localThread;
             await this.loadLocalMessages();
@@ -313,7 +328,7 @@ export class CollabMessagesTaskRoom extends StateLitElement {
     };
 
     private getUserId() {
-        return this.userId || this.message?.senderId || '';
+        return this.userId || getCurrentUserId() || this.message?.senderId || '';
     }
 
     private getParentThreadId() {
@@ -322,6 +337,12 @@ export class CollabMessagesTaskRoom extends StateLitElement {
 
     private getEnsureKey(userId: string, parentThreadId: string, task: msg.TaskData) {
         return `${task.PK}|${userId}|${parentThreadId}|${task.taskRoom?.threadId || ''}`;
+    }
+
+    private canUseTaskRoom(task: msg.TaskData) {
+        if (task.taskRoom?.threadId || task.taskRoom?.workflowType) return true;
+        const firstStep = task.iaCompressed?.nextSteps?.[0] as { type?: string } | undefined;
+        return firstStep?.type === 'staticWorkflow' || firstStep?.type === 'dynamicWorkflow';
     }
 
     private toMessageView(message: msg.Message, index: number): IMessage {
