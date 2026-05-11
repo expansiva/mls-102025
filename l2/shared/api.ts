@@ -24,7 +24,7 @@ async function handleRequest<T>(promise: Promise<T & { statusCode: number; msg?:
 		return {
 			success: false,
 			error: err?.message || 'Unexpected error',
-			statusCode: 500
+			statusCode: err?.statusCode || 500
 		};
 	}
 }
@@ -70,16 +70,21 @@ export async function getPostError(response: Response, args: msg.RequestBase): P
 		});
 
 	const errorMsg = (typeof data.msg === 'string') ? data.msg : data.error || 'Unknown error';
+	const makeError = (message: string) => {
+		const error = new Error(message) as Error & { statusCode?: number };
+		error.statusCode = response.status;
+		return error;
+	};
 	if (response.status === msg.HttpStatus.BAD_REQUEST) {
 		console.error(`Error on cbePost, status: ${response.status}, msg: ${errorMsg}, invalid args: `, JSON.stringify(args));
-		return new Error(`Invalid args, msg: ${errorMsg}`);
+		return makeError(`Invalid args, msg: ${errorMsg}`);
 	}
 	if (response.status === msg.HttpStatus.CONFLICT) {
-		return new Error(`DomainError: ${errorMsg}`);
+		return makeError(`DomainError: ${errorMsg}`);
 	}
 	const msg2 = `Error on cbePost, status: ${response.status} - ${response.statusText}, error: ${errorMsg}`;
 	console.error(msg2);
-	return new Error(msg2);
+	return makeError(msg2);
 }
 
 export async function msgGetUsers(
