@@ -268,8 +268,13 @@ async function updateThreadInBackground(
 			);
 
 			notifyThreadChange(thread);
-			hasNotificationMessages = true;
-			await showThreadNotificationIfNeeded(getNotificationTarget(response.thread));
+			const notificationTarget = getNotificationTarget(response.thread);
+			if (await shouldNotifyByThreadPreference(notificationTarget, [], userId)) {
+				hasNotificationMessages = true;
+				await showThreadNotificationIfNeeded(notificationTarget);
+			} else {
+				clearNotificationTarget(notificationTarget);
+			}
 			return;
 		}
 
@@ -316,7 +321,12 @@ async function updateThreadInBackground(
 
 		notifyThreadChange(thread);
 
-		await showThreadNotificationIfNeeded(getNotificationTarget(response.thread));
+		const notificationTarget = getNotificationTarget(response.thread);
+		if (await shouldNotifyByThreadPreference(notificationTarget, newMessagesFiltered, userId)) {
+			await showThreadNotificationIfNeeded(notificationTarget);
+		} else {
+			clearNotificationTarget(notificationTarget);
+		}
 
 	} catch (err: any) {
 		throw new Error(
@@ -335,6 +345,28 @@ function getNotificationTarget(thread: msg.Thread): { threadId: string; taskId?:
 	}
 
 	return { threadId: thread.threadId };
+}
+
+function clearNotificationTarget(target: { threadId: string; taskId?: string }) {
+	clearThreadNotification(target.threadId);
+	if (target.taskId) clearTaskNotification(target.taskId);
+}
+
+async function shouldNotifyByThreadPreference(
+	target: { threadId: string; taskId?: string },
+	messages: msg.Message[],
+	userId: string
+): Promise<boolean> {
+	const parentThread = await getThread(target.threadId);
+	const notification = parentThread?.users?.find(user => user.userId === userId)?.notification || 'all';
+	if (notification === 'all') return true;
+	if (notification === 'never') return false;
+	return messages.some(message => hasUserMention(message.content || '', userId));
+}
+
+function hasUserMention(messageContent: string, userId: string): boolean {
+	const escapedUserId = userId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return new RegExp(`\\[@[^\\]]+\\]\\(${escapedUserId}\\)`).test(messageContent);
 }
 
 function getActiveChat(): any {

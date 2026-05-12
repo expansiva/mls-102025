@@ -10,6 +10,7 @@ import { updateThread, getUser, deleteAllMessagesFromThread } from '/_102025_/l2
 import { collab_triangle_exclamation, collab_floppy_disk, collab_edit } from '/_102025_/l2/collabMessagesIcons.js';
 import { notifyThreadChange } from '/_102025_/l2/collabMessagesEvents.js';
 import { addMessage, loadOpenClawIntegrations, generateUUIDv7, generateAgentAvatar } from "/_102025_/l2/collabMessagesHelper.js";
+import { clearThreadNotification } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
@@ -39,6 +40,10 @@ const message_pt = {
     visibilityPrivate: 'Privada',
     visibilityCompany: 'Empresa',
     visibilityTeam: 'Time',
+    notification: 'Notificação',
+    notificationAll: 'Todas',
+    notificationMentions: 'Menções',
+    notificationNever: 'Nunca',
     status: 'Status',
     statusActive: 'Ativo',
     statusArchived: 'Arquivado',
@@ -100,6 +105,10 @@ const message_en = {
     visibilityPrivate: 'Private',
     visibilityCompany: 'Company',
     visibilityTeam: 'Team',
+    notification: 'Notification',
+    notificationAll: 'All',
+    notificationMentions: 'Mentions',
+    notificationNever: 'Never',
     status: 'Status',
     statusActive: 'Active',
     statusArchived: 'Archived',
@@ -263,6 +272,16 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             case 'team': return this.msg.visibilityTeam;
             default: return visibility || '-';
         }
+    }
+
+    private getCurrentUserNotification(thread: msg.Thread | undefined): msg.ThreadNotification {
+        return thread?.users?.find(user => user.userId === this.userId)?.notification || 'all';
+    }
+
+    private setCurrentUserNotification(notification: msg.ThreadNotification) {
+        if (!this.editedThreadDetails || !this.userId) return;
+        const user = this.editedThreadDetails.thread.users.find(user => user.userId === this.userId);
+        if (user) user.notification = notification;
     }
 
     private getStatusLabel(status: string | undefined): string {
@@ -455,6 +474,16 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                     <option value="private">${this.msg.visibilityPrivate}</option>
                     <option value="company">${this.msg.visibilityCompany}</option>
                     <option value="team">${this.msg.visibilityTeam}</option>
+                </select>
+            </label>
+
+            <label>${this.msg.notification}
+                <select name="notification" required
+                    .value=${this.getCurrentUserNotification(this.editedThreadDetails?.thread)}
+                    @change=${(e: Event) => this.setCurrentUserNotification((e.target as HTMLSelectElement).value as msg.ThreadNotification)}>
+                    <option value="all">${this.msg.notificationAll}</option>
+                    <option value="mentions">${this.msg.notificationMentions}</option>
+                    <option value="never">${this.msg.notificationNever}</option>
                 </select>
             </label>
             
@@ -1164,6 +1193,12 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             }
         }
 
+        const originalNotification = this.getCurrentUserNotification(original);
+        const editedNotification = this.getCurrentUserNotification(edited);
+        if (originalNotification !== editedNotification) {
+            changed.notification = editedNotification;
+        }
+
         return changed;
     }
 
@@ -1235,6 +1270,9 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             }
 
             notifyThreadChange(threadCache);
+            if (this.getCurrentUserNotification(newThread) === 'never') {
+                clearThreadNotification(newThread.threadId);
+            }
 
             this.labelOk =
                 this.msg.successSaving || 'Thread updated successfully.';
