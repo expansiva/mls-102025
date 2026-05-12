@@ -152,7 +152,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                         ${message.taskId ? html`
                             <div class="message-ai">
                                 <collab-messages-task-102025
-                                    messageId=${message.createAt}
+                                    messageId=${this.getMessageOrderAt(message)}
                                     .context= ${message.context}
                                     lastChanged= ${message.lastChanged}
                                     taskId=${message.taskId}
@@ -161,7 +161,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                                     title=${titleTranslated}
                                     status=${message.taskStatus}
                                     .notificationPending=${hasTaskNotificationPending(message.taskId)}
-                                    @taskclick=${() => { if (this.onTaskClick) this.onTaskClick(message?.taskId || '', message.createAt, message.threadId, message) }}
+                                    @taskclick=${() => { if (this.onTaskClick) this.onTaskClick(message?.taskId || '', this.getMessageOrderAt(message), message.threadId, message) }}
                                 >
                                 </collab-messages-task-102025>
                             </div> `: html``
@@ -889,6 +889,10 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         });
     }
 
+    private getMessageOrderAt(message: IMessage): string {
+        const value = message.orderAt || message.createAt || '';
+        const parts = value.split('/').filter(Boolean);
+        return parts[parts.length - 1] || value;
+    }
 
 }
-
