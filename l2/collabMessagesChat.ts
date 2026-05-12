@@ -21,6 +21,7 @@ import {
     addMessage,
     updateThread,
     updateUsers,
+    updateMessage,
     getMessage,
     getMessagesByThreadId,
     deleteAllMessagesFromThread,
@@ -1848,6 +1849,7 @@ export class CollabMessagesChat extends StateLitElement {
         clearTaskNotification(taskId);
         this.requestUpdate();
         const task = await this.getTaskUpdate(taskId, messageId, threadId);
+        if (!task) return;
         addOrUpdateTask(task);
         this.actualTask = task;
         this.actualMessage = message;
@@ -1925,7 +1927,8 @@ export class CollabMessagesChat extends StateLitElement {
 
         if (!result.success || !result.response?.task) {
             if (result.statusCode === 404) {
-                await deleteTask(taskId);
+                await this.clearMissingTaskReference(taskId, createdAt, threadId);
+                return undefined;
             }
             throw new Error(
                 result.error || 'Failed to fetch task update'
@@ -1933,6 +1936,34 @@ export class CollabMessagesChat extends StateLitElement {
         }
 
         return result.response.task;
+    }
+
+    private async clearMissingTaskReference(taskId: string, messageIdOrOrderAt: string, threadId: string) {
+        await deleteTask(taskId);
+
+        const messageId = this.normalizeMessageId(threadId, messageIdOrOrderAt);
+        const message = await getMessage(messageId);
+        if (!message || message.taskId !== taskId) return;
+
+        const cleanedMessage = { ...message };
+        delete cleanedMessage.taskId;
+        delete cleanedMessage.stepId;
+        delete cleanedMessage.taskTitle;
+        delete cleanedMessage.taskStatus;
+        delete cleanedMessage.taskResults;
+        delete cleanedMessage.taskResultsTranslated;
+        delete cleanedMessage.taskTitleTranslated;
+
+        await updateMessage(cleanedMessage);
+
+        if (this.actualThread?.thread.threadId !== threadId) return;
+        this.actualMessages = this.actualMessages.map(item =>
+            item.threadId === cleanedMessage.threadId && item.createAt === cleanedMessage.createAt
+                ? cleanedMessage
+                : item
+        );
+        this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+        this.requestUpdate();
     }
 
     private normalizeTaskMessageId(threadId: string, messageIdOrOrderAt: string): string {
