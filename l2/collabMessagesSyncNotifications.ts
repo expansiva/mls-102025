@@ -160,7 +160,7 @@ export async function getThreadUpdateInBackground(reference: string): Promise<vo
 	const parts = reference.split(':');
 	const typeNotification = parts.length === 2 ? 'message-update' : 'thread-update';
 	threadId = parts[0];
-	messageId = parts[1];
+	messageId = parts.slice(1).join(':');
 
 	if (typeNotification === 'thread-update') {
 		await updateThreadInBackground(threadId, userId, deviceId);
@@ -180,8 +180,9 @@ async function updateMessageInBackground(
 	deviceId: string | null
 ) {
 	try {
+		const normalizedMessageId = normalizeMessageId(threadId, messageId);
 		const result = await msgGetMessage({
-			messageId: `${threadId}/${messageId}`,
+			messageId: normalizedMessageId,
 			threadId,
 			userId
 		});
@@ -202,6 +203,12 @@ async function updateMessageInBackground(
 	} catch (err: any) {
 		throw new Error(err?.message || 'Unexpected error while updating message');
 	}
+}
+
+function normalizeMessageId(threadId: string, messageIdOrOrderAt: string): string {
+	const parts = messageIdOrOrderAt.split('/').filter(Boolean);
+	const orderAt = parts[parts.length - 1] || messageIdOrOrderAt;
+	return `${threadId}/${orderAt}`;
 }
 
 async function updateThreadInBackground(

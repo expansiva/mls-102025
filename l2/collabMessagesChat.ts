@@ -1431,7 +1431,7 @@ export class CollabMessagesChat extends StateLitElement {
         if (!messages) return threadInfo;
         const newMessages: msg.MessagePerformanceCache[] = [];
         for await (let mm of messages) {
-            const messageId = `${mm.threadId}/${mm.createAt}`
+            const messageId = this.normalizeMessageId(mm.threadId, mm.orderAt || mm.createAt)
             const messageOld = await getMessage(messageId);
             const tempMessage: msg.MessagePerformanceCache = { ...mm, footers: messageOld?.footers || [] };
             newMessages.push(tempMessage);
@@ -1936,6 +1936,12 @@ export class CollabMessagesChat extends StateLitElement {
         const parts = messageIdOrOrderAt.split('/').filter(Boolean);
         if (parts.length === 2) return messageIdOrOrderAt;
         return `${parts[0]}/${parts[parts.length - 1]}`;
+    }
+
+    private normalizeMessageId(threadId: string, messageIdOrOrderAt: string): string {
+        const parts = messageIdOrOrderAt.split('/').filter(Boolean);
+        const orderAt = parts[parts.length - 1] || messageIdOrOrderAt;
+        return `${threadId}/${orderAt}`;
     }
 
     private async refreshThreadFromServer(threadId: string) {

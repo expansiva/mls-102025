@@ -261,7 +261,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private async loadReplyPreview(replyId: string) {
 
         if (!this.actualThread) return html`${nothing}`;
-        const messageId = `${this.actualThread.thread.threadId}/${replyId}`
+        const messageId = this.normalizeMessageId(this.actualThread.thread.threadId, replyId);
         const reply = await getMessage(messageId);
         if (!reply) return html`${nothing}`
 
@@ -893,6 +893,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const value = message.orderAt || message.createAt || '';
         const parts = value.split('/').filter(Boolean);
         return parts[parts.length - 1] || value;
+    }
+
+    private normalizeMessageId(threadId: string, messageIdOrOrderAt: string): string {
+        const parts = messageIdOrOrderAt.split('/').filter(Boolean);
+        const orderAt = parts[parts.length - 1] || messageIdOrOrderAt;
+        return `${threadId}/${orderAt}`;
     }
 
 }
