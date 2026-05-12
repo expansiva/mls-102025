@@ -1728,12 +1728,12 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async createTempMessage(content: string, senderId: string, threadId: string, replyTo: string | undefined, taskId?: string) {
         const now = new Date();
-        const formattedDate = now.getFullYear().toString()
-            + String(now.getMonth() + 1).padStart(2, '0')
-            + String(now.getDate()).padStart(2, '0')
-            + String(now.getHours() + 3).padStart(2, '0')
-            + String(now.getMinutes()).padStart(2, '0')
-            + String(now.getSeconds()).padStart(2, '0')
+        const formattedDate = now.getUTCFullYear().toString()
+            + String(now.getUTCMonth() + 1).padStart(2, '0')
+            + String(now.getUTCDate()).padStart(2, '0')
+            + String(now.getUTCHours()).padStart(2, '0')
+            + String(now.getUTCMinutes()).padStart(2, '0')
+            + String(now.getUTCSeconds()).padStart(2, '0')
             + "." + Math.floor(1000 + Math.random() * 9000);
         const newMessage: IMessage = {
             content,
@@ -1749,9 +1749,10 @@ export class CollabMessagesChat extends StateLitElement {
         }
 
         if (taskId) newMessage.taskId = taskId;
-        this.actualMessages.unshift(newMessage);
+        this.actualMessages.push(newMessage);
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         this.requestUpdate();
+        await this.scrollMessagesToBottom();
         return newMessage;
     }
 
