@@ -583,6 +583,15 @@ export class CollabMessagesThreadDetails extends StateLitElement {
     private renderAgents() {
 
         const agentsOpenClaw = this.editedThreadDetails?.thread.openClawAgents || [];
+        const users = this.editedThreadDetails?.users || [];
+        const threadUserIds = new Set((this.editedThreadDetails?.thread.users || []).map((user) => user.userId));
+        const openClawUserIds = new Set(agentsOpenClaw.map((agent) => agent.collabUserId).filter(Boolean));
+        const threadAgentUsers = users.filter((user) =>
+            user.kind &&
+            threadUserIds.has(user.userId) &&
+            !openClawUserIds.has(user.userId)
+        );
+        const hasAgents = agentsOpenClaw.length > 0 || threadAgentUsers.length > 0;
         const isDm = this.threadDetails?.thread?.name?.startsWith('@');
 
         return html`
@@ -592,9 +601,25 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         </div>
     
         <ul>
-            ${agentsOpenClaw.length === 0
+            ${!hasAgents
                 ? html`<li class="empty-list"><small>${this.msg.noAgents}</small></li>`
-                : repeat(
+                : html`
+                    ${repeat(
+                    threadAgentUsers,
+                    ((user: msg.User) => user.userId) as any,
+                    ((user: msg.User) => html`
+                        <li>
+                            ${this.renderAvatar(user.avatar_url || generateAgentAvatar(user.name || user.userId))}
+                            <div class="agent-info">
+                                <small class="agent-name">
+                                    ${user.name || user.userId}
+                                    <b>(${user.kind})</b>
+                                </small>
+                            </div>
+                        </li>
+                    `) as any
+                )}
+                    ${repeat(
                     agentsOpenClaw,
                     ((agentOC: msg.OpenClawAgentBinding) => agentOC.agentId) as any,
                     ((agentOC: msg.OpenClawAgentBinding) => {
@@ -640,7 +665,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                             </li>
                         `;
                     }) as any
-                )
+                )}`
             }
         </ul>
 
