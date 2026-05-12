@@ -1,15 +1,15 @@
 /// <mls fileReference="_102025_/l2/collabMessagesTaskLogPreview.ts" enhancement="_102027_/l2/enhancementLit" />
-
 import { html, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { StateLitElement } from '/_102027_/l2/stateLitElement.js';
 import { getRootAgent } from '/_102027_/l2/aiAgentHelper.js';
 import { IAgent, IAgentAsync } from '/_102027_/l2/aiAgentBase.js';
 import { loadAgent } from '/_102027_/l2/aiAgentOrchestration.js';
+import { collabImport } from '/_102027_/l2/collabImport.js';
+ 
 
-
-@customElement('collab-messages-task-log-preview-102025')
-export class CollabMessagesTaskLogPreview102025 extends StateLitElement {
+@customElement('collab-messages-task-log-preview-102025')  
+export class PluginTaskLogPreview100554 extends StateLitElement {
 
   @state() currentStepId: number = 0;
 
@@ -62,31 +62,15 @@ export class CollabMessagesTaskLogPreview102025 extends StateLitElement {
 
   private async createFeedBack() {
     if (!this.task) return;
-    const firstStep = this.task.iaCompressed?.nextSteps?.[0] as any;
-    if (firstStep && (firstStep.type === 'dynamicWorkflow' || firstStep.type === 'staticWorkflow')) {
-      this.template = html`
-        <div class="task-feedback workflow">
-          <strong>${this.task.title || this.task.PK}</strong>
-          <button class="workflow-step-row" @click=${() => this.currentStepId = firstStep.stepId}>
-            <span>Step ${firstStep.stepId}</span>
-            <span>${firstStep.workflowName || firstStep.type}</span>
-            <span>${firstStep.status || this.task.status}</span>
-          </button>
-        </div>
-      `;
-      return;
-    }
     const firstAgent = getRootAgent(this.task);
     if (!firstAgent) return;
     const agentName = firstAgent.agentName;
     const agent: IAgent | IAgentAsync | undefined = await loadAgent(agentName);
     if (!agent || !agent.getFeedBack) {
-      this.template = html`
-        <div class="task-feedback">
-          <strong>${this.task.title || this.task.PK}</strong>
-          <p>${this.task.status}</p>
-        </div>
-      `;
+      await collabImport({ folder: '', project: 100554, shortName: 'aiAgentDefaultFeedback', extension: '.ts' })
+
+      this.template = html`<ai-agent-default-feedback-100554 .task=${this.task} .message=${this.message} .father=${this}></ai-agent-default-feedback-100554>`
+
       return;
     }
     const html2 = await agent.getFeedBack(this.task);

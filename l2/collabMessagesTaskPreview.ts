@@ -224,7 +224,7 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
     private tryNext = 0;
     private navigateToStep(stepId: number) {
         if (!this.stepMap.has(stepId)) {
-            if (stepId < this.lastStepId && this.tryNext < 200) {
+            if (this.tryNext < 200) {
                 this.tryNext++;
                 this.navigateToStep(stepId + 1);
             }
