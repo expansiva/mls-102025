@@ -464,7 +464,7 @@ export async function createThreadDM(
         });
 
         if (participantResult.success && participantResult.response?.thread) {
-            await updateThread(thread.threadId, thread);
+            await updateThread(thread.threadId, participantResult.response.thread);
             notifyThreadChange(participantResult.response.thread);
             return participantResult.response.thread;
         }
@@ -571,12 +571,12 @@ export const getTemporaryContext = (threadId: string, userId: string, prompt: st
     // create temporary context
 
     const now = new Date();
-    const formattedDate = now.getFullYear().toString()
-        + String(now.getMonth() + 1).padStart(2, '0')
-        + String(now.getDate()).padStart(2, '0')
-        + String(now.getHours() + 3).padStart(2, '0')
-        + String(now.getMinutes()).padStart(2, '0')
-        + String(now.getSeconds()).padStart(2, '0')
+    const formattedDate = now.getUTCFullYear().toString()
+        + String(now.getUTCMonth() + 1).padStart(2, '0')
+        + String(now.getUTCDate()).padStart(2, '0')
+        + String(now.getUTCHours()).padStart(2, '0')
+        + String(now.getUTCMinutes()).padStart(2, '0')
+        + String(now.getUTCSeconds()).padStart(2, '0')
         + "." + Math.floor(1000 + Math.random() * 9000);
 
     const context: msg.ExecutionContext = {
@@ -737,4 +737,3 @@ export interface IThreadInfo {
     hasMore?: boolean | undefined,
     messages?: msg.Message[] | undefined
 }
-

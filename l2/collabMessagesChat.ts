@@ -1062,7 +1062,8 @@ export class CollabMessagesChat extends StateLitElement {
                 if (!groups[prefix]) groups[prefix] = [];
                 groups[prefix].push(t);
             } else {
-                groups[name] = [t];
+                if (!groups[name]) groups[name] = [];
+                groups[name].push(t);
             }
         }
 
@@ -1322,11 +1323,12 @@ export class CollabMessagesChat extends StateLitElement {
         try {
             if (!this.userId) return;
             const threadByServer = await this.getThreadInfo(this.actualThread.thread.threadId, this.userId, threadInfo.thread.lastSync || new Date('2000-01-01').toISOString());
-            await updateThread(threadByServer.thread.threadId, threadByServer.thread);
+            const threadUpdated = await updateThread(threadByServer.thread.threadId, threadByServer.thread);
             threadInfo = await this.updateMessagesOnDb(threadByServer, threadByServer.messages);
 
             await updateUsers(threadByServer.users);
             this.actualThread = { ...threadByServer };
+            notifyThreadChange(threadUpdated);
             if (threadByServer.hasMore) await this.loadAllMessages(threadInfo);
             this.checkForRegisterNotification();
 
