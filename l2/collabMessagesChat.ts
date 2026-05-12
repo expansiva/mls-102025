@@ -24,6 +24,7 @@ import {
     getMessage,
     getMessagesByThreadId,
     deleteAllMessagesFromThread,
+    deleteTask,
     listUsers,
     getThread,
     updateLastMessageReadTime
@@ -1924,7 +1925,7 @@ export class CollabMessagesChat extends StateLitElement {
 
         if (!result.success || !result.response?.task) {
             if (result.statusCode === 404) {
-                await this.refreshThreadFromServer(threadId);
+                await deleteTask(taskId);
             }
             throw new Error(
                 result.error || 'Failed to fetch task update'
@@ -1945,28 +1946,6 @@ export class CollabMessagesChat extends StateLitElement {
         const parts = messageIdOrOrderAt.split('/').filter(Boolean);
         const orderAt = parts[parts.length - 1] || messageIdOrOrderAt;
         return `${threadId}/${orderAt}`;
-    }
-
-    private async refreshThreadFromServer(threadId: string) {
-        if (!this.userId) return;
-        await deleteAllMessagesFromThread(threadId);
-        const response = await this.getThreadInfo(threadId, this.userId, '20000101000000.0000');
-        await updateThread(response.thread.threadId, response.thread);
-        if (response.users?.length) await updateUsers(response.users);
-        if (response.messages?.length) {
-            await addMessages(response.messages.map(message => ({ ...message, footers: [] })));
-        }
-        if (this.actualThread?.thread.threadId === threadId) {
-            const messagesInDb = await getMessagesByThreadId(threadId, this.messagesLimit, 0);
-            this.actualThread = {
-                thread: response.thread,
-                users: response.users || this.actualThread.users,
-                messages: messagesInDb
-            };
-            this.actualMessages = messagesInDb;
-            this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
-            this.requestUpdate();
-        }
     }
 
     private async getThreadInfo(
