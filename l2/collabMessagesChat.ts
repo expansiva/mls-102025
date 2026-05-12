@@ -1612,6 +1612,16 @@ export class CollabMessagesChat extends StateLitElement {
                 result.response.message,
                 result.response.botOutputs
             );
+            const responseMessages = (result.response as any).messages as msg.Message[] | undefined;
+            for (const responseMessage of responseMessages || []) {
+                await this.updateMessage2(
+                    false,
+                    true,
+                    responseMessage as IMessage,
+                    responseMessage,
+                    undefined
+                );
+            }
             await this.scrollMessagesToBottom();
 
         } catch (err: any) {
