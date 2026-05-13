@@ -43,9 +43,9 @@ function getMsg() {
 // ── Module-level tag vocabulary cache ─────────────────────────────────────
 let _tagCache: msg.TagVocabularyEntry[] | null = null;
 
-async function loadTagVocabulary(organizationId: string): Promise<msg.TagVocabularyEntry[]> {
+async function loadTagVocabulary(organizationId: string, userId: string): Promise<msg.TagVocabularyEntry[]> {
   if (_tagCache) return _tagCache;
-  const result = await msgGetOrgPreferences({ organizationId });
+  const result = await msgGetOrgPreferences({ organizationId, userId });
   if (result.success && result.response) {
     _tagCache = result.response.tagVocabulary ?? [];
   } else {
@@ -116,8 +116,8 @@ export class CollabTasksBoard extends StateLitElement {
 
     try {
       const [vocab, activeResult] = await Promise.all([
-        loadTagVocabulary(this.organizationId),
-        msgListTasks({ view: 'active', pageSize: 200 }),
+        loadTagVocabulary(this.organizationId, this.userId),
+        msgListTasks({ userId: this.userId, view: 'active', pageSize: 200 }),
       ]);
 
       this.tagVocabulary = vocab;
@@ -144,7 +144,7 @@ export class CollabTasksBoard extends StateLitElement {
   private async _fetchClosed() {
     this.loadingClosed = true;
     try {
-      const result = await msgListTasks({ view: 'closed', pageSize: 100 });
+      const result = await msgListTasks({ userId: this.userId, view: 'closed', pageSize: 100 });
       if (result.success) {
         this.closedTasks = this._filterWorkflow(result.response?.tasks ?? []);
       }
