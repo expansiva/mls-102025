@@ -1,6 +1,6 @@
 /// <mls fileReference="_102025_/l2/collabTasksEmptyState.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
@@ -9,38 +9,6 @@ export class CollabTasksEmptyState extends StateLitElement {
 
   @property({ type: String }) title = '';
   @property({ type: String }) subtitle = '';
-
-  static styles = css`
-    :host {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      min-height: 200px;
-      padding: 40px 20px;
-      text-align: center;
-      color: var(--color-text-secondary, #9ca3af);
-    }
-    .icon {
-      width: 48px;
-      height: 48px;
-      margin-bottom: 16px;
-      opacity: 0.4;
-    }
-    .title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--color-text-primary, #374151);
-      margin-bottom: 6px;
-    }
-    .subtitle {
-      font-size: 13px;
-      color: var(--color-text-secondary, #9ca3af);
-      max-width: 300px;
-    }
-    ::slotted(*) { margin-top: 16px; }
-  `;
 
   render() {
     return html`

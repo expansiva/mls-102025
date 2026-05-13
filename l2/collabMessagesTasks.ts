@@ -25,7 +25,7 @@ const message_en = {
 };
 /// **collab_i18n_end**
 
-import { html, css, LitElement, nothing } from 'lit';
+import { html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { getUserId } from '/_102025_/l2/collabMessagesHelper.js';
@@ -45,29 +45,6 @@ export class CollabMessagesTasks extends StateLitElement {
 
   @state() private screen: ScreenId = 'board';
   @state() private reloadKey = 0;
-
-  static styles = css`
-    :host {
-      display: flex;
-      height: 100%;
-      overflow: hidden;
-      font-family: var(--font-sans, sans-serif);
-      background: var(--color-background-primary, #fff);
-      color: var(--color-text-primary, #111);
-    }
-    .dashboard-main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      min-width: 0;
-    }
-    .dashboard-content {
-      flex: 1;
-      overflow: auto;
-      padding: 0;
-    }
-  `;
 
   render() {
     const msg = getMsg();

@@ -5,7 +5,7 @@ const message_pt = { reload: 'Recarregar' };
 const message_en = { reload: 'Reload' };
 /// **collab_i18n_end**
 
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
@@ -18,51 +18,6 @@ export class CollabTasksTopbar extends StateLitElement {
 
   @property({ type: String }) title = '';
   @property({ type: String }) subtitle = '';
-
-  static styles = css`
-    :host {
-      display: flex;
-      align-items: center;
-      padding: 12px 20px;
-      border-bottom: 1px solid var(--color-border, #e5e7eb);
-      background: var(--color-background-primary, #fff);
-      gap: 12px;
-      min-height: 52px;
-    }
-    .title-area { flex: 1; min-width: 0; }
-    .title {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--color-text-primary, #111);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .subtitle {
-      font-size: 12px;
-      color: var(--color-text-secondary, #6b7280);
-      margin-top: 1px;
-    }
-    .actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .reload-btn {
-      background: none;
-      border: 1px solid var(--color-border, #d1d5db);
-      border-radius: 6px;
-      padding: 5px 12px;
-      font-size: 13px;
-      cursor: pointer;
-      color: var(--color-text-secondary, #374151);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: background 0.15s;
-    }
-    .reload-btn:hover { background: var(--color-background-hover, rgba(0,0,0,0.04)); }
-  `;
 
   render() {
     const msg = getMsg();
