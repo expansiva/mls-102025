@@ -105,6 +105,16 @@ export function dispatchThreadOpen(threadId: string, taskId?: string): void {
   scopeWindow.dispatchEvent(event);
 }
 
+export function notifyTaskMetaChanged(payload: { taskId: string; taskTitle: string; threadId: string }): void {
+  const scopeWindow = window?.top ? window.top : window;
+  const event = new CustomEvent('task-meta-changed', {
+    detail: payload,
+    bubbles: true,
+    composed: true
+  });
+  scopeWindow.dispatchEvent(event);
+}
+
 export interface ICollabMessageEvent {
   threadId: string,
   taskId?: string,

@@ -400,6 +400,28 @@ export function msgListOpenClawAvailableAgents  (
 }
 
 
+export function msgListTasks(
+	args: Omit<msg.RequestListTasks, "action">
+) {
+	return handleRequest<msg.ResponseListTasks>(
+		post<msg.ResponseListTasks>({
+			action: "listTasks",
+			...args
+		})
+	);
+}
+
+export function msgGetOrgPreferences(
+	args: Omit<msg.RequestGetOrgPreferences, "action">
+) {
+	return handleRequest<msg.ResponseGetOrgPreferences>(
+		post<msg.ResponseGetOrgPreferences>({
+			action: "getOrgPreferences",
+			...args
+		})
+	);
+}
+
 export type ApiResult<T> = {
 	success: boolean;
 	response?: T;

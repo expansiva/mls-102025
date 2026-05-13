@@ -29,6 +29,7 @@ export class CollabMessagesTaskRoom extends StateLitElement {
 
     private ensuredKey = '';
     private lastRenderedMessageCount = 0;
+    private didInitialScroll = false;
 
     connectedCallback() {
         super.connectedCallback();
@@ -50,9 +51,27 @@ export class CollabMessagesTaskRoom extends StateLitElement {
             await this.updateComplete;
             const el = this.messagesContainer;
             if (!el) return;
+
+            if (!this.didInitialScroll && this.messages.length > 0) {
+                // §3.1: scroll to bottom on first load regardless of prior scroll position
+                this.didInitialScroll = true;
+                await this.scrollMessagesToBottom();
+                this.lastRenderedMessageCount = this.messages.length;
+                return;
+            }
+
             const isAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
-            if (this.messages.length > this.lastRenderedMessageCount && !isAtBottom) {
-                this.showScrollToBottom = true;
+            const grew = this.messages.length > this.lastRenderedMessageCount;
+
+            if (grew) {
+                const lastMsg = this.messages[this.messages.length - 1];
+                const userId = this.getUserId();
+                // §3.2: sender's own messages always pin viewport to bottom
+                if (lastMsg && userId && lastMsg.senderId === userId) {
+                    await this.scrollMessagesToBottom();
+                } else if (!isAtBottom) {
+                    this.showScrollToBottom = true;
+                }
             }
             this.lastRenderedMessageCount = this.messages.length;
         }
@@ -162,6 +181,7 @@ export class CollabMessagesTaskRoom extends StateLitElement {
         if (this.roomThread && this.ensuredKey === key) return;
         if (this.loading && this.ensuredKey === key) return;
         this.ensuredKey = key;
+        this.didInitialScroll = false;
 
         this.loading = true;
         this.error = '';
@@ -189,6 +209,7 @@ export class CollabMessagesTaskRoom extends StateLitElement {
         const key = `${threadId}|${userId}`;
         if (this.roomThread?.threadId === threadId && this.ensuredKey === key) return;
         this.ensuredKey = key;
+        this.didInitialScroll = false;
 
         const localThread = knownThread || await getThread(threadId);
         if (localThread) {
