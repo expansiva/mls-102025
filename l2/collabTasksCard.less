@@ -1,0 +1,209 @@
+/// <mls fileReference="_102025_/l2/collabTasksCard.less" enhancement="_102027_/l2/enhancementStyle" />
+
+collab-tasks-card-102025 {
+    display: block;
+    position: relative;
+    background: var(--color-background-primary, #ffffff);
+    border: 1px solid var(--color-border, #e5e7eb);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: box-shadow 0.12s ease-out, border-color 0.12s ease-out, transform 0.12s ease-out;
+    outline: none;
+
+    &:hover {
+        border-color: var(--color-accent, #6366f1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        transform: translateY(-1px);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-accent, #6366f1);
+        outline-offset: 2px;
+    }
+
+    // Top-border accent — only rendered when boardStatus is set
+    &.has-board-status::before {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        right: -1px;
+        height: 2px;
+        border-radius: 8px 8px 0 0;
+        background: var(--card-status-accent, var(--color-accent, #6366f1));
+    }
+
+    // Per-status accent colors (set by the Board on the card host)
+    &.board-status-todo          { --card-status-accent: #185fa5; }
+    &.board-status-in-progress   { --card-status-accent: #854f0b; }
+    &.board-status-paused        { --card-status-accent: #6b7280; }
+    &.board-status-done          { --card-status-accent: #3b6d11; }
+    &.board-status-failed        { --card-status-accent: #a32d2d; }
+
+    .card-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-text-primary, #111111);
+        margin-bottom: 4px;
+        line-height: 1.4;
+    }
+
+    .card-description {
+        font-size: 12px;
+        color: var(--color-text-secondary, #6b7280);
+        margin-bottom: 6px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+        margin-bottom: 4px;
+    }
+
+    .card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+        gap: 6px;
+    }
+
+    .assignee-row {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .assignee-chip {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        font-size: 9px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        position: relative;
+
+        &[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 400;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+        }
+    }
+
+    .assignee-0 { background: #dbeafe; color: #1e40af; }
+    .assignee-1 { background: #d1fae5; color: #065f46; }
+    .assignee-2 { background: #fef3c7; color: #92400e; }
+    .assignee-3 { background: #ede9fe; color: #5b21b6; }
+    .assignee-4 { background: #fee2e2; color: #991b1b; }
+
+    .assignee-overflow {
+        background: var(--color-background-secondary, #f3f4f6);
+        color: var(--color-text-secondary, #6b7280);
+    }
+
+    .status-emoji {
+        font-size: 13px;
+        line-height: 1;
+        cursor: default;
+        position: relative;
+        flex-shrink: 0;
+
+        &[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: calc(100% + 4px);
+            right: 0;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+        }
+    }
+
+    .badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 9999px;
+        letter-spacing: 0.02em;
+    }
+
+    .b-bug      { background: #fee2e2; color: #991b1b; }
+    .b-feature  { background: #dbeafe; color: #1e40af; }
+    .b-business { background: #fef3c7; color: #92400e; }
+    .b-process  { background: #d1fae5; color: #065f46; }
+    .b-neutral  { background: var(--color-background-secondary, #f3f4f6); color: var(--color-text-secondary, #6b7280); }
+
+    .priority-pill {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: var(--color-background-secondary, #f3f4f6);
+        color: var(--color-text-secondary, #6b7280);
+    }
+
+    .priority-high,
+    .priority-urgent { background: #fef3c7; color: #b45309; }
+
+    .due-pill {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: var(--color-background-secondary, #f3f4f6);
+        color: var(--color-text-secondary, #6b7280);
+    }
+
+    .pma-badge {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: #ede9fe;
+        color: var(--color-accent, #6366f1);
+    }
+
+    // Hide description on very narrow cards
+    @media (max-width: 279px) {
+        .card-description { display: none; }
+    }
+
+    // Dark mode — box-shadow has more depth
+    @media (prefers-color-scheme: dark) {
+        &:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+
+        &:hover {
+            transform: none;
+        }
+    }
+}

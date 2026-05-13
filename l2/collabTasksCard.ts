@@ -1,11 +1,25 @@
 /// <mls fileReference="_102025_/l2/collabTasksCard.ts" enhancement="_102027_/l2/enhancementLit" />
 
 /// **collab_i18n_start**
-const message_pt = { open: 'Abrir sala da task' };
-const message_en = { open: 'Open task room' };
+const message_pt = {
+  open: 'Abrir sala da task',
+  todo: 'A fazer',
+  inProgress: 'Em andamento',
+  paused: 'Pausado',
+  done: 'Concluído',
+  failed: 'Falhou',
+};
+const message_en = {
+  open: 'Open task room',
+  todo: 'To do',
+  inProgress: 'In progress',
+  paused: 'Paused',
+  done: 'Done',
+  failed: 'Failed',
+};
 /// **collab_i18n_end**
 
-import { html, css, nothing } from 'lit';
+import { html, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
@@ -34,102 +48,117 @@ function tagColor(tag: string, vocab?: msg.TagVocabularyEntry[]): TagColor {
   return TAG_COLOR_MAP[tag.toLowerCase()] || 'neutral';
 }
 
+function assigneeColorIndex(userId: string): number {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) hash = (hash + userId.charCodeAt(i)) & 0xff;
+  return hash % 5;
+}
+
+function assigneeInitials(userId: string): string {
+  const parts = userId.split(/[\s._-]/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return userId.slice(0, 2).toUpperCase();
+}
+
+const STATUS_EMOJI: Record<string, string> = {
+  'todo': '⬜',
+  'in progress': '▶️',
+  'paused': '⏸️',
+  'done': '✅',
+  'failed': '❌',
+};
+
+const STATUS_CLASS: Record<string, string> = {
+  'todo': 'board-status-todo',
+  'in progress': 'board-status-in-progress',
+  'paused': 'board-status-paused',
+  'done': 'board-status-done',
+  'failed': 'board-status-failed',
+};
+
 @customElement('collab-tasks-card-102025')
 export class CollabTasksCard extends StateLitElement {
 
   @property({ type: Object }) task: msg.TaskData | undefined;
   @property({ type: Array }) tagVocabulary: msg.TagVocabularyEntry[] = [];
+  @property({ type: String }) boardStatus: string = '';
 
-  static styles = css`
-    :host {
-      display: block;
-      background: var(--color-background-primary, #fff);
-      border: 1px solid var(--color-border, #e5e7eb);
-      border-radius: 8px;
-      padding: 10px 12px;
-      cursor: pointer;
-      transition: box-shadow 0.15s, border-color 0.15s;
-      margin-bottom: 8px;
+  connectedCallback() {
+    super.connectedCallback();
+    this.setAttribute('tabindex', '0');
+    this.setAttribute('role', 'button');
+    this.addEventListener('click', this._onClick.bind(this));
+    this.addEventListener('keydown', this._onKeyDown.bind(this));
+  }
+
+  updated(changed: Map<string, unknown>) {
+    super.updated(changed);
+    if (changed.has('boardStatus')) this._applyStatusClass();
+  }
+
+  private _applyStatusClass() {
+    // Remove any previous status class
+    Object.values(STATUS_CLASS).forEach(c => this.classList.remove(c));
+    if (this.boardStatus) {
+      const cls = STATUS_CLASS[this.boardStatus];
+      if (cls) {
+        this.classList.add(cls);
+        this.classList.add('has-board-status');
+      }
+    } else {
+      this.classList.remove('has-board-status');
     }
-    :host(:hover) {
-      border-color: var(--color-accent, #6366f1);
-      box-shadow: 0 2px 8px rgba(99,102,241,0.12);
-    }
-    .card-title {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--color-text-primary, #111);
-      margin-bottom: 6px;
-      line-height: 1.4;
-    }
-    .card-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      align-items: center;
-    }
-    .badge {
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 9999px;
-      letter-spacing: 0.02em;
-    }
-    .b-bug    { background: #fee2e2; color: #991b1b; }
-    .b-feature { background: #dbeafe; color: #1e40af; }
-    .b-business { background: #fef3c7; color: #92400e; }
-    .b-process { background: #d1fae5; color: #065f46; }
-    .b-neutral { background: var(--color-background-secondary, #f3f4f6); color: var(--color-text-secondary, #6b7280); }
-    .priority-pill {
-      font-size: 10px;
-      padding: 1px 6px;
-      border-radius: 4px;
-      background: var(--color-background-secondary, #f3f4f6);
-      color: var(--color-text-secondary, #6b7280);
-    }
-    .priority-high, .priority-urgent { background: #fef3c7; color: #b45309; }
-    .due-pill {
-      font-size: 10px;
-      padding: 1px 6px;
-      border-radius: 4px;
-      background: var(--color-background-secondary, #f3f4f6);
-      color: var(--color-text-secondary, #6b7280);
-    }
-    .pma-badge {
-      font-size: 10px;
-      padding: 1px 6px;
-      border-radius: 4px;
-      background: var(--color-background-secondary, #ede9fe);
-      color: var(--color-accent, #6366f1);
-    }
-  `;
+  }
 
   render() {
     const task = this.task;
     if (!task) return nothing;
+    const m = getMsg();
     const firstTag = task.tags?.[0];
     const tc = firstTag ? tagColor(firstTag, this.tagVocabulary) : null;
     const pmaId = task.taskRoom?.pmaId;
+    const assignees = task.assignees ?? [];
+    const visibleAssignees = assignees.slice(0, 3);
+    const overflowCount = assignees.length - visibleAssignees.length;
+    const statusEmoji = STATUS_EMOJI[task.status] ?? '';
+    const statusLabel = (m as any)[task.status === 'in progress' ? 'inProgress' : task.status] ?? task.status;
 
     return html`
       <div class="card-title">${task.title}</div>
+      ${task.description ? html`<div class="card-description">${task.description}</div>` : nothing}
       <div class="card-meta">
         ${firstTag && tc ? html`<span class="badge b-${tc}">${firstTag}</span>` : nothing}
         ${task.priority ? html`<span class="priority-pill priority-${task.priority}">${task.priority}</span>` : nothing}
-        ${task.dueDate ? html`<span class="due-pill">📅 ${task.dueDate}</span>` : nothing}
         ${pmaId ? html`<span class="pma-badge">${pmaId}</span>` : nothing}
       </div>
+      <div class="card-footer">
+        <div class="assignee-row">
+          ${visibleAssignees.map(uid => html`
+            <span
+              class="assignee-chip assignee-${assigneeColorIndex(uid)}"
+              title=${uid}
+            >${assigneeInitials(uid)}</span>
+          `)}
+          ${overflowCount > 0 ? html`<span class="assignee-chip assignee-overflow">+${overflowCount}</span>` : nothing}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${task.dueDate ? html`<span class="due-pill">📅 ${task.dueDate}</span>` : nothing}
+          ${statusEmoji ? html`<span class="status-emoji" title=${statusLabel}>${statusEmoji}</span>` : nothing}
+        </div>
+      </div>
     `;
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    this.addEventListener('click', this._onClick.bind(this));
   }
 
   private _onClick() {
     const task = this.task;
     if (!task?.taskRoom?.threadId) return;
     dispatchThreadOpen(task.taskRoom.threadId, task.PK);
+  }
+
+  private _onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this._onClick();
+    }
   }
 }

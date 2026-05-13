@@ -33,6 +33,7 @@ import { getUserId } from '/_102025_/l2/collabMessagesHelper.js';
 import '/_102025_/l2/collabTasksSidebar.js';
 import '/_102025_/l2/collabTasksTopbar.js';
 import '/_102025_/l2/collabTasksEmptyState.js';
+import '/_102025_/l2/collabTasksBoard.js';
 
 type ScreenId = 'board' | 'mytasks' | 'workflows' | 'simulator' | 'approvals' | 'analytics' | 'settings';
 
@@ -71,10 +72,10 @@ export class CollabMessagesTasks extends StateLitElement {
     const key = this.reloadKey;
     switch (this.screen) {
       case 'board':
-        return html`<collab-tasks-empty-state-102025
-          title=${msg.board}
-          subtitle="In development"
-        ></collab-tasks-empty-state-102025>`;
+        return html`<collab-tasks-board-102025
+          .reloadKey=${key}
+          .userId=${userId}
+        ></collab-tasks-board-102025>`;
       case 'mytasks':
         return html`<collab-tasks-empty-state-102025
           title=${msg.myTasks}
