@@ -28,7 +28,7 @@ const message_en = {
 /// **collab_i18n_end**
 
 import { html } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import {
   collab_tasks,
@@ -45,7 +45,6 @@ function getMsg() {
 export class CollabTasksSidebar extends StateLitElement {
 
   @property({ type: String }) activeScreen: ScreenId = 'board';
-  @state() private collapsed = false;
 
   private _emit(screen: ScreenId) {
     this.dispatchEvent(new CustomEvent('screen-change', { detail: screen, bubbles: true, composed: true }));
@@ -53,23 +52,18 @@ export class CollabTasksSidebar extends StateLitElement {
 
   render() {
     const msg = getMsg();
-    const c = this.collapsed;
 
     const item = (id: ScreenId, label: string, icon?: unknown) => html`
       <div class="nav-item ${this.activeScreen === id ? 'active' : ''}" @click=${() => this._emit(id)}>
         ${icon ? html`<span class="nav-icon">${icon}</span>` : html`<span class="nav-icon" style="width:16px"></span>`}
-        <span class="nav-label-text ${c ? 'hidden' : ''}">${label}</span>
+        <span class="nav-label-text">${label}</span>
       </div>
     `;
 
     return html`
-      <div class="sidebar-inner ${c ? 'collapsed' : ''}">
-        <button class="collapse-btn" @click=${() => { this.collapsed = !this.collapsed; }}>
-          ${c ? '›' : '‹'}
-        </button>
-
+      <div class="sidebar-inner">
         <div class="nav-section">
-          <div class="nav-label ${c ? 'collapsed' : ''}">${msg.tracking}</div>
+          <div class="nav-label">${msg.tracking}</div>
           ${item('board', msg.board, collab_tasks)}
           ${item('mytasks', msg.myTasks, collab_tasks)}
         </div>
@@ -77,7 +71,7 @@ export class CollabTasksSidebar extends StateLitElement {
         <div class="nav-divider"></div>
 
         <div class="nav-section">
-          <div class="nav-label ${c ? 'collapsed' : ''}">${msg.manage}</div>
+          <div class="nav-label">${msg.manage}</div>
           ${item('workflows', msg.workflows)}
           ${item('simulator', msg.simulator)}
           ${item('approvals', msg.approvals)}
@@ -87,7 +81,7 @@ export class CollabTasksSidebar extends StateLitElement {
         <div class="nav-divider"></div>
 
         <div class="nav-section">
-          <div class="nav-label ${c ? 'collapsed' : ''}">${msg.workspace}</div>
+          <div class="nav-label">${msg.workspace}</div>
           ${item('settings', msg.settings, collab_gear)}
         </div>
       </div>
