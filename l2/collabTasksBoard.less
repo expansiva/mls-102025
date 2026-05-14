@@ -421,50 +421,59 @@ collab-tasks-board-102025 {
 
     // ── Theme: Amber ───────────────────────────────────────────────────────
     &.theme-amber {
-        --board-bg:           #fdf6ea;
-        --board-col-bg:       #faeeda;
-        --board-col-border:   rgba(133, 79, 11, 0.12);
-        --board-col-text:     #854f0b;
-        --board-header-bg:    #fdf6ea;
-        --board-header-border:rgba(133, 79, 11, 0.12);
-        --board-card-bg:      #fffaf2;
+        --board-bg:           #f5e8cc;
+        --board-col-bg:       #fdf4e3;
+        --board-col-border:   rgba(120, 68, 8, 0.22);
+        --board-col-text:     #4a2f07;
+        --board-header-bg:    #f0ddb5;
+        --board-header-border:rgba(120, 68, 8, 0.22);
+        --board-card-bg:      #fffcf5;
 
         .board-header-title {
-            color: #5c3307;
+            color: #2e1a02;
         }
-        .board-header-sep,
+        .board-header-sep {
+            color: #8a5a1c;
+        }
         .board-header-sub {
-            color: #b07036;
+            color: #7a4f18;
         }
         .board-icon-btn {
-            color: #b07036;
+            color: #7a4f18;
             &:hover, &.active {
-                background: rgba(133, 79, 11, 0.08);
-                border-color: rgba(133, 79, 11, 0.20);
-                color: #5c3307;
+                background: rgba(120, 68, 8, 0.10);
+                border-color: rgba(120, 68, 8, 0.28);
+                color: #2e1a02;
             }
         }
+        .col-label {
+            color: #4a2f07;
+        }
         .col-empty {
-            border-color: rgba(133, 79, 11, 0.15);
+            border-color: rgba(120, 68, 8, 0.22);
+            color: #7a5a2e;
         }
         .settings-panel {
-            background: #fdf6ea;
-            border-color: rgba(133, 79, 11, 0.12);
+            background: #f0ddb5;
+            border-color: rgba(120, 68, 8, 0.22);
         }
+        .settings-panel-title { color: #7a4f18; }
         .settings-theme-card {
-            background: #faeeda;
-            border-color: rgba(133, 79, 11, 0.15);
-            &:hover { border-color: rgba(133, 79, 11, 0.30); }
+            background: #fdf4e3;
+            border-color: rgba(120, 68, 8, 0.20);
+            .theme-name { color: #2e1a02; }
+            .theme-desc { color: #7a5a2e; }
+            &:hover { border-color: rgba(120, 68, 8, 0.38); }
         }
 
         @media (prefers-color-scheme: dark) {
             --board-bg:           #1e1508;
-            --board-col-bg:       rgba(133, 79, 11, 0.14);
-            --board-col-border:   rgba(240, 163, 50, 0.10);
-            --board-col-text:     #fac775;
-            --board-header-bg:    #1e1508;
-            --board-header-border:rgba(240, 163, 50, 0.10);
-            --board-card-bg:      rgba(133, 79, 11, 0.08);
+            --board-col-bg:       rgba(133, 79, 11, 0.18);
+            --board-col-border:   rgba(240, 163, 50, 0.16);
+            --board-col-text:     #f5c97a;
+            --board-header-bg:    #160f04;
+            --board-header-border:rgba(240, 163, 50, 0.14);
+            --board-card-bg:      rgba(133, 79, 11, 0.12);
         }
     }
 

@@ -77,6 +77,13 @@ export class CollabMessagesTasks extends StateLitElement {
       board.organizationId = 'collabcodes';
       board.reloadKey = Date.now();
       el = board;
+    } else if (screen === 'mytasks') {
+      await import('/_102025_/l2/collabTasksMyTasks.js');
+      const myTasks = document.createElement('collab-tasks-my-tasks-102025') as HTMLElement & {
+        userId?: string;
+      };
+      myTasks.userId = userId;
+      el = myTasks;
     } else {
       await import('/_102025_/l2/collabTasksEmptyState.js');
       const empty = document.createElement('collab-tasks-empty-state-102025') as HTMLElement;
