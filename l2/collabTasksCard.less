@@ -3,55 +3,66 @@
 collab-tasks-card-102025 {
     display: block;
     position: relative;
-    background: var(--color-background-primary, #ffffff);
-    border: 1px solid var(--color-border, #e5e7eb);
-    border-radius: 8px;
-    padding: 10px 12px;
+    background: var(--board-card-bg, var(--color-background-primary, #ffffff));
+    border: 0.5px solid var(--board-col-border, var(--color-border-tertiary, rgba(0,0,0,0.08)));
+    border-radius: 10px;
+    padding: 9px 11px 8px;
     cursor: pointer;
-    transition: box-shadow 0.12s ease-out, border-color 0.12s ease-out, transform 0.12s ease-out;
+    transition: border-color 0.12s ease-out, box-shadow 0.12s ease-out, transform 0.10s ease-out;
     outline: none;
+    overflow: hidden;
 
     &:hover {
-        border-color: var(--color-accent, #6366f1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        border-color: var(--color-border-secondary, rgba(0,0,0,0.18));
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
         transform: translateY(-1px);
     }
 
     &:focus-visible {
-        outline: 2px solid var(--color-accent, #6366f1);
+        outline: 2px solid var(--status-todo-accent, #185fa5);
         outline-offset: 2px;
     }
 
-    // Top-border accent — only rendered when boardStatus is set
+    &:active {
+        transform: translateY(0);
+        box-shadow: none;
+    }
+
+    // Left accent strip — only when boardStatus is set
     &.has-board-status::before {
         content: '';
         position: absolute;
-        top: -1px;
-        left: -1px;
-        right: -1px;
-        height: 2px;
-        border-radius: 8px 8px 0 0;
-        background: var(--card-status-accent, var(--color-accent, #6366f1));
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 3px;
+        border-radius: 10px 0 0 10px;
+        background: var(--card-status-accent, var(--color-border-secondary, rgba(0,0,0,0.18)));
     }
 
-    // Per-status accent colors (set by the Board on the card host)
-    &.board-status-todo          { --card-status-accent: #185fa5; }
-    &.board-status-in-progress   { --card-status-accent: #854f0b; }
-    &.board-status-paused        { --card-status-accent: #6b7280; }
-    &.board-status-done          { --card-status-accent: #3b6d11; }
-    &.board-status-failed        { --card-status-accent: #a32d2d; }
+    // Pull content right to make room for the accent strip
+    &.has-board-status {
+        padding-left: 13px;
+    }
+
+    // Per-status accent colors
+    &.board-status-todo          { --card-status-accent: var(--status-todo-accent, #185fa5); }
+    &.board-status-in-progress   { --card-status-accent: var(--status-in-progress-accent, #854f0b); }
+    &.board-status-paused        { --card-status-accent: var(--status-paused-accent, #6b7280); }
+    &.board-status-done          { --card-status-accent: var(--status-done-accent, #3b6d11); }
+    &.board-status-failed        { --card-status-accent: var(--status-failed-accent, #a32d2d); }
 
     .card-title {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 500;
-        color: var(--color-text-primary, #111111);
-        margin-bottom: 4px;
-        line-height: 1.4;
+        color: var(--color-text-primary, #1a1a18);
+        margin-bottom: 5px;
+        line-height: 1.35;
     }
 
     .card-description {
-        font-size: 12px;
-        color: var(--color-text-secondary, #6b7280);
+        font-size: 11px;
+        color: var(--color-text-secondary, #5f5e5a);
         margin-bottom: 6px;
         line-height: 1.4;
         display: -webkit-box;
@@ -65,34 +76,37 @@ collab-tasks-card-102025 {
         flex-wrap: wrap;
         gap: 4px;
         align-items: center;
-        margin-bottom: 4px;
+        margin-bottom: 7px;
     }
 
     .card-footer {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-top: 6px;
         gap: 6px;
+        border-top: 0.5px solid var(--board-col-border, rgba(0,0,0,0.06));
+        padding-top: 6px;
+        margin-top: 2px;
     }
 
     .assignee-row {
         display: flex;
         align-items: center;
-        gap: 3px;
+        gap: 2px;
     }
 
     .assignee-chip {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
         border-radius: 50%;
-        font-size: 9px;
+        font-size: 8px;
         font-weight: 700;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
         position: relative;
+        border: 0.5px solid rgba(255,255,255,0.5);
 
         &[title]:hover::after {
             content: attr(title);
@@ -100,7 +114,7 @@ collab-tasks-card-102025 {
             bottom: calc(100% + 4px);
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.78);
             color: #fff;
             font-size: 11px;
             font-weight: 400;
@@ -108,7 +122,7 @@ collab-tasks-card-102025 {
             border-radius: 4px;
             white-space: nowrap;
             pointer-events: none;
-            z-index: 10;
+            z-index: 20;
         }
     }
 
@@ -119,12 +133,13 @@ collab-tasks-card-102025 {
     .assignee-4 { background: #fee2e2; color: #991b1b; }
 
     .assignee-overflow {
-        background: var(--color-background-secondary, #f3f4f6);
-        color: var(--color-text-secondary, #6b7280);
+        background: var(--color-background-secondary, #f5f4f0);
+        color: var(--color-text-tertiary, #888780);
+        font-size: 8px;
     }
 
     .status-emoji {
-        font-size: 13px;
+        font-size: 11px;
         line-height: 1;
         cursor: default;
         position: relative;
@@ -135,64 +150,101 @@ collab-tasks-card-102025 {
             position: absolute;
             bottom: calc(100% + 4px);
             right: 0;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.78);
             color: #fff;
             font-size: 11px;
             padding: 2px 6px;
             border-radius: 4px;
             white-space: nowrap;
             pointer-events: none;
-            z-index: 10;
+            z-index: 20;
         }
     }
 
     .badge {
-        font-size: 10px;
-        font-weight: 600;
-        padding: 2px 7px;
-        border-radius: 9999px;
+        font-size: 9px;
+        font-weight: 500;
+        padding: 2px 6px;
+        border-radius: 8px;
         letter-spacing: 0.02em;
     }
 
-    .b-bug      { background: #fee2e2; color: #991b1b; }
-    .b-feature  { background: #dbeafe; color: #1e40af; }
-    .b-business { background: #fef3c7; color: #92400e; }
-    .b-process  { background: #d1fae5; color: #065f46; }
-    .b-neutral  { background: var(--color-background-secondary, #f3f4f6); color: var(--color-text-secondary, #6b7280); }
+    .b-bug      { background: #fcebeb; color: #a32d2d; }
+    .b-feature  { background: #e6f1fb; color: #185fa5; }
+    .b-business { background: #faeeda; color: #633806; }
+    .b-process  { background: #e1f5ee; color: #085041; }
+    .b-neutral  { background: var(--color-background-secondary, #f5f4f0); color: var(--color-text-tertiary, #888780); }
 
     .priority-pill {
-        font-size: 10px;
-        padding: 1px 6px;
-        border-radius: 4px;
-        background: var(--color-background-secondary, #f3f4f6);
-        color: var(--color-text-secondary, #6b7280);
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        background: var(--color-background-secondary, #f5f4f0);
+        color: var(--color-text-tertiary, #888780);
     }
 
     .priority-high,
-    .priority-urgent { background: #fef3c7; color: #b45309; }
+    .priority-urgent { background: #faeeda; color: #854f0b; }
 
     .due-pill {
-        font-size: 10px;
-        padding: 1px 6px;
-        border-radius: 4px;
-        background: var(--color-background-secondary, #f3f4f6);
-        color: var(--color-text-secondary, #6b7280);
+        font-size: 9px;
+        padding: 2px 5px;
+        border-radius: 6px;
+        background: var(--color-background-secondary, #f5f4f0);
+        color: var(--color-text-tertiary, #888780);
     }
 
     .pma-badge {
-        font-size: 10px;
-        padding: 1px 6px;
-        border-radius: 4px;
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 8px;
         background: #ede9fe;
-        color: var(--color-accent, #6366f1);
+        color: #5b21b6;
     }
 
     // Hide description on very narrow cards
-    @media (max-width: 279px) {
+    @media (max-width: 259px) {
         .card-description { display: none; }
     }
 
-    // Dark mode — box-shadow has more depth
+    // Forest theme — cards with glassmorphism
+    .theme-forest & {
+        border-color: rgba(255, 255, 255, 0.10);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.20);
+        backdrop-filter: blur(4px);
+
+        &:hover {
+            border-color: rgba(255, 255, 255, 0.22);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.30);
+        }
+
+        .card-title {
+            color: rgba(220, 255, 230, 0.92);
+        }
+        .card-description {
+            color: rgba(180, 220, 195, 0.65);
+        }
+        .card-footer {
+            border-color: rgba(255,255,255,0.07);
+        }
+        .badge {
+            opacity: 0.85;
+        }
+    }
+
+    // Amber theme — warm card tint
+    .theme-amber & {
+        border-color: rgba(133, 79, 11, 0.10);
+
+        &:hover {
+            border-color: rgba(133, 79, 11, 0.22);
+            box-shadow: 0 3px 10px rgba(133, 79, 11, 0.08);
+        }
+        .card-footer {
+            border-color: rgba(133, 79, 11, 0.08);
+        }
+    }
+
     @media (prefers-color-scheme: dark) {
         &:hover {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
@@ -201,9 +253,6 @@ collab-tasks-card-102025 {
 
     @media (prefers-reduced-motion: reduce) {
         transition: none;
-
-        &:hover {
-            transform: none;
-        }
+        &:hover { transform: none; }
     }
 }

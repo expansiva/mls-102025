@@ -2,28 +2,50 @@
 
 /// **collab_i18n_start**
 const message_pt = {
-  todo:             'A fazer',
-  inProgress:       'Em andamento',
-  paused:           'Pausado',
-  done:             'Concluído',
-  failed:           'Falhou',
-  emptyColumn:      'Nada por aqui ainda.',
-  boardEmptyTitle:  'Sem tarefas de workflow.',
-  boardEmptySubtitle: 'Crie uma com /createNewChat kai: <título> em qualquer thread.',
-  loadError:        'Não consegui carregar as tarefas.',
-  retry:            'Tentar de novo',
+  todo:              'A fazer',
+  inProgress:        'Em andamento',
+  paused:            'Pausado',
+  done:              'Concluído',
+  failed:            'Falhou',
+  emptyColumn:       'Nada por aqui ainda.',
+  boardEmptyTitle:   'Sem tarefas de workflow.',
+  boardEmptySubtitle:'Crie uma com /createNewChat kai: <título> em qualquer thread.',
+  loadError:         'Não consegui carregar as tarefas.',
+  retry:             'Tentar de novo',
+  board:             'Board',
+  allProcesses:      'todos os processos',
+  appearance:        'Aparência',
+  themes:            'Tema do board',
+  themeClean:        'Limpo',
+  themeAmber:        'Âmbar',
+  themeForest:       'Floresta',
+  themeCleanDesc:    'Visual neutro e minimalista',
+  themeAmberDesc:    'Tons quentes e aconchegantes',
+  themeForestDesc:   'Natureza com imagem de fundo',
+  reload:            'Recarregar',
 };
 const message_en = {
-  todo:             'To do',
-  inProgress:       'In progress',
-  paused:           'Paused',
-  done:             'Done',
-  failed:           'Failed',
-  emptyColumn:      'Nothing here yet.',
-  boardEmptyTitle:  'No workflow tasks yet.',
-  boardEmptySubtitle: 'Create one with /createNewChat kai: <title> from any thread.',
-  loadError:        'Could not load tasks.',
-  retry:            'Retry',
+  todo:              'To do',
+  inProgress:        'In progress',
+  paused:            'Paused',
+  done:              'Done',
+  failed:            'Failed',
+  emptyColumn:       'Nothing here yet.',
+  boardEmptyTitle:   'No workflow tasks yet.',
+  boardEmptySubtitle:'Create one with /createNewChat kai: <title> from any thread.',
+  loadError:         'Could not load tasks.',
+  retry:             'Retry',
+  board:             'Board',
+  allProcesses:      'all processes',
+  appearance:        'Appearance',
+  themes:            'Board theme',
+  themeClean:        'Clean',
+  themeAmber:        'Amber',
+  themeForest:       'Forest',
+  themeCleanDesc:    'Neutral and minimal',
+  themeAmberDesc:    'Warm and cozy tones',
+  themeForestDesc:   'Nature background image',
+  reload:            'Reload',
 };
 /// **collab_i18n_end**
 
@@ -54,6 +76,16 @@ async function loadTagVocabulary(organizationId: string, userId: string): Promis
   return _tagCache;
 }
 
+// ── Theme ──────────────────────────────────────────────────────────────────
+type BoardTheme = 'clean' | 'amber' | 'forest';
+const THEME_KEY = 'collab-board-theme';
+const VALID_THEMES: BoardTheme[] = ['clean', 'amber', 'forest'];
+
+function loadTheme(): BoardTheme {
+  const saved = localStorage.getItem(THEME_KEY) as BoardTheme | null;
+  return saved && VALID_THEMES.includes(saved) ? saved : 'clean';
+}
+
 // ── Columns definition ─────────────────────────────────────────────────────
 type StatusKey = 'todo' | 'in progress' | 'paused' | 'done' | 'failed';
 
@@ -73,6 +105,8 @@ export class CollabTasksBoard extends StateLitElement {
   @state() private loadingActive = true;
   @state() private loadingClosed = true;
   @state() private error: string | null = null;
+  @state() private _theme: BoardTheme = 'clean';
+  @state() private _showSettings = false;
 
   private _initialFetchDone = false;
   private _refetchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -82,6 +116,8 @@ export class CollabTasksBoard extends StateLitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this._theme = loadTheme();
+    this._applyThemeClass();
     this._onTaskChange = (e: Event) => this._handleTaskChange(e as CustomEvent);
     this._onThreadChange = (e: Event) => this._handleThreadChange(e as CustomEvent);
     this._onTaskMetaChanged = (e: Event) => this._handleTaskMetaChanged(e as CustomEvent);
@@ -91,6 +127,18 @@ export class CollabTasksBoard extends StateLitElement {
     w.addEventListener('task-meta-changed', this._onTaskMetaChanged);
     this._fetchAll();
     this._initialFetchDone = true;
+  }
+
+  private _applyThemeClass() {
+    VALID_THEMES.forEach(t => this.classList.remove(`theme-${t}`));
+    this.classList.add(`theme-${this._theme}`);
+  }
+
+  private _setTheme(theme: BoardTheme) {
+    this._theme = theme;
+    localStorage.setItem(THEME_KEY, theme);
+    this._applyThemeClass();
+    this._showSettings = false;
   }
 
   disconnectedCallback() {
@@ -241,8 +289,41 @@ export class CollabTasksBoard extends StateLitElement {
   render() {
     const m = getMsg();
 
+    const header = html`
+      <div class="board-header">
+        <div class="board-header-left">
+          <span class="board-header-title">${m.board}</span>
+          <span class="board-header-sep">·</span>
+          <span class="board-header-sub">${m.allProcesses}</span>
+        </div>
+        <div class="board-header-right">
+          <button
+            class="board-icon-btn ${this._showSettings ? 'active' : ''}"
+            title="${m.appearance}"
+            @click=${() => { this._showSettings = !this._showSettings; }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+          <button
+            class="board-icon-btn"
+            title="${m.reload}"
+            @click=${() => this._fetchAll()}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+
     if (this.error && this.activeTasks.length === 0 && this.closedTasks.length === 0) {
       return html`
+        ${header}
         <div class="board-error">
           <span>${m.loadError}</span>
           <button class="board-error-retry" @click=${() => this._fetchAll()}>${m.retry}</button>
@@ -258,6 +339,8 @@ export class CollabTasksBoard extends StateLitElement {
 
     if (!isLoading && !this.loadingClosed && totalAll === 0) {
       return html`
+        ${header}
+        ${this._showSettings ? this._renderSettings(m) : nothing}
         <collab-tasks-empty-state-102025
           title=${m.boardEmptyTitle}
           subtitle=${m.boardEmptySubtitle}
@@ -268,6 +351,8 @@ export class CollabTasksBoard extends StateLitElement {
     const columns: StatusKey[] = hasFailed ? [...ALWAYS_COLUMNS, 'failed'] : [...ALWAYS_COLUMNS];
 
     return html`
+      ${header}
+      ${this._showSettings ? this._renderSettings(m) : nothing}
       ${this.error ? html`
         <div class="board-error">
           <span>${m.loadError}</span>
@@ -276,6 +361,75 @@ export class CollabTasksBoard extends StateLitElement {
       ` : nothing}
       <div class="board-columns">
         ${columns.map(status => this._renderColumn(status, buckets, m, isLoading, totalAll))}
+      </div>
+    `;
+  }
+
+  private _renderSettings(m: typeof message_en) {
+    const themes: { id: BoardTheme; label: string; desc: string; preview: string }[] = [
+      {
+        id: 'clean',
+        label: m.themeClean,
+        desc: m.themeCleanDesc,
+        preview: `
+          <div style="display:flex;gap:3px;height:28px">
+            <div style="flex:1;background:#f5f4f0;border-radius:3px"></div>
+            <div style="flex:1;background:#eceae3;border-radius:3px"></div>
+            <div style="flex:1;background:#f5f4f0;border-radius:3px"></div>
+          </div>
+        `,
+      },
+      {
+        id: 'amber',
+        label: m.themeAmber,
+        desc: m.themeAmberDesc,
+        preview: `
+          <div style="display:flex;gap:3px;height:28px">
+            <div style="flex:1;background:#faeeda;border-radius:3px"></div>
+            <div style="flex:1;background:#f5e4c3;border-radius:3px"></div>
+            <div style="flex:1;background:#faeeda;border-radius:3px"></div>
+          </div>
+        `,
+      },
+      {
+        id: 'forest',
+        label: m.themeForest,
+        desc: m.themeForestDesc,
+        preview: `
+          <div style="display:flex;gap:3px;height:28px;background:linear-gradient(135deg,#0f2316 0%,#1a3a1f 100%);border-radius:3px;padding:3px">
+            <div style="flex:1;background:rgba(255,255,255,0.10);border-radius:2px"></div>
+            <div style="flex:1;background:rgba(255,255,255,0.07);border-radius:2px"></div>
+            <div style="flex:1;background:rgba(255,255,255,0.10);border-radius:2px"></div>
+          </div>
+        `,
+      },
+    ];
+
+    return html`
+      <div class="settings-panel">
+        <div class="settings-panel-title">${m.themes}</div>
+        <div class="settings-theme-grid">
+          ${themes.map(t => html`
+            <div
+              class="settings-theme-card ${this._theme === t.id ? 'selected' : ''}"
+              @click=${() => this._setTheme(t.id)}
+            >
+              <div class="theme-preview" .innerHTML=${t.preview}></div>
+              <div class="theme-info">
+                <span class="theme-name">${t.label}</span>
+                <span class="theme-desc">${t.desc}</span>
+              </div>
+              ${this._theme === t.id ? html`
+                <span class="theme-check">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <circle cx="6" cy="6" r="6" fill="currentColor"/>
+                    <path d="M3.5 6l1.8 1.8 3-3" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              ` : nothing}
+            </div>
+          `)}
+        </div>
       </div>
     `;
   }

@@ -23,7 +23,8 @@ import { html, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
-import { dispatchThreadOpen } from '/_102025_/l2/collabMessagesEvents.js';
+import { openElementInServiceDetails } from '/_102027_/l2/libCommom.js';
+import { getUserId } from '/_102025_/l2/collabMessagesHelper.js';
 
 function getMsg() {
   return document.documentElement.lang === 'pt' ? message_pt : message_en;
@@ -149,10 +150,17 @@ export class CollabTasksCard extends StateLitElement {
     `;
   }
 
-  private _onClick() {
+  private async _onClick() {
     const task = this.task;
-    if (!task?.taskRoom?.threadId) return;
-    dispatchThreadOpen(task.taskRoom.threadId, task.PK);
+    if (!task) return;
+    await import('/_102025_/l2/collabMessagesTaskRoom.js');
+    const room = document.createElement('collab-messages-task-room-102025') as HTMLElement & {
+      task?: msg.TaskData;
+      userId?: string;
+    };
+    room.task = task;
+    room.userId = getUserId() || '';
+    openElementInServiceDetails(room);
   }
 
   private _onKeyDown(e: KeyboardEvent) {
