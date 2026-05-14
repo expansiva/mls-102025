@@ -20,12 +20,18 @@ const message_pt = {
   priorityNormal:  'normal',
   priorityHigh:    'alta',
   priorityUrgent:  'urgente',
-  noDueDate:       'sem prazo',
   today:           'hoje',
   tomorrow:        'amanhã',
   overdue:         'atrasado',
-  noWorkflow:      'sem workflow',
   openTask:        'Abrir task',
+  appearance:      'Aparência',
+  themes:          'Tema',
+  themeClean:      'Limpo',
+  themeAmber:      'Âmbar',
+  themeForest:     'Floresta',
+  themeCleanDesc:  'Visual neutro e minimalista',
+  themeAmberDesc:  'Tons quentes e aconchegantes',
+  themeForestDesc: 'Natureza com imagem de fundo',
 };
 const message_en = {
   title:           'My tasks',
@@ -46,12 +52,18 @@ const message_en = {
   priorityNormal:  'normal',
   priorityHigh:    'high',
   priorityUrgent:  'urgent',
-  noDueDate:       'no due date',
   today:           'today',
   tomorrow:        'tomorrow',
   overdue:         'overdue',
-  noWorkflow:      'no workflow',
   openTask:        'Open task',
+  appearance:      'Appearance',
+  themes:          'Theme',
+  themeClean:      'Clean',
+  themeAmber:      'Amber',
+  themeForest:     'Forest',
+  themeCleanDesc:  'Neutral and minimal',
+  themeAmberDesc:  'Warm and cozy tones',
+  themeForestDesc: 'Nature background image',
 };
 /// **collab_i18n_end**
 
@@ -67,14 +79,19 @@ function getMsg() {
   return document.documentElement.lang === 'pt' ? message_pt : message_en;
 }
 
-// ── Priority order ──────────────────────────────────────────────────────────
-const PRIORITY_ORDER: Record<string, number> = {
-  urgent: 0, high: 1, normal: 2, low: 3,
-};
+// ── Shared theme (same key as board) ──────────────────────────────────────
+type MyTasksTheme = 'clean' | 'amber' | 'forest';
+const THEME_KEY   = 'collab-board-theme';
+const ALL_THEMES: MyTasksTheme[] = ['clean', 'amber', 'forest'];
 
-const STATUS_ORDER: Record<string, number> = {
-  'in progress': 0, 'todo': 1, 'paused': 2, 'done': 3, 'failed': 4,
-};
+function loadTheme(): MyTasksTheme {
+  const saved = localStorage.getItem(THEME_KEY) as MyTasksTheme | null;
+  return saved && ALL_THEMES.includes(saved) ? saved : 'clean';
+}
+
+// ── Sorting helpers ───────────────────────────────────────────────────────
+const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
+const STATUS_ORDER:   Record<string, number> = { 'in progress': 0, 'todo': 1, 'paused': 2, 'done': 3, 'failed': 4 };
 
 function sortActive(tasks: msg.TaskData[]): msg.TaskData[] {
   return [...tasks].sort((a, b) => {
@@ -90,15 +107,12 @@ function sortActive(tasks: msg.TaskData[]): msg.TaskData[] {
 
 function dueDateLabel(dueDate: string | undefined, m: typeof message_en): string {
   if (!dueDate) return '';
-  const now = new Date();
-  const due = new Date(dueDate + 'T00:00:00');
-  const todayStr = now.toISOString().slice(0, 10);
-  const tomorrowDate = new Date(now);
-  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-  const tomorrowStr = tomorrowDate.toISOString().slice(0, 10);
-  if (dueDate === todayStr) return m.today;
+  const todayStr    = new Date().toISOString().slice(0, 10);
+  const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowStr  = tomorrowDate.toISOString().slice(0, 10);
+  if (dueDate === todayStr)    return m.today;
   if (dueDate === tomorrowStr) return m.tomorrow;
-  if (due < now) return m.overdue;
+  if (new Date(dueDate + 'T23:59:59') < new Date()) return m.overdue;
   return dueDate;
 }
 
@@ -118,6 +132,8 @@ export class CollabTasksMyTasks extends StateLitElement {
   @state() private loadingClosed = true;
   @state() private error: string | null = null;
   @state() private showClosed = false;
+  @state() private _theme: MyTasksTheme = 'clean';
+  @state() private _showSettings = false;
 
   private _refetchTimer: ReturnType<typeof setTimeout> | null = null;
   private _onTaskChange!: EventListener;
@@ -126,7 +142,9 @@ export class CollabTasksMyTasks extends StateLitElement {
   connectedCallback() {
     super.connectedCallback();
     if (!this.userId) this.userId = getUserId() || '';
-    this._onTaskChange = (e: Event) => this._handleTaskChange(e as CustomEvent);
+    this._theme = loadTheme();
+    this._applyThemeClass();
+    this._onTaskChange    = (e: Event) => this._handleTaskChange(e as CustomEvent);
     this._onTaskMetaChanged = (e: Event) => this._handleTaskMetaChanged(e as CustomEvent);
     const w = window?.top ?? window;
     w.addEventListener('task-change', this._onTaskChange);
@@ -140,6 +158,18 @@ export class CollabTasksMyTasks extends StateLitElement {
     w.removeEventListener('task-change', this._onTaskChange);
     w.removeEventListener('task-meta-changed', this._onTaskMetaChanged);
     if (this._refetchTimer) clearTimeout(this._refetchTimer);
+  }
+
+  private _applyThemeClass() {
+    ALL_THEMES.forEach(t => this.classList.remove(`theme-${t}`));
+    this.classList.add(`theme-${this._theme}`);
+  }
+
+  private _setTheme(theme: MyTasksTheme) {
+    this._theme = theme;
+    localStorage.setItem(THEME_KEY, theme);
+    this._applyThemeClass();
+    this._showSettings = false;
   }
 
   private async _fetchAll() {
@@ -185,24 +215,19 @@ export class CollabTasksMyTasks extends StateLitElement {
   private _handleTaskChange(e: CustomEvent) {
     const task = e.detail?.context?.task as msg.TaskData | undefined;
     if (!task) { this._scheduleRefetch(); return; }
-
-    const isClosed = task.status === 'done' || task.status === 'failed';
+    const isClosed  = task.status === 'done' || task.status === 'failed';
     const activeIdx = this.activeTasks.findIndex(t => t.PK === task.PK);
     const closedIdx = this.closedTasks.findIndex(t => t.PK === task.PK);
-
     if (activeIdx >= 0) {
       if (isClosed) {
-        const updated = this.activeTasks.filter(t => t.PK !== task.PK);
-        this.activeTasks = sortActive(updated);
+        this.activeTasks = sortActive(this.activeTasks.filter(t => t.PK !== task.PK));
         this.closedTasks = [task, ...this.closedTasks];
       } else {
-        const updated = [...this.activeTasks];
-        updated[activeIdx] = task;
+        const updated = [...this.activeTasks]; updated[activeIdx] = task;
         this.activeTasks = sortActive(updated);
       }
     } else if (closedIdx >= 0) {
-      const updated = [...this.closedTasks];
-      updated[closedIdx] = task;
+      const updated = [...this.closedTasks]; updated[closedIdx] = task;
       this.closedTasks = updated;
     } else {
       this._scheduleRefetch();
@@ -212,35 +237,42 @@ export class CollabTasksMyTasks extends StateLitElement {
   private _handleTaskMetaChanged(e: CustomEvent) {
     const { taskId, taskTitle } = e.detail as { taskId: string; taskTitle: string };
     const pk = `task/#${taskId}`;
-    const activeIdx = this.activeTasks.findIndex(t => t.PK === pk);
-    if (activeIdx >= 0) {
-      const updated = [...this.activeTasks];
-      updated[activeIdx] = { ...updated[activeIdx], title: taskTitle };
-      this.activeTasks = updated;
-      return;
+    const ai = this.activeTasks.findIndex(t => t.PK === pk);
+    if (ai >= 0) {
+      const u = [...this.activeTasks]; u[ai] = { ...u[ai], title: taskTitle };
+      this.activeTasks = u; return;
     }
-    const closedIdx = this.closedTasks.findIndex(t => t.PK === pk);
-    if (closedIdx >= 0) {
-      const updated = [...this.closedTasks];
-      updated[closedIdx] = { ...updated[closedIdx], title: taskTitle };
-      this.closedTasks = updated;
+    const ci = this.closedTasks.findIndex(t => t.PK === pk);
+    if (ci >= 0) {
+      const u = [...this.closedTasks]; u[ci] = { ...u[ci], title: taskTitle };
+      this.closedTasks = u;
     }
   }
 
   private async _openTask(task: msg.TaskData) {
     await import('/_102025_/l2/collabMessagesTaskRoom.js');
     const room = document.createElement('collab-messages-task-room-102025') as HTMLElement & {
-      task?: msg.TaskData;
-      userId?: string;
+      task?: msg.TaskData; userId?: string;
     };
     room.task = task;
     room.userId = this.userId;
     openElementInServiceDetails(room);
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   render() {
     const m = getMsg();
+    return html`
+      ${this._renderHeader(m)}
+      ${this._showSettings ? this._renderSettings(m) : nothing}
+      <div class="mytasks-body">
+        ${this._renderBody(m)}
+      </div>
+    `;
+  }
 
+  private _renderHeader(m: typeof message_en) {
     return html`
       <div class="mytasks-header">
         <div class="mytasks-header-left">
@@ -249,6 +281,16 @@ export class CollabTasksMyTasks extends StateLitElement {
           <span class="mytasks-sub">${m.subtitle}</span>
         </div>
         <div class="mytasks-header-right">
+          <button
+            class="mytasks-icon-btn ${this._showSettings ? 'active' : ''}"
+            title="${m.appearance}"
+            @click=${() => { this._showSettings = !this._showSettings; }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
           <button
             class="mytasks-icon-btn"
             title="${m.reload}"
@@ -261,75 +303,121 @@ export class CollabTasksMyTasks extends StateLitElement {
           </button>
         </div>
       </div>
+    `;
+  }
 
-      <div class="mytasks-body">
-        ${this.error && this.activeTasks.length === 0 ? html`
-          <div class="mytasks-error">
-            <span>${m.loadError}</span>
-            <button @click=${() => this._fetchAll()}>${m.retry}</button>
+  private _renderSettings(m: typeof message_en) {
+    const themes: { id: MyTasksTheme; label: string; desc: string; preview: string }[] = [
+      {
+        id: 'clean', label: m.themeClean, desc: m.themeCleanDesc,
+        preview: `<div style="display:flex;gap:3px;height:28px"><div style="flex:1;background:#f5f4f0;border-radius:3px"></div><div style="flex:1;background:#eceae3;border-radius:3px"></div><div style="flex:1;background:#f5f4f0;border-radius:3px"></div></div>`,
+      },
+      {
+        id: 'amber', label: m.themeAmber, desc: m.themeAmberDesc,
+        preview: `<div style="display:flex;gap:3px;height:28px"><div style="flex:1;background:#faeeda;border-radius:3px"></div><div style="flex:1;background:#f5e4c3;border-radius:3px"></div><div style="flex:1;background:#faeeda;border-radius:3px"></div></div>`,
+      },
+      {
+        id: 'forest', label: m.themeForest, desc: m.themeForestDesc,
+        preview: `<div style="display:flex;gap:3px;height:28px;background:linear-gradient(135deg,#0f2316 0%,#1a3a1f 100%);border-radius:3px;padding:3px"><div style="flex:1;background:rgba(255,255,255,0.10);border-radius:2px"></div><div style="flex:1;background:rgba(255,255,255,0.07);border-radius:2px"></div><div style="flex:1;background:rgba(255,255,255,0.10);border-radius:2px"></div></div>`,
+      },
+    ];
+    return html`
+      <div class="settings-panel">
+        <div class="settings-panel-title">${m.themes}</div>
+        <div class="settings-theme-grid">
+          ${themes.map(t => html`
+            <div
+              class="settings-theme-card ${this._theme === t.id ? 'selected' : ''}"
+              @click=${() => this._setTheme(t.id)}
+            >
+              <div class="theme-preview" .innerHTML=${t.preview}></div>
+              <div class="theme-info">
+                <span class="theme-name">${t.label}</span>
+                <span class="theme-desc">${t.desc}</span>
+              </div>
+              ${this._theme === t.id ? html`
+                <span class="theme-check">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <circle cx="6" cy="6" r="6" fill="currentColor"/>
+                    <path d="M3.5 6l1.8 1.8 3-3" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              ` : nothing}
+            </div>
+          `)}
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderBody(m: typeof message_en) {
+    if (this.error && this.activeTasks.length === 0) {
+      return html`
+        <div class="mytasks-error">
+          <span>${m.loadError}</span>
+          <button @click=${() => this._fetchAll()}>${m.retry}</button>
+        </div>
+      `;
+    }
+    if (this.loadingActive) return this._renderSkeletons(4);
+    if (this.activeTasks.length === 0 && this.closedTasks.length === 0 && !this.loadingClosed) {
+      return html`
+        <div class="mytasks-empty">
+          <div class="empty-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="1.2" opacity=".3"/>
+              <path d="M11 16l3 3 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".4"/>
+            </svg>
+          </div>
+          <div class="empty-title">${m.emptyTitle}</div>
+          <div class="empty-sub">${m.emptySubtitle}</div>
+        </div>
+      `;
+    }
+    return html`
+      ${this.activeTasks.length > 0 ? html`
+        <div class="mytasks-section-label">
+          ${m.active} <span class="section-count">${this.activeTasks.length}</span>
+        </div>
+        <div class="mytasks-list">
+          ${this.activeTasks.map(task => this._renderTaskRow(task, m))}
+        </div>
+      ` : nothing}
+
+      ${!this.loadingClosed && this.closedTasks.length > 0 ? html`
+        <div
+          class="mytasks-section-label closed-toggle"
+          @click=${() => { this.showClosed = !this.showClosed; }}
+        >
+          <svg class="toggle-chevron ${this.showClosed ? 'open' : ''}"
+            width="12" height="12" viewBox="0 0 12 12" fill="none"
+            stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M3 4.5l3 3 3-3"/>
+          </svg>
+          ${m.closed} <span class="section-count">${this.closedTasks.length}</span>
+        </div>
+        ${this.showClosed ? html`
+          <div class="mytasks-list closed">
+            ${this.closedTasks.map(task => this._renderTaskRow(task, m))}
           </div>
         ` : nothing}
+      ` : nothing}
 
-        ${this.loadingActive
-          ? this._renderSkeletons(4)
-          : this.activeTasks.length === 0 && this.closedTasks.length === 0 && !this.loadingClosed
-            ? html`
-              <div class="mytasks-empty">
-                <div class="empty-icon">
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="1.2" opacity=".3"/>
-                    <path d="M11 16l3 3 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".4"/>
-                  </svg>
-                </div>
-                <div class="empty-title">${m.emptyTitle}</div>
-                <div class="empty-sub">${m.emptySubtitle}</div>
-              </div>
-            `
-            : html`
-              ${this.activeTasks.length > 0 ? html`
-                <div class="mytasks-section-label">${m.active} <span class="section-count">${this.activeTasks.length}</span></div>
-                <div class="mytasks-list">
-                  ${this.activeTasks.map(task => this._renderTaskRow(task, m))}
-                </div>
-              ` : nothing}
-
-              ${!this.loadingClosed && this.closedTasks.length > 0 ? html`
-                <div
-                  class="mytasks-section-label closed-toggle"
-                  @click=${() => { this.showClosed = !this.showClosed; }}
-                >
-                  <svg class="toggle-chevron ${this.showClosed ? 'open' : ''}"
-                    width="12" height="12" viewBox="0 0 12 12" fill="none"
-                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                    <path d="M3 4.5l3 3 3-3"/>
-                  </svg>
-                  ${m.closed} <span class="section-count">${this.closedTasks.length}</span>
-                </div>
-                ${this.showClosed ? html`
-                  <div class="mytasks-list closed">
-                    ${this.closedTasks.map(task => this._renderTaskRow(task, m))}
-                  </div>
-                ` : nothing}
-              ` : nothing}
-
-              ${this.loadingClosed ? html`
-                <div class="mytasks-loading-closed">
-                  <div class="loading-dot"></div>
-                  <div class="loading-dot"></div>
-                  <div class="loading-dot"></div>
-                </div>
-              ` : nothing}
-            `
-        }
-      </div>
+      ${this.loadingClosed ? html`
+        <div class="mytasks-loading-closed">
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+          <div class="loading-dot"></div>
+        </div>
+      ` : nothing}
     `;
   }
 
   private _renderTaskRow(task: msg.TaskData, m: typeof message_en) {
     const isClosed = task.status === 'done' || task.status === 'failed';
-    const pmaId = task.taskRoom?.pmaId;
+    const pmaId    = task.taskRoom?.pmaId;
     const dueLabel = dueDateLabel(task.dueDate, m);
-    const overdue = !isClosed && isOverdue(task.dueDate);
+    const overdue  = !isClosed && isOverdue(task.dueDate);
     const statusLabel = task.status === 'in progress'
       ? m.inProgress
       : (m as any)[task.status] ?? task.status;
@@ -344,7 +432,9 @@ export class CollabTasksMyTasks extends StateLitElement {
         tabindex="0"
         title="${m.openTask}"
         @click=${() => this._openTask(task)}
-        @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._openTask(task); } }}
+        @keydown=${(e: KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._openTask(task); }
+        }}
       >
         <div class="task-check status-${task.status.replace(' ', '-')}">
           ${isClosed ? html`
@@ -383,7 +473,7 @@ export class CollabTasksMyTasks extends StateLitElement {
             <div class="skel skel-check"></div>
             <div class="skel-body">
               <div class="skel skel-title" style="width: ${55 + (i % 3) * 12}%"></div>
-              <div class="skel skel-meta" style="width: ${30 + (i % 2) * 10}%"></div>
+              <div class="skel skel-meta"  style="width: ${30 + (i % 2) * 10}%"></div>
             </div>
             <div class="skel skel-badge"></div>
           </div>

@@ -6,6 +6,34 @@ collab-tasks-my-tasks-102025 {
     height: 100%;
     overflow: hidden;
 
+    // ── Component-level tokens (light mode defaults) ───────────────────────
+    --mt-bg:          var(--color-background-primary, #ffffff);
+    --mt-bg-body:     var(--color-background-primary, #ffffff);
+    --mt-header-bg:   var(--color-background-primary, #ffffff);
+    --mt-header-border: var(--color-border-tertiary, rgba(0,0,0,0.08));
+    --mt-text-primary:   var(--color-text-primary,   #1a1a18);
+    --mt-text-secondary: var(--color-text-secondary, #5f5e5a);
+    --mt-text-tertiary:  var(--color-text-tertiary,  #888780);
+    --mt-row-hover:   var(--color-background-secondary, #f5f4f0);
+    --mt-sep-color:   rgba(0,0,0,0.06);
+    --mt-icon-color:  var(--color-text-tertiary, #888780);
+    --mt-icon-hover-bg: var(--color-background-secondary, #f5f4f0);
+
+    // ── Dark mode base overrides ───────────────────────────────────────────
+    @media (prefers-color-scheme: dark) {
+        --mt-bg:          #1e1e1c;
+        --mt-bg-body:     #1e1e1c;
+        --mt-header-bg:   #1e1e1c;
+        --mt-header-border: rgba(255,255,255,0.08);
+        --mt-text-primary:   #e8e6dc;
+        --mt-text-secondary: #b8b5ac;
+        --mt-text-tertiary:  #8a8880;
+        --mt-row-hover:   #28281f;
+        --mt-sep-color:   rgba(255,255,255,0.06);
+        --mt-icon-color:  #8a8880;
+        --mt-icon-hover-bg: #28281f;
+    }
+
     // ── Header ─────────────────────────────────────────────────────────────
     .mytasks-header {
         display: flex;
@@ -14,8 +42,9 @@ collab-tasks-my-tasks-102025 {
         padding: 0 16px;
         gap: 8px;
         flex-shrink: 0;
-        background: var(--color-background-primary, #ffffff);
-        border-bottom: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.08));
+        background: var(--mt-header-bg);
+        border-bottom: 0.5px solid var(--mt-header-border);
+        z-index: 10;
     }
 
     .mytasks-header-left {
@@ -29,24 +58,27 @@ collab-tasks-my-tasks-102025 {
     .mytasks-title {
         font-size: 14px;
         font-weight: 500;
-        color: var(--color-text-primary, #1a1a18);
+        color: var(--mt-text-primary);
         white-space: nowrap;
     }
 
     .mytasks-sep {
         font-size: 13px;
-        color: var(--color-text-tertiary, #888780);
+        color: var(--mt-text-tertiary);
     }
 
     .mytasks-sub {
         font-size: 12px;
-        color: var(--color-text-tertiary, #888780);
+        color: var(--mt-text-tertiary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
     .mytasks-header-right {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         flex-shrink: 0;
     }
 
@@ -60,24 +92,112 @@ collab-tasks-my-tasks-102025 {
         border: 0.5px solid transparent;
         border-radius: 7px;
         cursor: pointer;
-        color: var(--color-text-tertiary, #888780);
+        color: var(--mt-icon-color);
         transition: background 0.12s, border-color 0.12s, color 0.12s;
 
         &:hover {
-            background: var(--color-background-secondary, #f5f4f0);
-            border-color: var(--color-border-tertiary, rgba(0,0,0,0.08));
-            color: var(--color-text-secondary, #5f5e5a);
+            background: var(--mt-icon-hover-bg);
+            border-color: var(--mt-header-border);
+            color: var(--mt-text-secondary);
         }
+
+        &.active {
+            background: var(--mt-icon-hover-bg);
+            border-color: var(--mt-header-border);
+            color: var(--mt-text-primary);
+        }
+    }
+
+    // ── Settings panel ─────────────────────────────────────────────────────
+    .settings-panel {
+        padding: 12px 16px;
+        border-bottom: 0.5px solid var(--mt-header-border);
+        background: var(--mt-header-bg);
+        flex-shrink: 0;
+        animation: panel-slide-down 140ms ease-out both;
+    }
+
+    @keyframes panel-slide-down {
+        from { opacity: 0; transform: translateY(-6px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .settings-panel-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--mt-text-tertiary);
+        margin-bottom: 10px;
+    }
+
+    .settings-theme-grid {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .settings-theme-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 140px;
+        padding: 8px 10px;
+        border: 0.5px solid var(--mt-header-border);
+        border-radius: 10px;
+        cursor: pointer;
+        background: var(--mt-row-hover);
+        transition: border-color 0.12s, box-shadow 0.12s;
+
+        &:hover {
+            border-color: var(--mt-text-tertiary);
+        }
+
+        &.selected {
+            border-color: #185fa5;
+            box-shadow: 0 0 0 1.5px #185fa5 inset;
+        }
+    }
+
+    .theme-preview { border-radius: 4px; overflow: hidden; }
+
+    .theme-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    .theme-name {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--mt-text-primary);
+    }
+
+    .theme-desc {
+        font-size: 10px;
+        color: var(--mt-text-tertiary);
+        line-height: 1.3;
+    }
+
+    .theme-check {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        color: #185fa5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     // ── Body ───────────────────────────────────────────────────────────────
     .mytasks-body {
         flex: 1;
         overflow-y: auto;
-        padding: 14px 16px;
+        padding: 12px 16px 16px;
+        background: var(--mt-bg-body);
         display: flex;
         flex-direction: column;
-        gap: 0;
     }
 
     // ── Error ──────────────────────────────────────────────────────────────
@@ -93,17 +213,13 @@ collab-tasks-my-tasks-102025 {
         margin-bottom: 12px;
 
         button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: inherit;
-            text-decoration: underline;
-            font-size: 13px;
-            padding: 0;
+            background: none; border: none; cursor: pointer;
+            color: inherit; text-decoration: underline;
+            font-size: 13px; padding: 0;
         }
     }
 
-    // ── Empty state ────────────────────────────────────────────────────────
+    // ── Empty ──────────────────────────────────────────────────────────────
     .mytasks-empty {
         display: flex;
         flex-direction: column;
@@ -112,24 +228,10 @@ collab-tasks-my-tasks-102025 {
         gap: 8px;
         padding: 48px 24px;
         text-align: center;
-        color: var(--color-text-tertiary, #888780);
 
-        .empty-icon {
-            color: var(--color-text-tertiary, #888780);
-            margin-bottom: 4px;
-        }
-
-        .empty-title {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--color-text-secondary, #5f5e5a);
-        }
-
-        .empty-sub {
-            font-size: 12px;
-            max-width: 280px;
-            line-height: 1.5;
-        }
+        .empty-icon { color: var(--mt-text-tertiary); margin-bottom: 4px; }
+        .empty-title { font-size: 14px; font-weight: 500; color: var(--mt-text-secondary); }
+        .empty-sub   { font-size: 12px; color: var(--mt-text-tertiary); max-width: 280px; line-height: 1.5; }
     }
 
     // ── Section label ──────────────────────────────────────────────────────
@@ -138,20 +240,17 @@ collab-tasks-my-tasks-102025 {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: var(--color-text-tertiary, #888780);
-        padding: 0 2px 7px;
+        color: var(--mt-text-tertiary);
+        padding: 0 2px 8px;
         display: flex;
         align-items: center;
         gap: 6px;
 
-        &:not(:first-child) {
-            padding-top: 16px;
-        }
+        &:not(:first-child) { padding-top: 16px; }
 
         &.closed-toggle {
-            cursor: pointer;
-            user-select: none;
-            &:hover { color: var(--color-text-secondary, #5f5e5a); }
+            cursor: pointer; user-select: none;
+            &:hover { color: var(--mt-text-secondary); }
         }
 
         .toggle-chevron {
@@ -165,8 +264,8 @@ collab-tasks-my-tasks-102025 {
         font-weight: 500;
         padding: 1px 5px;
         border-radius: 8px;
-        background: var(--color-background-secondary, #f5f4f0);
-        color: var(--color-text-tertiary, #888780);
+        background: var(--mt-row-hover);
+        color: var(--mt-text-tertiary);
         text-transform: none;
         letter-spacing: 0;
     }
@@ -175,11 +274,7 @@ collab-tasks-my-tasks-102025 {
     .mytasks-list {
         display: flex;
         flex-direction: column;
-        gap: 0;
-
-        &.closed {
-            opacity: 0.75;
-        }
+        &.closed { opacity: 0.72; }
     }
 
     // ── Task row ───────────────────────────────────────────────────────────
@@ -187,39 +282,33 @@ collab-tasks-my-tasks-102025 {
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 9px 10px;
+        padding: 9px 8px;
         border-radius: 8px;
         cursor: pointer;
         transition: background 0.10s;
         outline: none;
         position: relative;
 
-        // Subtle separator between rows
         & + .task-row::before {
             content: '';
             position: absolute;
             top: 0;
-            left: 44px;
-            right: 10px;
+            left: 42px;
+            right: 8px;
             height: 0.5px;
-            background: var(--color-border-tertiary, rgba(0,0,0,0.06));
+            background: var(--mt-sep-color);
         }
 
-        &:hover {
-            background: var(--color-background-secondary, #f5f4f0);
-        }
+        &:hover { background: var(--mt-row-hover); }
 
         &:focus-visible {
-            outline: 2px solid var(--color-text-info, #185fa5);
+            outline: 2px solid #185fa5;
             outline-offset: -2px;
-            border-radius: 8px;
         }
 
-        &.is-closed {
-            .task-title {
-                text-decoration: line-through;
-                color: var(--color-text-tertiary, #888780);
-            }
+        &.is-closed .task-title {
+            text-decoration: line-through;
+            color: var(--mt-text-tertiary);
         }
     }
 
@@ -229,55 +318,56 @@ collab-tasks-my-tasks-102025 {
         height: 18px;
         border-radius: 50%;
         flex-shrink: 0;
-        border: 1.5px solid var(--color-border-secondary, rgba(0,0,0,0.18));
+        border: 1.5px solid var(--mt-sep-color);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: transparent;
-        transition: border-color 0.12s, background 0.12s;
+
+        @media (prefers-color-scheme: dark) {
+            border-color: rgba(255,255,255,0.20);
+        }
 
         &.status-in-progress {
-            border-color: #854f0b;
-            background: #faeeda;
-            color: #854f0b;
-            // Animated arc to show "in progress"
             background: conic-gradient(#854f0b 50%, #faeeda 50%);
-            box-shadow: inset 0 0 0 3px var(--color-background-primary, #fff);
-        }
+            box-shadow: inset 0 0 0 3px var(--mt-bg);
+            border-color: #854f0b;
 
-        &.status-todo {
-            border-color: var(--color-border-secondary, rgba(0,0,0,0.22));
-        }
-
-        &.status-paused {
-            border-color: #6b7280;
-            background: #f3f4f6;
-            color: #6b7280;
+            @media (prefers-color-scheme: dark) {
+                background: conic-gradient(#f0a83a 50%, rgba(240,168,58,0.15) 50%);
+                box-shadow: inset 0 0 0 3px var(--mt-bg);
+                border-color: #f0a83a;
+            }
         }
 
         &.status-done {
-            border-color: #3b6d11;
-            background: #eaf3de;
-            color: #3b6d11;
+            background: #eaf3de; color: #3b6d11; border-color: #3b6d11;
+            @media (prefers-color-scheme: dark) {
+                background: rgba(74,222,128,0.15); color: #4ade80; border-color: #4ade80;
+            }
         }
 
         &.status-failed {
-            border-color: #a32d2d;
-            background: #fcebeb;
-            color: #a32d2d;
+            background: #fcebeb; color: #a32d2d; border-color: #a32d2d;
+            @media (prefers-color-scheme: dark) {
+                background: rgba(248,113,113,0.15); color: #f87171; border-color: #f87171;
+            }
+        }
+
+        &.status-paused {
+            background: #f3f4f6; border-color: #6b7280;
+            @media (prefers-color-scheme: dark) {
+                background: rgba(255,255,255,0.06); border-color: #6b7280;
+            }
         }
     }
 
     // ── Task info ──────────────────────────────────────────────────────────
-    .task-info {
-        flex: 1;
-        min-width: 0;
-    }
+    .task-info { flex: 1; min-width: 0; }
 
     .task-title {
         font-size: 13px;
         font-weight: 500;
-        color: var(--color-text-primary, #1a1a18);
+        color: var(--mt-text-primary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -289,7 +379,6 @@ collab-tasks-my-tasks-102025 {
         display: flex;
         align-items: center;
         gap: 4px;
-        flex-wrap: nowrap;
         overflow: hidden;
     }
 
@@ -297,35 +386,42 @@ collab-tasks-my-tasks-102025 {
         font-size: 10px;
         font-weight: 500;
         white-space: nowrap;
-        color: var(--color-text-tertiary, #888780);
+        color: var(--mt-text-secondary);
 
-        &.status-in-progress { color: #854f0b; }
-        &.status-done        { color: #3b6d11; }
-        &.status-failed      { color: #a32d2d; }
-        &.status-paused      { color: #6b7280; }
+        &.status-in-progress {
+            color: #854f0b;
+            @media (prefers-color-scheme: dark) { color: #fac775; }
+        }
+        &.status-done {
+            color: #3b6d11;
+            @media (prefers-color-scheme: dark) { color: #86efac; }
+        }
+        &.status-failed {
+            color: #a32d2d;
+            @media (prefers-color-scheme: dark) { color: #fca5a5; }
+        }
+        &.status-paused {
+            color: #6b7280;
+            @media (prefers-color-scheme: dark) { color: #9ca3af; }
+        }
     }
 
     .meta-sep {
         font-size: 10px;
-        color: var(--color-text-tertiary, rgba(0,0,0,0.25));
+        color: var(--mt-sep-color);
         flex-shrink: 0;
     }
 
-    .pma-ref {
+    .pma-ref, .tag-chip {
         font-size: 10px;
-        color: var(--color-text-tertiary, #888780);
-        font-variant-numeric: tabular-nums;
+        color: var(--mt-text-tertiary);
         white-space: nowrap;
     }
 
     .tag-chip {
-        font-size: 9px;
-        font-weight: 500;
         padding: 1px 5px;
         border-radius: 6px;
-        background: var(--color-background-secondary, #f5f4f0);
-        color: var(--color-text-tertiary, #888780);
-        white-space: nowrap;
+        background: var(--mt-row-hover);
     }
 
     // ── Task right ─────────────────────────────────────────────────────────
@@ -346,22 +442,30 @@ collab-tasks-my-tasks-102025 {
 
         &.priority-urgent { background: #fcebeb; color: #a32d2d; }
         &.priority-high   { background: #faeeda; color: #854f0b; }
-        &.priority-normal { background: var(--color-background-secondary, #f5f4f0); color: var(--color-text-tertiary, #888780); }
-        &.priority-low    { background: var(--color-background-secondary, #f5f4f0); color: var(--color-text-tertiary, #888780); opacity: 0.7; }
+        &.priority-normal,
+        &.priority-low    {
+            background: var(--mt-row-hover);
+            color: var(--mt-text-tertiary);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            &.priority-urgent { background: rgba(248,113,113,0.15); color: #fca5a5; }
+            &.priority-high   { background: rgba(240,168,58,0.15);  color: #fac775; }
+        }
     }
 
     .due-label {
         font-size: 10px;
-        color: var(--color-text-tertiary, #888780);
+        color: var(--mt-text-tertiary);
         white-space: nowrap;
 
         &.overdue {
-            color: #a32d2d;
-            font-weight: 500;
+            color: #a32d2d; font-weight: 500;
+            @media (prefers-color-scheme: dark) { color: #fca5a5; }
         }
     }
 
-    // ── Loading closed indicator ───────────────────────────────────────────
+    // ── Loading dots ───────────────────────────────────────────────────────
     .mytasks-loading-closed {
         display: flex;
         align-items: center;
@@ -377,10 +481,9 @@ collab-tasks-my-tasks-102025 {
     }
 
     .loading-dot {
-        width: 5px;
-        height: 5px;
+        width: 5px; height: 5px;
         border-radius: 50%;
-        background: var(--color-text-tertiary, #888780);
+        background: var(--mt-text-tertiary);
         animation: dot-pulse 1.2s ease-in-out infinite;
         &:nth-child(2) { animation-delay: 0.2s; }
         &:nth-child(3) { animation-delay: 0.4s; }
@@ -401,7 +504,7 @@ collab-tasks-my-tasks-102025 {
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 9px 10px;
+        padding: 9px 8px;
         animation: skeleton-fade 200ms ease-out both;
     }
 
@@ -409,41 +512,106 @@ collab-tasks-my-tasks-102025 {
         border-radius: 4px;
         background: linear-gradient(
             90deg,
-            var(--color-background-secondary, #eceae3) 0%,
-            rgba(255,255,255,0.22) 50%,
-            var(--color-background-secondary, #eceae3) 100%
+            var(--mt-row-hover) 0%,
+            rgba(128,128,128,0.10) 50%,
+            var(--mt-row-hover) 100%
         );
         background-size: 200% 100%;
         animation: shimmer 1.4s ease-in-out infinite;
     }
 
-    .skel-check {
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        flex-shrink: 0;
+    .skel-check  { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+    .skel-body   { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .skel-title  { height: 12px; }
+    .skel-meta   { height: 9px; }
+    .skel-badge  { width: 36px; height: 16px; border-radius: 7px; flex-shrink: 0; }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // THEMES
+    // ══════════════════════════════════════════════════════════════════════
+
+    // ── Theme: Amber ───────────────────────────────────────────────────────
+    &.theme-amber {
+        --mt-bg:           #f5e8cc;
+        --mt-bg-body:      #fdf4e3;
+        --mt-header-bg:    #f0ddb5;
+        --mt-header-border:rgba(120, 68, 8, 0.22);
+        --mt-text-primary:   #2e1a02;
+        --mt-text-secondary: #5c3307;
+        --mt-text-tertiary:  #7a5a2e;
+        --mt-row-hover:    rgba(133, 79, 11, 0.08);
+        --mt-sep-color:    rgba(133, 79, 11, 0.08);
+        --mt-icon-color:   #7a4f18;
+        --mt-icon-hover-bg:rgba(133, 79, 11, 0.08);
+
+        .settings-theme-card {
+            background: rgba(133,79,11,0.06);
+            .theme-name { color: #2e1a02; }
+            .theme-desc { color: #7a5a2e; }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            --mt-bg:           #1e1508;
+            --mt-bg-body:      #1e1508;
+            --mt-header-bg:    #160f04;
+            --mt-header-border:rgba(240,163,50,0.14);
+            --mt-text-primary:   #f5dca8;
+            --mt-text-secondary: #d4a55c;
+            --mt-text-tertiary:  #9e7840;
+            --mt-row-hover:    rgba(240,163,50,0.08);
+            --mt-sep-color:    rgba(240,163,50,0.08);
+            --mt-icon-color:   #9e7840;
+            --mt-icon-hover-bg:rgba(240,163,50,0.08);
+        }
     }
 
-    .skel-body {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-    }
+    // ── Theme: Forest ──────────────────────────────────────────────────────
+    &.theme-forest {
+        --mt-bg:           #0f2316;
+        --mt-bg-body:      #0f2316;
+        --mt-header-bg:    rgba(15,35,22,0.97);
+        --mt-header-border:rgba(255,255,255,0.08);
+        --mt-text-primary:   rgba(220,255,230,0.92);
+        --mt-text-secondary: rgba(190,235,205,0.75);
+        --mt-text-tertiary:  rgba(160,210,180,0.50);
+        --mt-row-hover:    rgba(255,255,255,0.05);
+        --mt-sep-color:    rgba(255,255,255,0.06);
+        --mt-icon-color:   rgba(180,220,195,0.55);
+        --mt-icon-hover-bg:rgba(255,255,255,0.07);
 
-    .skel-title {
-        height: 12px;
-    }
+        .mytasks-body {
+            background:
+                radial-gradient(ellipse at 10% 80%, rgba(34,197,94,0.07) 0%, transparent 55%),
+                radial-gradient(ellipse at 90% 20%, rgba(16,185,129,0.05) 0%, transparent 45%),
+                #0f2316;
+        }
 
-    .skel-meta {
-        height: 9px;
-    }
+        .settings-theme-card {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.10);
+            .theme-name { color: rgba(220,255,230,0.92); }
+            .theme-desc { color: rgba(160,210,180,0.55); }
+            &:hover     { border-color: rgba(255,255,255,0.20); }
+        }
 
-    .skel-badge {
-        width: 36px;
-        height: 16px;
-        border-radius: 7px;
-        flex-shrink: 0;
+        .status-pill {
+            &.status-in-progress { color: #fac775; }
+            &.status-done        { color: #86efac; }
+            &.status-failed      { color: #fca5a5; }
+            &.status-paused      { color: #9ca3af; }
+        }
+
+        .task-check {
+            border-color: rgba(255,255,255,0.18);
+            &.status-in-progress {
+                background: conic-gradient(#f0a83a 50%, rgba(240,168,58,0.15) 50%);
+                box-shadow: inset 0 0 0 3px #0f2316;
+                border-color: #f0a83a;
+            }
+            &.status-done   { background: rgba(74,222,128,0.15); color: #4ade80; border-color: #4ade80; }
+            &.status-failed { background: rgba(248,113,113,0.15); color: #f87171; border-color: #f87171; }
+            &.status-paused { background: rgba(255,255,255,0.06); border-color: #6b7280; }
+        }
     }
 
     // ── Reduced motion ─────────────────────────────────────────────────────
@@ -451,5 +619,6 @@ collab-tasks-my-tasks-102025 {
         .skel { animation: none; }
         .loading-dot { animation: none; }
         .toggle-chevron { transition: none; }
+        .settings-panel { animation: none; }
     }
 }
