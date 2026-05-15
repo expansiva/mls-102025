@@ -74,20 +74,19 @@ import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { msgListTasks } from '/_102025_/l2/shared/api.js';
 import { openElementInServiceDetails } from '/_102027_/l2/libCommom.js';
 import { getUserId } from '/_102025_/l2/collabMessagesHelper.js';
+import {
+  type TasksTheme,
+  TASKS_VALID_THEMES,
+  loadTasksTheme,
+  saveTasksTheme,
+  renderThemeCards,
+} from '/_102025_/l2/collabTasksTheme.js';
 
 function getMsg() {
   return document.documentElement.lang === 'pt' ? message_pt : message_en;
 }
 
-// ── Shared theme (same key as board) ──────────────────────────────────────
-type MyTasksTheme = 'clean' | 'amber' | 'forest';
-const THEME_KEY   = 'collab-board-theme';
-const ALL_THEMES: MyTasksTheme[] = ['clean', 'amber', 'forest'];
-
-function loadTheme(): MyTasksTheme {
-  const saved = localStorage.getItem(THEME_KEY) as MyTasksTheme | null;
-  return saved && ALL_THEMES.includes(saved) ? saved : 'clean';
-}
+type MyTasksTheme = TasksTheme;
 
 // ── Sorting helpers ───────────────────────────────────────────────────────
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -142,7 +141,7 @@ export class CollabTasksMyTasks extends StateLitElement {
   connectedCallback() {
     super.connectedCallback();
     if (!this.userId) this.userId = getUserId() || '';
-    this._theme = loadTheme();
+    this._theme = loadTasksTheme();
     this._applyThemeClass();
     this._onTaskChange    = (e: Event) => this._handleTaskChange(e as CustomEvent);
     this._onTaskMetaChanged = (e: Event) => this._handleTaskMetaChanged(e as CustomEvent);
@@ -161,15 +160,14 @@ export class CollabTasksMyTasks extends StateLitElement {
   }
 
   private _applyThemeClass() {
-    ALL_THEMES.forEach(t => this.classList.remove(`theme-${t}`));
+    TASKS_VALID_THEMES.forEach(t => this.classList.remove(`theme-${t}`));
     this.classList.add(`theme-${this._theme}`);
   }
 
   private _setTheme(theme: MyTasksTheme) {
-    this._theme = theme;
-    localStorage.setItem(THEME_KEY, theme);
-    this._applyThemeClass();
     this._showSettings = false;
+    saveTasksTheme(theme, this);
+    this._theme = theme;
   }
 
   private async _fetchAll() {
@@ -307,45 +305,11 @@ export class CollabTasksMyTasks extends StateLitElement {
   }
 
   private _renderSettings(m: typeof message_en) {
-    const themes: { id: MyTasksTheme; label: string; desc: string; preview: string }[] = [
-      {
-        id: 'clean', label: m.themeClean, desc: m.themeCleanDesc,
-        preview: `<div style="display:flex;gap:3px;height:28px"><div style="flex:1;background:#f5f4f0;border-radius:3px"></div><div style="flex:1;background:#eceae3;border-radius:3px"></div><div style="flex:1;background:#f5f4f0;border-radius:3px"></div></div>`,
-      },
-      {
-        id: 'amber', label: m.themeAmber, desc: m.themeAmberDesc,
-        preview: `<div style="display:flex;gap:3px;height:28px"><div style="flex:1;background:#faeeda;border-radius:3px"></div><div style="flex:1;background:#f5e4c3;border-radius:3px"></div><div style="flex:1;background:#faeeda;border-radius:3px"></div></div>`,
-      },
-      {
-        id: 'forest', label: m.themeForest, desc: m.themeForestDesc,
-        preview: `<div style="display:flex;gap:3px;height:28px;background:linear-gradient(135deg,#0f2316 0%,#1a3a1f 100%);border-radius:3px;padding:3px"><div style="flex:1;background:rgba(255,255,255,0.10);border-radius:2px"></div><div style="flex:1;background:rgba(255,255,255,0.07);border-radius:2px"></div><div style="flex:1;background:rgba(255,255,255,0.10);border-radius:2px"></div></div>`,
-      },
-    ];
+    const lang = document.documentElement.lang ?? 'en';
     return html`
       <div class="settings-panel">
         <div class="settings-panel-title">${m.themes}</div>
-        <div class="settings-theme-grid">
-          ${themes.map(t => html`
-            <div
-              class="settings-theme-card ${this._theme === t.id ? 'selected' : ''}"
-              @click=${() => this._setTheme(t.id)}
-            >
-              <div class="theme-preview" .innerHTML=${t.preview}></div>
-              <div class="theme-info">
-                <span class="theme-name">${t.label}</span>
-                <span class="theme-desc">${t.desc}</span>
-              </div>
-              ${this._theme === t.id ? html`
-                <span class="theme-check">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <circle cx="6" cy="6" r="6" fill="currentColor"/>
-                    <path d="M3.5 6l1.8 1.8 3-3" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </span>
-              ` : nothing}
-            </div>
-          `)}
-        </div>
+        ${renderThemeCards(this._theme, lang, (t) => this._setTheme(t))}
       </div>
     `;
   }

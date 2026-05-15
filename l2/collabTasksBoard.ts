@@ -23,6 +23,10 @@ const message_pt = {
   themeAmberDesc:    'Tons quentes e aconchegantes',
   themeForestDesc:   'Natureza com imagem de fundo',
   reload:            'Recarregar',
+  filterByTag:       'Tag',
+  filterByWorkflow:  'Workflow',
+  clearFilters:      'limpar',
+  noResults:         'Nenhuma task encontrada para os filtros selecionados.',
 };
 const message_en = {
   todo:              'To do',
@@ -46,6 +50,10 @@ const message_en = {
   themeAmberDesc:    'Warm and cozy tones',
   themeForestDesc:   'Nature background image',
   reload:            'Reload',
+  filterByTag:       'Tag',
+  filterByWorkflow:  'Workflow',
+  clearFilters:      'clear',
+  noResults:         'No tasks match the selected filters.',
 };
 /// **collab_i18n_end**
 
@@ -54,6 +62,14 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { msgListTasks, msgGetOrgPreferences } from '/_102025_/l2/shared/api.js';
+import {
+  type TasksTheme,
+  TASKS_THEME_KEY,
+  TASKS_VALID_THEMES,
+  loadTasksTheme,
+  saveTasksTheme,
+  renderThemeCards,
+} from '/_102025_/l2/collabTasksTheme.js';
 
 import '/_102025_/l2/collabTasksCard.js';
 import '/_102025_/l2/collabTasksEmptyState.js';
@@ -76,15 +92,8 @@ async function loadTagVocabulary(organizationId: string, userId: string): Promis
   return _tagCache;
 }
 
-// ── Theme ──────────────────────────────────────────────────────────────────
-type BoardTheme = 'clean' | 'amber' | 'forest';
-const THEME_KEY = 'collab-board-theme';
-const VALID_THEMES: BoardTheme[] = ['clean', 'amber', 'forest'];
-
-function loadTheme(): BoardTheme {
-  const saved = localStorage.getItem(THEME_KEY) as BoardTheme | null;
-  return saved && VALID_THEMES.includes(saved) ? saved : 'clean';
-}
+// ── Theme (alias to shared module types) ──────────────────────────────────
+type BoardTheme = TasksTheme;
 
 // ── Columns definition ─────────────────────────────────────────────────────
 type StatusKey = 'todo' | 'in progress' | 'paused' | 'done' | 'failed';
@@ -98,6 +107,7 @@ export class CollabTasksBoard extends StateLitElement {
   @property({ type: Number }) reloadKey = 0;
   @property({ type: String }) userId = '';
   @property({ type: String }) organizationId = 'collabcodes';
+  @property({ type: String }) initialPmaFilter = '';
 
   @state() private activeTasks: msg.TaskData[] = [];
   @state() private closedTasks: msg.TaskData[] = [];
@@ -107,6 +117,8 @@ export class CollabTasksBoard extends StateLitElement {
   @state() private error: string | null = null;
   @state() private _theme: BoardTheme = 'clean';
   @state() private _showSettings = false;
+  @state() private _filterTags: Set<string> = new Set();
+  @state() private _filterPmaIds: Set<string> = new Set();
 
   private _initialFetchDone = false;
   private _refetchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -116,8 +128,11 @@ export class CollabTasksBoard extends StateLitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this._theme = loadTheme();
+    this._theme = loadTasksTheme();
     this._applyThemeClass();
+    if (this.initialPmaFilter) {
+      this._filterPmaIds = new Set([this.initialPmaFilter]);
+    }
     this._onTaskChange = (e: Event) => this._handleTaskChange(e as CustomEvent);
     this._onThreadChange = (e: Event) => this._handleThreadChange(e as CustomEvent);
     this._onTaskMetaChanged = (e: Event) => this._handleTaskMetaChanged(e as CustomEvent);
@@ -130,15 +145,65 @@ export class CollabTasksBoard extends StateLitElement {
   }
 
   private _applyThemeClass() {
-    VALID_THEMES.forEach(t => this.classList.remove(`theme-${t}`));
+    TASKS_VALID_THEMES.forEach(t => this.classList.remove(`theme-${t}`));
     this.classList.add(`theme-${this._theme}`);
   }
 
   private _setTheme(theme: BoardTheme) {
-    this._theme = theme;
-    localStorage.setItem(THEME_KEY, theme);
-    this._applyThemeClass();
     this._showSettings = false;
+    saveTasksTheme(theme, this);
+    this._theme = theme;
+  }
+
+  // ── Filter helpers ─────────────────────────────────────────────────────
+
+  private _getFilterOptions(): { tags: string[]; pmaIds: string[] } {
+    const allTasks = [...this.activeTasks, ...this.closedTasks];
+    const tagSet   = new Set<string>();
+    const pmaSet   = new Set<string>();
+    for (const t of allTasks) {
+      t.tags?.forEach(tag => tagSet.add(tag));
+      if (t.taskRoom?.pmaId) pmaSet.add(t.taskRoom.pmaId);
+    }
+    // Sort tags: known vocabulary order first, then alpha
+    const vocabOrder = this.tagVocabulary.map(v => v.tag);
+    const tags = [...tagSet].sort((a, b) => {
+      const ai = vocabOrder.indexOf(a);
+      const bi = vocabOrder.indexOf(b);
+      if (ai >= 0 && bi >= 0) return ai - bi;
+      if (ai >= 0) return -1;
+      if (bi >= 0) return 1;
+      return a.localeCompare(b);
+    });
+    return { tags, pmaIds: [...pmaSet].sort() };
+  }
+
+  private _applyFilters(tasks: msg.TaskData[]): msg.TaskData[] {
+    if (this._filterTags.size === 0 && this._filterPmaIds.size === 0) return tasks;
+    return tasks.filter(t => {
+      const tagMatch  = this._filterTags.size === 0
+        || (t.tags?.some(tag => this._filterTags.has(tag)) ?? false);
+      const pmaMatch  = this._filterPmaIds.size === 0
+        || (!!t.taskRoom?.pmaId && this._filterPmaIds.has(t.taskRoom.pmaId));
+      return tagMatch && pmaMatch;
+    });
+  }
+
+  private _toggleTag(tag: string) {
+    const next = new Set(this._filterTags);
+    next.has(tag) ? next.delete(tag) : next.add(tag);
+    this._filterTags = next;
+  }
+
+  private _togglePmaId(pmaId: string) {
+    const next = new Set(this._filterPmaIds);
+    next.has(pmaId) ? next.delete(pmaId) : next.add(pmaId);
+    this._filterPmaIds = next;
+  }
+
+  private _clearFilters() {
+    this._filterTags   = new Set();
+    this._filterPmaIds = new Set();
   }
 
   disconnectedCallback() {
@@ -276,10 +341,12 @@ export class CollabTasksBoard extends StateLitElement {
     const buckets: Record<StatusKey, msg.TaskData[]> = {
       'todo': [], 'in progress': [], 'paused': [], 'done': [], 'failed': [],
     };
-    for (const t of this.activeTasks) {
+    const filteredActive = this._applyFilters(this.activeTasks);
+    const filteredClosed = this._applyFilters(this.closedTasks);
+    for (const t of filteredActive) {
       if (t.status in buckets) buckets[t.status as StatusKey].push(t);
     }
-    for (const t of this.closedTasks) {
+    for (const t of filteredClosed) {
       if (t.status === 'done') buckets.done.push(t);
       else if (t.status === 'failed') buckets.failed.push(t);
     }
@@ -337,7 +404,9 @@ export class CollabTasksBoard extends StateLitElement {
     const totalAll = totalActive + buckets.done.length + buckets.failed.length;
     const isLoading = this.loadingActive;
 
-    if (!isLoading && !this.loadingClosed && totalAll === 0) {
+    const hasActiveFilters = this._filterTags.size > 0 || this._filterPmaIds.size > 0;
+
+    if (!isLoading && !this.loadingClosed && totalAll === 0 && !hasActiveFilters) {
       return html`
         ${header}
         ${this._showSettings ? this._renderSettings(m) : nothing}
@@ -353,11 +422,15 @@ export class CollabTasksBoard extends StateLitElement {
     return html`
       ${header}
       ${this._showSettings ? this._renderSettings(m) : nothing}
+      ${this._renderFilterBar(m)}
       ${this.error ? html`
         <div class="board-error">
           <span>${m.loadError}</span>
           <button class="board-error-retry" @click=${() => this._fetchAll()}>${m.retry}</button>
         </div>
+      ` : nothing}
+      ${!isLoading && totalAll === 0 && hasActiveFilters ? html`
+        <div class="board-no-results">${m.noResults}</div>
       ` : nothing}
       <div class="board-columns">
         ${columns.map(status => this._renderColumn(status, buckets, m, isLoading, totalAll))}
@@ -365,71 +438,70 @@ export class CollabTasksBoard extends StateLitElement {
     `;
   }
 
-  private _renderSettings(m: typeof message_en) {
-    const themes: { id: BoardTheme; label: string; desc: string; preview: string }[] = [
-      {
-        id: 'clean',
-        label: m.themeClean,
-        desc: m.themeCleanDesc,
-        preview: `
-          <div style="display:flex;gap:3px;height:28px">
-            <div style="flex:1;background:#f5f4f0;border-radius:3px"></div>
-            <div style="flex:1;background:#eceae3;border-radius:3px"></div>
-            <div style="flex:1;background:#f5f4f0;border-radius:3px"></div>
-          </div>
-        `,
-      },
-      {
-        id: 'amber',
-        label: m.themeAmber,
-        desc: m.themeAmberDesc,
-        preview: `
-          <div style="display:flex;gap:3px;height:28px">
-            <div style="flex:1;background:#faeeda;border-radius:3px"></div>
-            <div style="flex:1;background:#f5e4c3;border-radius:3px"></div>
-            <div style="flex:1;background:#faeeda;border-radius:3px"></div>
-          </div>
-        `,
-      },
-      {
-        id: 'forest',
-        label: m.themeForest,
-        desc: m.themeForestDesc,
-        preview: `
-          <div style="display:flex;gap:3px;height:28px;background:linear-gradient(135deg,#0f2316 0%,#1a3a1f 100%);border-radius:3px;padding:3px">
-            <div style="flex:1;background:rgba(255,255,255,0.10);border-radius:2px"></div>
-            <div style="flex:1;background:rgba(255,255,255,0.07);border-radius:2px"></div>
-            <div style="flex:1;background:rgba(255,255,255,0.10);border-radius:2px"></div>
-          </div>
-        `,
-      },
-    ];
+  private _renderFilterBar(m: typeof message_en) {
+    const { tags, pmaIds } = this._getFilterOptions();
+    const hasFilters = this._filterTags.size > 0 || this._filterPmaIds.size > 0;
 
+    // Only render if there are options to filter by
+    if (tags.length === 0 && pmaIds.length === 0) return nothing;
+
+    return html`
+      <div class="filter-bar">
+        ${tags.map(tag => {
+          const vocab = this.tagVocabulary.find(v => v.tag === tag);
+          const colorClass = vocab?.color ? `b-${vocab.color}` : 'b-neutral';
+          const active = this._filterTags.has(tag);
+          return html`
+            <button
+              class="filter-chip tag-filter ${active ? 'active' : ''} ${colorClass}"
+              @click=${() => this._toggleTag(tag)}
+              title="${m.filterByTag}: ${tag}"
+            >
+              <span class="chip-dot ${colorClass}"></span>
+              ${tag}
+            </button>
+          `;
+        })}
+
+        ${tags.length > 0 && pmaIds.length > 0
+          ? html`<div class="filter-sep" aria-hidden="true"></div>`
+          : nothing}
+
+        ${pmaIds.map(pmaId => {
+          const active = this._filterPmaIds.has(pmaId);
+          return html`
+            <button
+              class="filter-chip pma-filter ${active ? 'active' : ''}"
+              @click=${() => this._togglePmaId(pmaId)}
+              title="${m.filterByWorkflow}: ${pmaId}"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" class="chip-icon">
+                <path d="M1 3h8M1 7h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                <circle cx="8" cy="7" r="1.5" fill="currentColor" opacity=".7"/>
+              </svg>
+              ${pmaId}
+            </button>
+          `;
+        })}
+
+        ${hasFilters ? html`
+          <button class="filter-clear" @click=${() => this._clearFilters()}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            ${m.clearFilters}
+          </button>
+        ` : nothing}
+      </div>
+    `;
+  }
+
+  private _renderSettings(m: typeof message_en) {
+    const lang = document.documentElement.lang ?? 'en';
     return html`
       <div class="settings-panel">
         <div class="settings-panel-title">${m.themes}</div>
-        <div class="settings-theme-grid">
-          ${themes.map(t => html`
-            <div
-              class="settings-theme-card ${this._theme === t.id ? 'selected' : ''}"
-              @click=${() => this._setTheme(t.id)}
-            >
-              <div class="theme-preview" .innerHTML=${t.preview}></div>
-              <div class="theme-info">
-                <span class="theme-name">${t.label}</span>
-                <span class="theme-desc">${t.desc}</span>
-              </div>
-              ${this._theme === t.id ? html`
-                <span class="theme-check">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <circle cx="6" cy="6" r="6" fill="currentColor"/>
-                    <path d="M3.5 6l1.8 1.8 3-3" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </span>
-              ` : nothing}
-            </div>
-          `)}
-        </div>
+        ${renderThemeCards(this._theme, lang, (t) => this._setTheme(t))}
       </div>
     `;
   }

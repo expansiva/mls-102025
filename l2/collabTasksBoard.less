@@ -148,27 +148,25 @@ collab-tasks-board-102025 {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: var(--color-text-tertiary, #888780);
+        color: var(--board-col-text, var(--color-text-tertiary, #888780));
         margin-bottom: 10px;
     }
 
-    .settings-theme-grid {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
+    // Theme grid uses shared classes from collabTasksTheme.ts
+    .theme-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
     }
 
-    .settings-theme-card {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        width: 140px;
-        padding: 8px 10px;
+    .theme-card {
+        display: flex; flex-direction: column; gap: 5px;
+        padding: 7px;
         border: 0.5px solid var(--board-col-border);
-        border-radius: 10px;
+        border-radius: 9px;
         cursor: pointer;
         background: var(--board-col-bg);
+        font-family: inherit; text-align: left;
         transition: border-color 0.12s, box-shadow 0.12s;
 
         &:hover {
@@ -178,41 +176,31 @@ collab-tasks-board-102025 {
 
         &.selected {
             border-color: var(--status-todo-accent, #185fa5);
-            box-shadow: 0 0 0 1.5px var(--status-todo-accent, #185fa5) inset;
+            box-shadow: 0 0 0 2px rgba(24,95,165,0.12);
         }
     }
 
-    .theme-preview {
+    .theme-board-preview {
         border-radius: 4px;
         overflow: hidden;
+        border: 0.5px solid rgba(0,0,0,0.06);
     }
 
-    .theme-info {
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
+    .theme-card-info {
+        display: flex; align-items: center; justify-content: space-between; gap: 3px;
     }
 
-    .theme-name {
-        font-size: 12px;
-        font-weight: 500;
+    .theme-card-name {
+        font-size: 11px; font-weight: 500;
         color: var(--color-text-primary, #1a1a18);
     }
 
-    .theme-desc {
-        font-size: 10px;
-        color: var(--color-text-tertiary, #888780);
-        line-height: 1.3;
-    }
+    .theme-check-icon { color: var(--status-todo-accent, #185fa5); flex-shrink: 0; }
 
-    .theme-check {
-        position: absolute;
-        top: 6px;
-        right: 6px;
-        color: var(--status-todo-accent, #185fa5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .theme-card-desc {
+        font-size: 9px;
+        color: var(--board-col-text, var(--color-text-tertiary, #888780));
+        line-height: 1.3;
     }
 
     // ── Error banner ───────────────────────────────────────────────────────
@@ -239,6 +227,162 @@ collab-tasks-board-102025 {
         padding: 0;
         flex-shrink: 0;
     }
+
+    // ── No-results message ─────────────────────────────────────────────────
+    .board-no-results {
+        padding: 20px 16px 0;
+        font-size: 12px;
+        color: var(--color-text-tertiary, #888780);
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    // ── Filter bar ─────────────────────────────────────────────────────────
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 16px;
+        border-bottom: 0.5px solid var(--board-header-border);
+        background: var(--board-header-bg);
+        flex-shrink: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        &::-webkit-scrollbar { display: none; }
+    }
+
+    .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: 20px;
+        border: 0.5px solid var(--board-col-border);
+        background: none;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--board-col-text);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.10s, border-color 0.10s, color 0.10s;
+        font-family: inherit;
+
+        &:hover {
+            background: var(--board-col-bg);
+            border-color: var(--color-border-secondary, rgba(0,0,0,0.18));
+        }
+
+        &.active {
+            border-color: currentColor;
+        }
+    }
+
+    // Tag chip dot indicator
+    .chip-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+
+        &.b-bug      { background: #a32d2d; }
+        &.b-feature  { background: #185fa5; }
+        &.b-business { background: #854f0b; }
+        &.b-process  { background: #3b6d11; }
+        &.b-neutral  { background: var(--board-col-text); opacity: 0.5; }
+    }
+
+    // Active state per tag color
+    .tag-filter {
+        &.active.b-bug      { background: #fcebeb; color: #a32d2d; border-color: rgba(163,45,45,0.35); }
+        &.active.b-feature  { background: #e6f1fb; color: #185fa5; border-color: rgba(24,95,165,0.35); }
+        &.active.b-business { background: #faeeda; color: #854f0b; border-color: rgba(133,79,11,0.35); }
+        &.active.b-process  { background: #e1f5ee; color: #085041; border-color: rgba(8,80,65,0.35); }
+        &.active.b-neutral  { background: var(--board-col-bg); border-color: var(--board-col-text); }
+
+        @media (prefers-color-scheme: dark) {
+            &.active.b-bug      { background: rgba(163,45,45,0.15); color: #f09595; border-color: rgba(240,149,149,0.30); }
+            &.active.b-feature  { background: rgba(24,95,165,0.15); color: #85b7eb; border-color: rgba(133,183,235,0.30); }
+            &.active.b-business { background: rgba(133,79,11,0.15); color: #fac775; border-color: rgba(250,199,117,0.30); }
+            &.active.b-process  { background: rgba(8,80,65,0.15);   color: #97c459; border-color: rgba(151,196,89,0.30); }
+        }
+    }
+
+    .chip-icon {
+        flex-shrink: 0;
+        opacity: 0.65;
+    }
+
+    // Workflow (pmaId) chip active state
+    .pma-filter.active {
+        background: rgba(88, 28, 135, 0.06);
+        color: #5b21b6;
+        border-color: rgba(91, 33, 182, 0.30);
+
+        .chip-icon { opacity: 1; }
+
+        @media (prefers-color-scheme: dark) {
+            background: rgba(167, 139, 250, 0.12);
+            color: #a78bfa;
+            border-color: rgba(167,139,250,0.30);
+        }
+    }
+
+    // Separator between tag chips and pma chips
+    .filter-sep {
+        width: 0.5px;
+        height: 18px;
+        background: var(--board-col-border);
+        flex-shrink: 0;
+        margin: 0 2px;
+    }
+
+    // Clear all button
+    .filter-clear {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        border: none;
+        background: none;
+        font-size: 11px;
+        color: var(--color-text-tertiary, #888780);
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: inherit;
+        margin-left: 2px;
+        transition: color 0.10s;
+
+        &:hover {
+            color: var(--color-text-danger, #a32d2d);
+        }
+    }
+
+    // Theme-aware filter bar for Forest
+    &.theme-forest .filter-bar {
+        background: rgba(15, 35, 22, 0.97);
+        border-color: rgba(255,255,255,0.08);
+    }
+    &.theme-forest .filter-chip {
+        color: rgba(200,240,210,0.70);
+        border-color: rgba(255,255,255,0.10);
+        &:hover { background: rgba(255,255,255,0.06); }
+    }
+    &.theme-forest .filter-sep { background: rgba(255,255,255,0.08); }
+    &.theme-forest .filter-clear { color: rgba(200,240,210,0.45); }
+
+    // Theme-aware filter bar for Amber
+    &.theme-amber .filter-bar {
+        background: var(--board-header-bg);
+        border-color: rgba(120, 68, 8, 0.22);
+    }
+    &.theme-amber .filter-chip {
+        color: var(--board-col-text);
+        border-color: rgba(120, 68, 8, 0.20);
+        &:hover { background: rgba(133,79,11,0.07); }
+    }
+    &.theme-amber .filter-sep { background: rgba(120,68,8,0.20); }
+    &.theme-amber .filter-clear { color: #7a5a2e; }
 
     // ── Board columns container ────────────────────────────────────────────
     .board-columns {
