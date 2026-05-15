@@ -100,13 +100,14 @@ collab-tasks-settings-102025 {
 
     .st-empty { font-size: 12px; color: var(--st-text-tertiary); padding: 4px 0; }
 
-    // ── Theme grid ─────────────────────────────────────────────────────────
+    // ── Theme grid (5 themes) ──────────────────────────────────────────────
     .theme-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 7px;
 
-        @media (max-width: 420px) { grid-template-columns: 1fr; }
+        @media (max-width: 560px) { grid-template-columns: repeat(3, 1fr); }
+        @media (max-width: 380px) { grid-template-columns: repeat(2, 1fr); }
     }
 
     .theme-card {
@@ -210,6 +211,63 @@ collab-tasks-settings-102025 {
         border-radius: 4px;
         background: linear-gradient(90deg, var(--st-section-bg) 0%, rgba(128,128,128,0.10) 50%, var(--st-section-bg) 100%);
         background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite;
+    }
+
+    // ── Image picker ───────────────────────────────────────────────────────
+    .img-picker-section {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 0.5px solid var(--st-border);
+    }
+
+    .img-picker-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--st-text-tertiary);
+        margin-bottom: 8px;
+    }
+
+    .img-picker-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+
+    .img-thumb {
+        aspect-ratio: 16/9;
+        border-radius: 6px;
+        border: 2px solid transparent;
+        background-size: cover;
+        background-position: center;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.12s, transform 0.10s, box-shadow 0.12s;
+        padding: 0;
+
+        &:hover {
+            transform: scale(1.03);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.20);
+        }
+
+        &.selected {
+            border-color: #185fa5;
+            box-shadow: 0 0 0 1px #185fa5, 0 3px 10px rgba(0,0,0,0.20);
+        }
+    }
+
+    .img-thumb-check {
+        position: absolute;
+        top: 4px; right: 4px;
+        display: flex;
+    }
+
+    .theme-img-badge {
+        position: absolute;
+        top: 5px; right: 5px;
+        font-size: 9px;
     }
 
     @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }

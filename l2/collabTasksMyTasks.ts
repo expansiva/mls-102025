@@ -77,9 +77,13 @@ import { getUserId } from '/_102025_/l2/collabMessagesHelper.js';
 import {
   type TasksTheme,
   TASKS_VALID_THEMES,
+  THEME_BG_OPTIONS,
   loadTasksTheme,
+  loadThemeBgUrl,
   saveTasksTheme,
   renderThemeCards,
+  renderImagePicker,
+  applyThemeToHost,
 } from '/_102025_/l2/collabTasksTheme.js';
 
 function getMsg() {
@@ -160,8 +164,7 @@ export class CollabTasksMyTasks extends StateLitElement {
   }
 
   private _applyThemeClass() {
-    TASKS_VALID_THEMES.forEach(t => this.classList.remove(`theme-${t}`));
-    this.classList.add(`theme-${this._theme}`);
+    applyThemeToHost(this._theme, this);
   }
 
   private _setTheme(theme: MyTasksTheme) {
@@ -304,12 +307,21 @@ export class CollabTasksMyTasks extends StateLitElement {
     `;
   }
 
+  private _setBgImage(url: string) {
+    localStorage.setItem(`collab-tasks-bg-${this._theme}`, url);
+    applyThemeToHost(this._theme, this);
+  }
+
   private _renderSettings(m: typeof message_en) {
-    const lang = document.documentElement.lang ?? 'en';
+    const lang   = document.documentElement.lang ?? 'en';
+    const bgUrl  = loadThemeBgUrl(this._theme);
     return html`
       <div class="settings-panel">
         <div class="settings-panel-title">${m.themes}</div>
         ${renderThemeCards(this._theme, lang, (t) => this._setTheme(t))}
+        ${THEME_BG_OPTIONS[this._theme]
+          ? renderImagePicker(this._theme, bgUrl, lang, (url) => this._setBgImage(url))
+          : nothing}
       </div>
     `;
   }

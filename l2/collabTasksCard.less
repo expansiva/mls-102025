@@ -207,48 +207,66 @@ collab-tasks-card-102025 {
         .card-description { display: none; }
     }
 
-    // Forest theme — cards with glassmorphism
-    .theme-forest & {
-        border-color: rgba(255, 255, 255, 0.10);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.20);
-        backdrop-filter: blur(4px);
-
+    // ── Amber: white cards, warm shadow on hover ───────────────────────────
+    .theme-amber & {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.07);
         &:hover {
-            border-color: rgba(255, 255, 255, 0.22);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.30);
+            box-shadow: 0 4px 12px rgba(120,68,8,0.14);
+            border-color: rgba(100,55,5,0.22);
         }
-
-        .card-title {
-            color: rgba(220, 255, 230, 0.92);
-        }
-        .card-description {
-            color: rgba(180, 220, 195, 0.65);
-        }
-        .card-footer {
-            border-color: rgba(255,255,255,0.07);
-        }
-        .badge {
-            opacity: 0.85;
-        }
+        .card-footer { border-color: rgba(100,55,5,0.08); }
     }
 
-    // Amber theme — warm card tint
-    .theme-amber & {
-        border-color: rgba(133, 79, 11, 0.10);
+    // ── Forest: white cards on dark bg — strong enough shadow to "float" ──
+    .theme-forest & {
+        // Inherited from board.less: box-shadow applied to host
+        border-color: rgba(0,0,0,0.10);
+        .card-title       { color: #1a1a18; }
+        .card-description { color: #5f5e5a; }
+        .card-footer      { border-color: rgba(0,0,0,0.08); }
+    }
 
-        &:hover {
-            border-color: rgba(133, 79, 11, 0.22);
-            box-shadow: 0 3px 10px rgba(133, 79, 11, 0.08);
+    // ── Trello: flat white cards, Atlassian shadow ─────────────────────────
+    .theme-trello & {
+        // Inherited from board.less: border-radius: 3px, box-shadow
+        .card-title       { color: #172b4d; }
+        .card-description { color: #5e6c84; }
+        .card-footer      { border-color: rgba(9,30,66,0.08); }
+        .badge {
+            &.b-bug      { background: #ffebe6; color: #bf2600; }
+            &.b-feature  { background: #deebff; color: #0052cc; }
+            &.b-business { background: #fff0b3; color: #974f0c; }
+            &.b-process  { background: #e3fcef; color: #006644; }
         }
-        .card-footer {
-            border-color: rgba(133, 79, 11, 0.08);
+        // Trello-style: no left accent strip
+        &.has-board-status::before { display: none; }
+        &.has-board-status         { padding-left: 11px; }
+    }
+
+    // ── ClickUp: dark glass cards ──────────────────────────────────────────
+    .theme-clickup & {
+        // Inherited from board.less: backdrop-filter, box-shadow
+        .card-title       { color: rgba(235,225,255,0.94); }
+        .card-description { color: rgba(190,175,240,0.70); }
+        .card-footer      { border-color: rgba(147,51,234,0.18); }
+        .badge {
+            &.b-bug      { background: rgba(248,113,113,0.18); color: #fca5a5; }
+            &.b-feature  { background: rgba(129,140,248,0.18); color: #a5b4fc; }
+            &.b-business { background: rgba(251,146,60,0.18);  color: #fdba74; }
+            &.b-process  { background: rgba(52,211,153,0.18);  color: #6ee7b7; }
+            &.b-neutral  { background: rgba(255,255,255,0.08); color: rgba(200,185,255,0.65); }
         }
+        .priority-pill,
+        .due-pill {
+            background: rgba(255,255,255,0.08);
+            color: rgba(200,185,255,0.75);
+        }
+        .pma-badge { background: rgba(167,139,250,0.18); color: #c4b5fd; }
+        .assignee-chip { border-color: rgba(147,51,234,0.30); }
     }
 
     @media (prefers-color-scheme: dark) {
-        &:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
-        }
+        &:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.32); }
     }
 
     @media (prefers-reduced-motion: reduce) {

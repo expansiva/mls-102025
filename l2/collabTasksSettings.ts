@@ -49,9 +49,14 @@ import { msgGetOrgPreferences } from '/_102025_/l2/shared/api.js';
 import { getUserId } from '/_102025_/l2/collabMessagesHelper.js';
 import {
   type TasksTheme,
+  THEME_BG_OPTIONS,
   loadTasksTheme,
+  loadThemeBgUrl,
   saveTasksTheme,
+  saveThemeBgUrl,
+  applyThemeToHost,
   renderThemeCards,
+  renderImagePicker,
 } from '/_102025_/l2/collabTasksTheme.js';
 
 function getMsg() {
@@ -73,6 +78,7 @@ export class CollabTasksSettings extends StateLitElement {
   @property({ type: String }) organizationId = 'collabcodes';
 
   @state() private _theme: TasksTheme = 'clean';
+  @state() private _bgUrl: string | null = null;
   @state() private tagVocabulary: msg.TagVocabularyEntry[] = [];
   @state() private loadingTags = true;
   @state() private errorTags: string | null = null;
@@ -80,15 +86,28 @@ export class CollabTasksSettings extends StateLitElement {
   connectedCallback() {
     super.connectedCallback();
     if (!this.userId) this.userId = getUserId() || '';
-    this._theme = loadTasksTheme();
-    this._applyTheme(this._theme);
+    this._theme  = loadTasksTheme();
+    this._bgUrl  = loadThemeBgUrl(this._theme);
+    applyThemeToHost(this._theme, this);
     this._loadTags();
   }
 
   private _applyTheme(theme: TasksTheme) {
     this._theme = theme;
+    this._bgUrl = loadThemeBgUrl(theme);
     saveTasksTheme(theme, this);
-    // Also propagate to the whole tasks tab so board/my-tasks update when opened next
+  }
+
+  private _setBgImage(url: string) {
+    this._bgUrl = url;
+    saveThemeBgUrl(this._theme, url);
+    applyThemeToHost(this._theme, this);
+    // Notify open boards
+    const w = window?.top ?? window;
+    w.dispatchEvent(new CustomEvent('tasks-bg-changed', {
+      detail: { theme: this._theme, url },
+      bubbles: true, composed: true,
+    }));
   }
 
   private async _loadTags() {
@@ -132,6 +151,9 @@ export class CollabTasksSettings extends StateLitElement {
             <div class="st-section-desc">${m.appearanceDesc}</div>
           </div>
           ${renderThemeCards(this._theme, lang, (t) => this._applyTheme(t))}
+          ${THEME_BG_OPTIONS[this._theme]
+            ? renderImagePicker(this._theme, this._bgUrl, lang, (url) => this._setBgImage(url))
+            : nothing}
         </section>
 
         <!-- ── Tag vocabulary ── -->

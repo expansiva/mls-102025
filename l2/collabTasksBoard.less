@@ -152,11 +152,11 @@ collab-tasks-board-102025 {
         margin-bottom: 10px;
     }
 
-    // Theme grid uses shared classes from collabTasksTheme.ts
+    // Theme grid (5 themes) — compact for the board header popover
     .theme-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 5px;
     }
 
     .theme-card {
@@ -563,145 +563,346 @@ collab-tasks-board-102025 {
     // THEMES
     // ══════════════════════════════════════════════════════════════════════
 
-    // ── Theme: Amber ───────────────────────────────────────────────────────
-    &.theme-amber {
-        --board-bg:           #f5e8cc;
-        --board-col-bg:       #fdf4e3;
-        --board-col-border:   rgba(120, 68, 8, 0.22);
-        --board-col-text:     #4a2f07;
-        --board-header-bg:    #f0ddb5;
-        --board-header-border:rgba(120, 68, 8, 0.22);
-        --board-card-bg:      #fffcf5;
+    // ── Column entrance animation (used by themed boards) ──────────────────
+    @keyframes col-enter {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
 
-        .board-header-title {
-            color: #2e1a02;
-        }
-        .board-header-sep {
-            color: #8a5a1c;
-        }
-        .board-header-sub {
-            color: #7a4f18;
-        }
+    @keyframes cu-gradient {
+        0%, 100% { background-position: 0% 60%; }
+        50%       { background-position: 100% 40%; }
+    }
+
+    // ── Image picker panel ─────────────────────────────────────────────────
+    .img-picker-section {
+        margin-top: 10px;
+        border-top: 0.5px solid var(--board-header-border);
+        padding-top: 10px;
+    }
+
+    .img-picker-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--board-col-text, var(--color-text-tertiary, #888780));
+        margin-bottom: 8px;
+    }
+
+    .img-picker-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+    }
+
+    .img-thumb {
+        aspect-ratio: 16/9;
+        border-radius: 5px;
+        border: 2px solid transparent;
+        background-size: cover;
+        background-position: center;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.12s, transform 0.10s;
+        padding: 0;
+
+        &:hover { transform: scale(1.03); border-color: rgba(255,255,255,0.5); }
+        &.selected { border-color: #185fa5; box-shadow: 0 0 0 1px #185fa5; }
+    }
+
+    .img-thumb-check {
+        position: absolute;
+        top: 3px; right: 3px;
+        display: flex;
+    }
+
+    // ── Theme: Clean (improved) ─────────────────────────────────────────────
+    &.theme-clean {
+        --board-bg:            #e9e7e0;
+        --board-col-bg:        #f5f3ef;
+        --board-col-border:    rgba(0,0,0,0.12);
+        --board-col-text:      #4a4a47;
+        --board-header-bg:     #ffffff;
+        --board-header-border: rgba(0,0,0,0.10);
+        --board-card-bg:       #ffffff;
+    }
+
+    // ── Theme: Amber (rich copper/gold) ────────────────────────────────────
+    &.theme-amber {
+        --board-bg:           transparent; // set via .board-columns background
+        --board-col-bg:       #fef9ee;
+        --board-col-border:   rgba(100,55,5,0.18);
+        --board-col-text:     #5a3812;
+        --board-header-bg:    #8c5116;
+        --board-header-border:rgba(60,30,0,0.35);
+        --board-card-bg:      #ffffff;
+
+        .board-header-title   { color: #fef0d4; }
+        .board-header-sep     { color: rgba(254,220,160,0.55); }
+        .board-header-sub     { color: rgba(254,220,160,0.65); }
+        .board-header-right   { }
         .board-icon-btn {
-            color: #7a4f18;
+            color: rgba(254,220,160,0.70);
             &:hover, &.active {
-                background: rgba(120, 68, 8, 0.10);
-                border-color: rgba(120, 68, 8, 0.28);
-                color: #2e1a02;
+                background: rgba(255,255,255,0.12);
+                border-color: rgba(255,255,255,0.22);
+                color: #fff7e6;
             }
         }
-        .col-label {
-            color: #4a2f07;
-        }
-        .col-empty {
-            border-color: rgba(120, 68, 8, 0.22);
-            color: #7a5a2e;
-        }
-        .settings-panel {
-            background: #f0ddb5;
-            border-color: rgba(120, 68, 8, 0.22);
-        }
-        .settings-panel-title { color: #7a4f18; }
-        .settings-theme-card {
-            background: #fdf4e3;
-            border-color: rgba(120, 68, 8, 0.20);
-            .theme-name { color: #2e1a02; }
-            .theme-desc { color: #7a5a2e; }
-            &:hover { border-color: rgba(120, 68, 8, 0.38); }
+        .col-label            { color: #5a3812; font-weight: 600; }
+        .col-empty            { border-color: rgba(100,55,5,0.18); color: #8a6030; }
+        .settings-panel       { background: #8c5116; border-color: rgba(60,30,0,0.35); }
+        .settings-panel-title { color: rgba(254,220,160,0.75); }
+        .theme-card           { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.18); }
+        .theme-card-name      { color: #fef0d4; }
+        .theme-card-desc      { color: rgba(254,220,160,0.65); }
+        .theme-check-icon     { color: #ffd87a; }
+        .img-picker-label     { color: rgba(254,220,160,0.65); }
+        .img-picker-section   { border-color: rgba(255,255,255,0.18); }
+        .filter-bar           { background: #7a4510; border-color: rgba(60,30,0,0.30); }
+        .filter-chip          { color: rgba(254,220,160,0.75); border-color: rgba(255,255,255,0.18); &:hover { background: rgba(255,255,255,0.10); } }
+        .filter-sep           { background: rgba(255,255,255,0.20); }
+        .filter-clear         { color: rgba(254,220,160,0.55); }
+
+        .board-columns {
+            background: linear-gradient(150deg, #b87333 0%, #d4a53a 45%, #c07b28 100%);
         }
 
         @media (prefers-color-scheme: dark) {
-            --board-bg:           #1e1508;
-            --board-col-bg:       rgba(133, 79, 11, 0.18);
-            --board-col-border:   rgba(240, 163, 50, 0.16);
+            --board-col-bg:       rgba(133,79,11,0.22);
+            --board-col-border:   rgba(240,163,50,0.18);
             --board-col-text:     #f5c97a;
-            --board-header-bg:    #160f04;
-            --board-header-border:rgba(240, 163, 50, 0.14);
-            --board-card-bg:      rgba(133, 79, 11, 0.12);
+            --board-header-bg:    #5c2e08;
+            --board-header-border:rgba(240,163,50,0.18);
+            --board-card-bg:      rgba(133,79,11,0.14);
         }
     }
 
-    // ── Theme: Forest ──────────────────────────────────────────────────────
+    // ── Theme: Forest (FIXED — dark bg, white columns & cards) ────────────
     &.theme-forest {
-        --board-bg:
-            radial-gradient(ellipse at 10% 80%, rgba(34, 197, 94, 0.08) 0%, transparent 55%),
-            radial-gradient(ellipse at 90% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 45%),
-            linear-gradient(160deg, #0f2316 0%, #162b1b 50%, #0d1f12 100%);
-        --board-col-bg:       rgba(255, 255, 255, 0.07);
-        --board-col-border:   rgba(255, 255, 255, 0.09);
-        --board-col-text:     rgba(200, 240, 210, 0.70);
-        --board-header-bg:    rgba(15, 35, 22, 0.96);
-        --board-header-border:rgba(255, 255, 255, 0.08);
-        --board-card-bg:      rgba(255, 255, 255, 0.08);
+        --board-col-bg:        rgba(255,255,255,0.93);
+        --board-col-border:    rgba(0,0,0,0.12);
+        --board-col-text:      #2a3a2c;
+        --board-header-bg:     rgba(8,15,9,0.96);
+        --board-header-border: rgba(255,255,255,0.10);
+        --board-card-bg:       #ffffff;
 
-        // Status accents brighten slightly for the dark bg
-        --status-todo-accent:          #58a5e0;
-        --status-todo-soft-bg:         rgba(88, 165, 224, 0.15);
-        --status-todo-text:            #85c4f5;
-
-        --status-in-progress-accent:   #f0a83a;
-        --status-in-progress-soft-bg:  rgba(240, 168, 58, 0.15);
-        --status-in-progress-text:     #fac775;
-
-        --status-paused-accent:        #9ca3af;
-        --status-paused-soft-bg:       rgba(255,255,255,0.07);
-        --status-paused-text:          #9c9a92;
-
-        --status-done-accent:          #4ade80;
-        --status-done-soft-bg:         rgba(74, 222, 128, 0.15);
-        --status-done-text:            #86efac;
-
-        --status-failed-accent:        #f87171;
-        --status-failed-soft-bg:       rgba(248, 113, 113, 0.15);
-        --status-failed-text:          #fca5a5;
-
-        .board-header-title {
-            color: rgba(220, 255, 230, 0.92);
-        }
-        .board-header-sep,
-        .board-header-sub {
-            color: rgba(180, 220, 195, 0.50);
-        }
+        .board-header-title   { color: rgba(230,255,235,0.94); }
+        .board-header-sep     { color: rgba(180,230,190,0.45); }
+        .board-header-sub     { color: rgba(180,230,190,0.55); }
         .board-icon-btn {
-            color: rgba(180, 220, 195, 0.55);
+            color: rgba(180,230,190,0.55);
             &:hover, &.active {
-                background: rgba(255, 255, 255, 0.08);
-                border-color: rgba(255, 255, 255, 0.12);
-                color: rgba(220, 255, 230, 0.90);
+                background: rgba(255,255,255,0.10);
+                border-color: rgba(255,255,255,0.15);
+                color: rgba(230,255,235,0.90);
             }
         }
-        .col-label {
-            color: rgba(200, 240, 210, 0.65);
-        }
-        .col-empty {
-            border-color: rgba(255,255,255,0.08);
-            color: rgba(180, 220, 195, 0.40);
-        }
+        .col-label            { color: #2a3a2c; font-weight: 600; }
+        .col-count            { }   // uses status tokens, already visible on white bg
+        .col-empty            { border-color: rgba(0,0,0,0.10); color: #5a7060; }
+        .settings-panel       { background: rgba(8,15,9,0.97); border-color: rgba(255,255,255,0.10); }
+        .settings-panel-title { color: rgba(180,230,190,0.55); }
+        .theme-card           { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); }
+        .theme-card-name      { color: rgba(230,255,235,0.90); }
+        .theme-card-desc      { color: rgba(180,230,190,0.55); }
+        .theme-check-icon     { color: #4ade80; }
+        .img-picker-label     { color: rgba(180,230,190,0.55); }
+        .img-picker-section   { border-color: rgba(255,255,255,0.10); }
+        .filter-bar           { background: rgba(8,15,9,0.96); border-color: rgba(255,255,255,0.10); }
+        .filter-chip          { color: rgba(210,245,220,0.65); border-color: rgba(255,255,255,0.12); &:hover { background: rgba(255,255,255,0.07); } }
+        .filter-sep           { background: rgba(255,255,255,0.10); }
+        .filter-clear         { color: rgba(180,230,190,0.45); }
+
         .board-columns {
-            background: var(--board-bg);
-            background-attachment: local;
+            background:
+                var(--theme-bg-url,
+                    linear-gradient(160deg, #0a1a0c 0%, #122016 50%, #0d1a10 100%)
+                )
+                center / cover;
         }
-        .settings-panel {
-            background: rgba(15, 35, 22, 0.96);
-            border-color: rgba(255,255,255,0.08);
+
+        // Cards and columns stay readable (white) regardless of bg image
+        collab-tasks-card-102025 {
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+            &:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.20); }
         }
-        .settings-panel-title { color: rgba(180, 220, 195, 0.50); }
-        .settings-theme-card {
-            background: rgba(255,255,255,0.06);
-            border-color: rgba(255,255,255,0.10);
-            .theme-name { color: rgba(220, 255, 230, 0.90); }
-            .theme-desc { color: rgba(180, 220, 195, 0.50); }
-            &:hover { border-color: rgba(255,255,255,0.20); }
+    }
+
+    // ── Theme: Workspace / Trello-inspired ─────────────────────────────────
+    &.theme-trello {
+        --board-col-bg:        #ebecf0;
+        --board-col-border:    transparent;
+        --board-col-text:      #172b4d;
+        --board-header-bg:     rgba(255,255,255,0.96);
+        --board-header-border: rgba(9,30,66,0.12);
+        --board-card-bg:       #ffffff;
+
+        // Trello uses 3px border-radius on columns
+        .board-column      { border-radius: 3px; border: none; }
+        .h2.col-header     { }
+        .col-label         { color: #172b4d; font-size: 12px; text-transform: none; font-weight: 600; letter-spacing: 0; }
+        .col-empty         { border: 1px dashed rgba(9,30,66,0.15); color: #5e6c84; }
+        .board-header-title { color: #172b4d; }
+        .board-header-sep  { color: #5e6c84; }
+        .board-header-sub  { color: #5e6c84; }
+        .board-icon-btn {
+            color: #5e6c84;
+            &:hover, &.active {
+                background: rgba(9,30,66,0.07);
+                border-color: rgba(9,30,66,0.18);
+                color: #172b4d;
+            }
         }
+        .settings-panel       { background: rgba(255,255,255,0.96); border-color: rgba(9,30,66,0.12); }
+        .settings-panel-title { color: #5e6c84; }
+        .theme-card           { background: #f4f5f7; border-color: rgba(9,30,66,0.12); }
+        .theme-card-name      { color: #172b4d; }
+        .theme-card-desc      { color: #5e6c84; }
+        .theme-check-icon     { color: #0052cc; }
+        .img-picker-label     { color: #5e6c84; }
+        .img-picker-section   { border-color: rgba(9,30,66,0.12); }
+        .filter-bar           { background: rgba(255,255,255,0.95); border-color: rgba(9,30,66,0.12); }
+        .filter-chip          { color: #5e6c84; border-color: rgba(9,30,66,0.15); &:hover { background: rgba(9,30,66,0.05); } }
+        .filter-sep           { background: rgba(9,30,66,0.12); }
+        .filter-clear         { color: #5e6c84; }
+
+        // Status accents: Jira/Trello-style
+        --status-todo-accent:         #0052cc;
+        --status-todo-soft-bg:        #deebff;
+        --status-todo-text:           #0047b3;
+        --status-in-progress-accent:  #ff8b00;
+        --status-in-progress-soft-bg: #fff0b3;
+        --status-in-progress-text:    #974f0c;
+        --status-done-accent:         #006644;
+        --status-done-soft-bg:        #e3fcef;
+        --status-done-text:           #006644;
+        --status-failed-accent:       #de350b;
+        --status-failed-soft-bg:      #ffebe6;
+        --status-failed-text:         #bf2600;
+
+        .board-columns {
+            background:
+                var(--theme-bg-url,
+                    linear-gradient(135deg, #1565C0 0%, #0D47A1 50%, #0A2E7A 100%)
+                )
+                center / cover;
+            gap: 8px;
+            padding: 12px;
+        }
+
+        // Staggered column entrance
+        .board-column {
+            animation: col-enter 280ms ease-out both;
+            box-shadow: 0 1px 2px rgba(9,30,66,0.10);
+            &:nth-child(1) { animation-delay: 0ms;   }
+            &:nth-child(2) { animation-delay: 55ms;  }
+            &:nth-child(3) { animation-delay: 110ms; }
+            &:nth-child(4) { animation-delay: 165ms; }
+            &:nth-child(5) { animation-delay: 220ms; }
+        }
+
+        collab-tasks-card-102025 {
+            border-radius: 3px;
+            border: none;
+            box-shadow: 0 1px 0 rgba(9,30,66,0.25);
+            &:hover { box-shadow: 0 4px 8px rgba(9,30,66,0.20); }
+        }
+    }
+
+    // ── Theme: Dark Pro / ClickUp-inspired ─────────────────────────────────
+    &.theme-clickup {
+        --board-col-bg:        rgba(147,51,234,0.16);
+        --board-col-border:    rgba(147,51,234,0.28);
+        --board-col-text:      rgba(216,195,255,0.85);
+        --board-header-bg:     rgba(10,4,24,0.97);
+        --board-header-border: rgba(147,51,234,0.25);
+        --board-card-bg:       rgba(255,255,255,0.09);
+
+        // Adjusted status accents for dark purple bg
+        --status-todo-accent:          #818cf8;
+        --status-todo-soft-bg:         rgba(129,140,248,0.18);
+        --status-todo-text:            #a5b4fc;
+        --status-in-progress-accent:   #fb923c;
+        --status-in-progress-soft-bg:  rgba(251,146,60,0.18);
+        --status-in-progress-text:     #fdba74;
+        --status-paused-accent:        #94a3b8;
+        --status-paused-soft-bg:       rgba(148,163,184,0.15);
+        --status-paused-text:          #cbd5e1;
+        --status-done-accent:          #34d399;
+        --status-done-soft-bg:         rgba(52,211,153,0.18);
+        --status-done-text:            #6ee7b7;
+        --status-failed-accent:        #f87171;
+        --status-failed-soft-bg:       rgba(248,113,113,0.18);
+        --status-failed-text:          #fca5a5;
+
+        .board-header-title   { color: rgba(235,225,255,0.96); }
+        .board-header-sep     { color: rgba(167,139,250,0.40); }
+        .board-header-sub     { color: rgba(167,139,250,0.55); }
+        .board-icon-btn {
+            color: rgba(167,139,250,0.55);
+            &:hover, &.active {
+                background: rgba(147,51,234,0.18);
+                border-color: rgba(147,51,234,0.35);
+                color: rgba(235,225,255,0.90);
+            }
+        }
+        .col-label      { color: rgba(216,195,255,0.80); font-weight: 600; }
+        .col-empty      { border-color: rgba(147,51,234,0.25); color: rgba(167,139,250,0.45); }
+        .settings-panel { background: rgba(10,4,24,0.97); border-color: rgba(147,51,234,0.25); }
+        .settings-panel-title { color: rgba(167,139,250,0.55); }
+        .theme-card     { background: rgba(147,51,234,0.14); border-color: rgba(147,51,234,0.22); }
+        .theme-card-name { color: rgba(235,225,255,0.90); }
+        .theme-card-desc { color: rgba(167,139,250,0.55); }
+        .theme-check-icon { color: #a78bfa; }
+        .img-picker-label { color: rgba(167,139,250,0.55); }
+        .img-picker-section { border-color: rgba(147,51,234,0.25); }
+        .filter-bar     { background: rgba(10,4,24,0.97); border-color: rgba(147,51,234,0.25); }
+        .filter-chip    { color: rgba(216,195,255,0.70); border-color: rgba(147,51,234,0.22); &:hover { background: rgba(147,51,234,0.15); } }
+        .filter-sep     { background: rgba(147,51,234,0.25); }
+        .filter-clear   { color: rgba(167,139,250,0.45); }
+
+        .board-columns {
+            // Default: animated gradient. If image is set, it overrides via --theme-bg-url
+            background:
+                var(--theme-bg-url,
+                    linear-gradient(270deg, #13042a, #1e1257, #0d0626, #1a0b3e, #0e0b2e)
+                )
+                center / cover;
+        }
+
+        // Animated gradient only when no bg image is set
+        &:not([style*="--theme-bg-url"]) .board-columns {
+            background-size: 400% 400%;
+            animation: cu-gradient 14s ease infinite;
+        }
+
+        // Column entrance + glow
+        .board-column {
+            animation: col-enter 300ms ease-out both;
+            box-shadow: 0 0 0 1px rgba(147,51,234,0.20), 0 4px 16px rgba(0,0,0,0.35);
+            &:nth-child(1) { animation-delay: 0ms;   }
+            &:nth-child(2) { animation-delay: 60ms;  }
+            &:nth-child(3) { animation-delay: 120ms; }
+            &:nth-child(4) { animation-delay: 180ms; }
+            &:nth-child(5) { animation-delay: 240ms; }
+        }
+
+        collab-tasks-card-102025 {
+            box-shadow: 0 1px 4px rgba(0,0,0,0.40);
+            backdrop-filter: blur(6px);
+            &:hover {
+                box-shadow: 0 4px 16px rgba(147,51,234,0.35);
+                border-color: rgba(167,139,250,0.45);
+            }
+        }
+
         .skeleton-card {
-            background: rgba(255,255,255,0.05);
+            background: rgba(147,51,234,0.12);
             .skeleton-line {
-                background: linear-gradient(
-                    90deg,
-                    rgba(255,255,255,0.06) 0%,
-                    rgba(255,255,255,0.12) 50%,
-                    rgba(255,255,255,0.06) 100%
-                );
+                background: linear-gradient(90deg, rgba(147,51,234,0.15) 0%, rgba(167,139,250,0.22) 50%, rgba(147,51,234,0.15) 100%);
                 background-size: 200% 100%;
             }
         }

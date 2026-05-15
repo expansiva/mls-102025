@@ -64,11 +64,15 @@ import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { msgListTasks, msgGetOrgPreferences } from '/_102025_/l2/shared/api.js';
 import {
   type TasksTheme,
-  TASKS_THEME_KEY,
   TASKS_VALID_THEMES,
+  THEME_BG_OPTIONS,
   loadTasksTheme,
+  loadThemeBgUrl,
   saveTasksTheme,
+  saveThemeBgUrl,
+  applyThemeToHost,
   renderThemeCards,
+  renderImagePicker,
 } from '/_102025_/l2/collabTasksTheme.js';
 
 import '/_102025_/l2/collabTasksCard.js';
@@ -144,15 +148,27 @@ export class CollabTasksBoard extends StateLitElement {
     this._initialFetchDone = true;
   }
 
+  private _bgChangeListener!: EventListener;
+
   private _applyThemeClass() {
-    TASKS_VALID_THEMES.forEach(t => this.classList.remove(`theme-${t}`));
-    this.classList.add(`theme-${this._theme}`);
+    applyThemeToHost(this._theme, this);
   }
 
   private _setTheme(theme: BoardTheme) {
     this._showSettings = false;
     saveTasksTheme(theme, this);
     this._theme = theme;
+  }
+
+  private _setBgImage(url: string) {
+    saveThemeBgUrl(this._theme, url);
+    this.style.setProperty('--theme-bg-url', `url("${url}")`);
+    // notify settings/other components
+    const w = window?.top ?? window;
+    w.dispatchEvent(new CustomEvent('tasks-bg-changed', {
+      detail: { theme: this._theme, url },
+      bubbles: true, composed: true,
+    }));
   }
 
   // ── Filter helpers ─────────────────────────────────────────────────────
@@ -497,11 +513,15 @@ export class CollabTasksBoard extends StateLitElement {
   }
 
   private _renderSettings(m: typeof message_en) {
-    const lang = document.documentElement.lang ?? 'en';
+    const lang    = document.documentElement.lang ?? 'en';
+    const bgUrl   = loadThemeBgUrl(this._theme);
     return html`
       <div class="settings-panel">
         <div class="settings-panel-title">${m.themes}</div>
         ${renderThemeCards(this._theme, lang, (t) => this._setTheme(t))}
+        ${THEME_BG_OPTIONS[this._theme]
+          ? renderImagePicker(this._theme, bgUrl, lang, (url) => this._setBgImage(url))
+          : nothing}
       </div>
     `;
   }
