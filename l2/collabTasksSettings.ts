@@ -4,8 +4,6 @@
 const message_pt = {
   title:          'Configurações',
   subtitle:       'Tasks',
-  appearance:     'Aparência',
-  appearanceDesc: 'Escolha o tema visual do board e das telas de tasks.',
   tags:           'Vocabulário de tags',
   tagsDesc:       'Tags configuradas para esta organização.',
   tagsEmpty:      'Nenhuma tag configurada.',
@@ -16,6 +14,7 @@ const message_pt = {
   settingExportD: 'CSV, PDF e trilha completa de instâncias de processo.',
   settingPerms:   'Perfis e permissões',
   settingPermsD:  'Quem pode criar, editar e aprovar workflows.',
+  themesHint:     'O tema do board pode ser alterado pelo ícone ⚙ no Board ou em Minhas tasks.',
   reload:         'Recarregar',
   loadError:      'Não consegui carregar.',
   retry:          'Tentar de novo',
@@ -23,8 +22,6 @@ const message_pt = {
 const message_en = {
   title:          'Settings',
   subtitle:       'Tasks',
-  appearance:     'Appearance',
-  appearanceDesc: 'Choose the visual theme for the board and task screens.',
   tags:           'Tag vocabulary',
   tagsDesc:       'Tags configured for this organization.',
   tagsEmpty:      'No tags configured.',
@@ -35,29 +32,24 @@ const message_en = {
   settingExportD: 'CSV, PDF and full process instance trail.',
   settingPerms:   'Profiles & permissions',
   settingPermsD:  'Who can create, edit and approve workflows.',
+  themesHint:     'The board theme can be changed from the ⚙ icon in Board or My tasks.',
   reload:         'Reload',
   loadError:      'Could not load.',
   retry:          'Retry',
 };
 /// **collab_i18n_end**
 
-import { html, nothing } from 'lit';
+import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { msgGetOrgPreferences } from '/_102025_/l2/shared/api.js';
 import { getUserId } from '/_102025_/l2/collabMessagesHelper.js';
 import {
-  type TasksTheme,
-  THEME_BG_OPTIONS,
   loadTasksTheme,
-  loadThemeBgUrl,
-  saveTasksTheme,
-  saveThemeBgUrl,
   applyThemeToHost,
-  renderThemeCards,
-  renderImagePicker,
 } from '/_102025_/l2/collabTasksTheme.js';
+import '/_102025_/l2/collabTasksDesignTokens.js';
 
 function getMsg() {
   return document.documentElement.lang === 'pt' ? message_pt : message_en;
@@ -77,37 +69,31 @@ export class CollabTasksSettings extends StateLitElement {
   @property({ type: String }) userId       = '';
   @property({ type: String }) organizationId = 'collabcodes';
 
-  @state() private _theme: TasksTheme = 'clean';
-  @state() private _bgUrl: string | null = null;
   @state() private tagVocabulary: msg.TagVocabularyEntry[] = [];
   @state() private loadingTags = true;
   @state() private errorTags: string | null = null;
 
+  private _onThemeChanged!: EventListener;
+
   connectedCallback() {
     super.connectedCallback();
     if (!this.userId) this.userId = getUserId() || '';
-    this._theme  = loadTasksTheme();
-    this._bgUrl  = loadThemeBgUrl(this._theme);
-    applyThemeToHost(this._theme, this);
+    // Apply the currently saved theme to this host so this screen visually
+    // matches the rest of the tasks tab (header tone, etc.). Listen for
+    // changes so it follows along if the user switches theme in Board.
+    applyThemeToHost(loadTasksTheme(), this);
+    this._onThemeChanged = () => applyThemeToHost(loadTasksTheme(), this);
+    const w = window?.top ?? window;
+    w.addEventListener('tasks-theme-changed', this._onThemeChanged);
+    w.addEventListener('tasks-bg-changed',    this._onThemeChanged);
     this._loadTags();
   }
 
-  private _applyTheme(theme: TasksTheme) {
-    this._theme = theme;
-    this._bgUrl = loadThemeBgUrl(theme);
-    saveTasksTheme(theme, this);
-  }
-
-  private _setBgImage(url: string) {
-    this._bgUrl = url;
-    saveThemeBgUrl(this._theme, url);
-    applyThemeToHost(this._theme, this);
-    // Notify open boards
+  disconnectedCallback() {
+    super.disconnectedCallback();
     const w = window?.top ?? window;
-    w.dispatchEvent(new CustomEvent('tasks-bg-changed', {
-      detail: { theme: this._theme, url },
-      bubbles: true, composed: true,
-    }));
+    w.removeEventListener('tasks-theme-changed', this._onThemeChanged);
+    w.removeEventListener('tasks-bg-changed',    this._onThemeChanged);
   }
 
   private async _loadTags() {
@@ -144,17 +130,14 @@ export class CollabTasksSettings extends StateLitElement {
 
       <div class="st-body">
 
-        <!-- ── Appearance ── -->
-        <section class="st-section">
-          <div class="st-section-header">
-            <div class="st-section-title">${m.appearance}</div>
-            <div class="st-section-desc">${m.appearanceDesc}</div>
-          </div>
-          ${renderThemeCards(this._theme, lang, (t) => this._applyTheme(t))}
-          ${THEME_BG_OPTIONS[this._theme]
-            ? renderImagePicker(this._theme, this._bgUrl, lang, (url) => this._setBgImage(url))
-            : nothing}
-        </section>
+        <!-- ── Theme hint (themes themselves now live in Board / My tasks gear) ── -->
+        <div class="st-theme-hint" role="note">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.1"/>
+            <path d="M7 6.2v3.4M7 4.4v.05" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <span>${m.themesHint}</span>
+        </div>
 
         <!-- ── Tag vocabulary ── -->
         <section class="st-section">

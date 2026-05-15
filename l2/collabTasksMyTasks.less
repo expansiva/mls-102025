@@ -13,10 +13,12 @@ collab-tasks-my-tasks-102025 {
     --mt-header-border: var(--color-border-tertiary, rgba(0,0,0,0.08));
     --mt-text-primary:   var(--color-text-primary,   #1a1a18);
     --mt-text-secondary: var(--color-text-secondary, #5f5e5a);
-    --mt-text-tertiary:  var(--color-text-tertiary,  #888780);
+    // Tertiary now goes through --ct-text-tertiary so the AA-fixed value
+    // from design tokens (#6e6d68 on light, theme-aware otherwise) wins.
+    --mt-text-tertiary:  var(--ct-text-tertiary, #6e6d68);
     --mt-row-hover:   var(--color-background-secondary, #f5f4f0);
     --mt-sep-color:   rgba(0,0,0,0.06);
-    --mt-icon-color:  var(--color-text-tertiary, #888780);
+    --mt-icon-color:  var(--ct-text-tertiary, #6e6d68);
     --mt-icon-hover-bg: var(--color-background-secondary, #f5f4f0);
 
     // ── Dark mode base overrides ───────────────────────────────────────────

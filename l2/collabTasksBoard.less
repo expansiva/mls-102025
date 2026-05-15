@@ -232,7 +232,7 @@ collab-tasks-board-102025 {
     .board-no-results {
         padding: 20px 16px 0;
         font-size: 12px;
-        color: var(--color-text-tertiary, #888780);
+        color: var(--ct-text-tertiary, #6e6d68);
         text-align: center;
         flex-shrink: 0;
     }
@@ -346,7 +346,7 @@ collab-tasks-board-102025 {
         border: none;
         background: none;
         font-size: 11px;
-        color: var(--color-text-tertiary, #888780);
+        color: var(--ct-text-tertiary, #6e6d68);
         cursor: pointer;
         white-space: nowrap;
         font-family: inherit;
@@ -494,7 +494,7 @@ collab-tasks-board-102025 {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--color-text-tertiary, #9ca3af);
+        color: var(--ct-text-tertiary, #6e6d68); // AA-compliant on light themes
         font-size: 11px;
         text-align: center;
     }
@@ -682,8 +682,8 @@ collab-tasks-board-102025 {
 
     // ── Theme: Forest (FIXED — dark bg, white columns & cards) ────────────
     &.theme-forest {
-        --board-col-bg:        rgba(255,255,255,0.93);
-        --board-col-border:    rgba(0,0,0,0.12);
+        --board-col-bg:        rgba(255,255,255,0.96);
+        --board-col-border:    rgba(0,0,0,0.14);
         --board-col-text:      #2a3a2c;
         --board-header-bg:     rgba(8,15,9,0.96);
         --board-header-border: rgba(255,255,255,0.10);
@@ -722,12 +722,25 @@ collab-tasks-board-102025 {
                     linear-gradient(160deg, #0a1a0c 0%, #122016 50%, #0d1a10 100%)
                 )
                 center / cover;
+            position: relative;
+
+            // Scrim guarantees cards/columns have enough contrast even when
+            // a photo with bright highlights is selected.
+            &::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.42) 100%);
+                z-index: 0;
+            }
+            > * { position: relative; z-index: 1; }
         }
 
         // Cards and columns stay readable (white) regardless of bg image
         collab-tasks-card-102025 {
-            box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
-            &:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.20); }
+            box-shadow: 0 1px 4px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.10);
+            &:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.28); }
         }
     }
 
@@ -791,6 +804,19 @@ collab-tasks-board-102025 {
                 center / cover;
             gap: 8px;
             padding: 12px;
+            position: relative;
+
+            // Scrim — preserves the warm/cool tone of the photo without
+            // letting it wash out the columns.
+            &::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background: linear-gradient(180deg, rgba(9,30,66,0.20) 0%, rgba(9,30,66,0.34) 100%);
+                z-index: 0;
+            }
+            > * { position: relative; z-index: 1; }
         }
 
         // Staggered column entrance
@@ -814,12 +840,18 @@ collab-tasks-board-102025 {
 
     // ── Theme: Dark Pro / ClickUp-inspired ─────────────────────────────────
     &.theme-clickup {
-        --board-col-bg:        rgba(147,51,234,0.16);
-        --board-col-border:    rgba(147,51,234,0.28);
-        --board-col-text:      rgba(216,195,255,0.85);
+        // Columns: keep the purple tint but make them readable on any photo.
+        // Was 0.16 → now 0.78 (mostly opaque dark purple). The scrim below
+        // adds further insurance against busy backgrounds.
+        --board-col-bg:        rgba(28,16,58,0.78);
+        --board-col-border:    rgba(147,51,234,0.35);
+        --board-col-text:      rgba(216,195,255,0.92);
         --board-header-bg:     rgba(10,4,24,0.97);
         --board-header-border: rgba(147,51,234,0.25);
-        --board-card-bg:       rgba(255,255,255,0.09);
+        // Cards: was 0.09 (illegible per user photo). New value gives a real
+        // glass effect — readable text on top of the column tint without
+        // losing the "Dark Pro" feel. Backdrop-blur is set further down.
+        --board-card-bg:       rgba(255,255,255,0.18);
 
         // Adjusted status accents for dark purple bg
         --status-todo-accent:          #818cf8;
@@ -871,6 +903,20 @@ collab-tasks-board-102025 {
                     linear-gradient(270deg, #13042a, #1e1257, #0d0626, #1a0b3e, #0e0b2e)
                 )
                 center / cover;
+            position: relative;
+
+            // Strong scrim — clickup photos are typically dark and busy
+            // (galaxies, neon abstracts). The scrim makes sure cards always
+            // read as cards, regardless of which background is chosen.
+            &::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background: linear-gradient(180deg, rgba(10,4,24,0.45) 0%, rgba(10,4,24,0.60) 100%);
+                z-index: 0;
+            }
+            > * { position: relative; z-index: 1; }
         }
 
         // Animated gradient only when no bg image is set
@@ -891,11 +937,15 @@ collab-tasks-board-102025 {
         }
 
         collab-tasks-card-102025 {
-            box-shadow: 0 1px 4px rgba(0,0,0,0.40);
-            backdrop-filter: blur(6px);
+            // The glass effect now reads as a card — opacity bump (0.09 → 0.18)
+            // plus a soft blur keeps the photo behind it tasteful but legible.
+            box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+            backdrop-filter: blur(10px) saturate(110%);
+            -webkit-backdrop-filter: blur(10px) saturate(110%);
+            border-color: rgba(167,139,250,0.30);
             &:hover {
-                box-shadow: 0 4px 16px rgba(147,51,234,0.35);
-                border-color: rgba(167,139,250,0.45);
+                box-shadow: 0 6px 18px rgba(147,51,234,0.40);
+                border-color: rgba(167,139,250,0.55);
             }
         }
 

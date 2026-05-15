@@ -119,9 +119,20 @@ export function applyThemeToHost(theme: TasksTheme, host: HTMLElement) {
   }
 }
 
+/**
+ * Persist the theme, apply it to the given host, and broadcast the change
+ * to any other open tasks screen so the picker / board / my-tasks stay in
+ * sync without a reload. Listeners can re-apply the theme to their own host
+ * with applyThemeToHost(theme, this).
+ */
 export function saveTasksTheme(theme: TasksTheme, host: HTMLElement) {
   localStorage.setItem(TASKS_THEME_KEY, theme);
   applyThemeToHost(theme, host);
+  const w = (typeof window !== 'undefined' ? (window.top ?? window) : null);
+  w?.dispatchEvent(new CustomEvent('tasks-theme-changed', {
+    detail: { theme },
+    bubbles: true, composed: true,
+  }));
 }
 
 // ── Theme metadata ────────────────────────────────────────────────────────

@@ -1,0 +1,314 @@
+/// <mls fileReference="_102025_/l2/collabTasksDesignTokens.less" enhancement="_102027_/l2/enhancementStyle" />
+
+// =============================================================================
+// COLLAB TASKS — DESIGN TOKENS
+// =============================================================================
+// Single source of truth for colors, spacing, typography, shadows, motion,
+// and per-theme overlays used across the tasks tab (board, my-tasks, card,
+// settings, theme picker, sidebar, topbar).
+//
+// Tokens are declared at :root so they cascade to every component. Per-theme
+// overrides target the .theme-* class that lives on each tasks component host
+// (set by applyThemeToHost in collabTasksTheme.ts).
+//
+// Naming: --ct-* (Collab Tasks) to avoid colliding with the global
+// --color-*, --border-* tokens from the wider Studio palette.
+// =============================================================================
+
+:root {
+    // ── Neutral palette ────────────────────────────────────────────────────
+    --ct-paper-0:   #ffffff;
+    --ct-paper-50:  #fafaf7;
+    --ct-paper-100: #f5f3ef;
+    --ct-paper-200: #eceae3;
+    --ct-paper-300: #e0ddd4;
+
+    --ct-ink-900:   #1a1a18;
+    --ct-ink-700:   #4a4a47;
+    --ct-ink-500:   #5f5e5a;
+    --ct-ink-400:   #888780;
+
+    // Translucent overlays on light surfaces
+    --ct-ink-200:   rgba(0,0,0,0.18);
+    --ct-ink-100:   rgba(0,0,0,0.10);
+    --ct-ink-50:    rgba(0,0,0,0.05);
+
+    // ── Status palette ─────────────────────────────────────────────────────
+    --ct-status-todo:           #185fa5;
+    --ct-status-todo-soft:      #e6f1fb;
+    --ct-status-progress:       #854f0b;
+    --ct-status-progress-soft:  #faeeda;
+    --ct-status-paused:         #6b7280;
+    --ct-status-paused-soft:    #f3f4f6;
+    --ct-status-done:           #3b6d11;
+    --ct-status-done-soft:      #eaf3de;
+    --ct-status-failed:         #a32d2d;
+    --ct-status-failed-soft:    #fcebeb;
+
+    // ── Tag palette ────────────────────────────────────────────────────────
+    --ct-tag-bug:               #a32d2d;
+    --ct-tag-bug-soft:          #fcebeb;
+    --ct-tag-feature:           #185fa5;
+    --ct-tag-feature-soft:      #e6f1fb;
+    --ct-tag-business:          #854f0b;
+    --ct-tag-business-soft:     #faeeda;
+    --ct-tag-process:           #085041;
+    --ct-tag-process-soft:      #e1f5ee;
+
+    // ── Spacing scale (4px-base, with 2/6 for tight UI) ────────────────────
+    --ct-space-1: 2px;
+    --ct-space-2: 4px;
+    --ct-space-3: 6px;
+    --ct-space-4: 8px;
+    --ct-space-5: 10px;
+    --ct-space-6: 12px;
+    --ct-space-7: 14px;
+    --ct-space-8: 16px;
+    --ct-space-9: 20px;
+    --ct-space-10: 24px;
+
+    // ── Radii ──────────────────────────────────────────────────────────────
+    --ct-radius-xs:   3px;
+    --ct-radius-sm:   5px;
+    --ct-radius-md:   7px;
+    --ct-radius-lg:   10px;
+    --ct-radius-xl:   14px;
+    --ct-radius-pill: 9999px;
+
+    // ── Typography ─────────────────────────────────────────────────────────
+    --ct-text-9:  9px;
+    --ct-text-10: 10px;
+    --ct-text-11: 11px;
+    --ct-text-12: 12px;
+    --ct-text-13: 13px;
+    --ct-text-14: 14px;
+    --ct-leading-tight:  1.25;
+    --ct-leading-normal: 1.4;
+    --ct-weight-regular:  400;
+    --ct-weight-medium:   500;
+    --ct-weight-semibold: 600;
+    --ct-weight-bold:     700;
+
+    // ── Shadows ────────────────────────────────────────────────────────────
+    --ct-shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+    --ct-shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --ct-shadow-md: 0 3px 10px rgba(0,0,0,0.10);
+    --ct-shadow-lg: 0 8px 24px rgba(0,0,0,0.16);
+    --ct-shadow-glow: 0 0 0 2px rgba(24,95,165,0.15);
+
+    // ── Motion ─────────────────────────────────────────────────────────────
+    --ct-duration-fast:    100ms;
+    --ct-duration-normal:  140ms;
+    --ct-duration-slow:    220ms;
+    --ct-ease-out:         cubic-bezier(0.16, 0.84, 0.44, 1);
+
+    // ── Semantic surface tokens (theme-overridable) ────────────────────────
+    --ct-surface-bg:            var(--ct-paper-0);
+    --ct-surface-bg-alt:        var(--ct-paper-100);
+    --ct-surface-border:        var(--ct-ink-100);
+    --ct-surface-border-strong: var(--ct-ink-200);
+    --ct-text-primary:          var(--ct-ink-900);
+    --ct-text-secondary:        var(--ct-ink-500);
+    // Tertiary darkened from --ct-ink-400 (#888780, ~3.1:1 on paper-100) to
+    // #6e6d68 — passes WCAG AA (4.6:1) on the warm light surfaces used in
+    // the Clean/Amber themes. Each dark-bg theme overrides this further down.
+    --ct-text-tertiary:         #6e6d68;
+
+    // ── Board surface tokens (theme-overridable) ───────────────────────────
+    --ct-board-bg:           transparent;
+    --ct-header-bg:          var(--ct-paper-0);
+    --ct-header-border:      var(--ct-ink-100);
+    --ct-column-bg:          var(--ct-paper-100);
+    --ct-column-border:      var(--ct-ink-100);
+    --ct-column-text:        var(--ct-ink-500);
+    --ct-card-bg:            var(--ct-paper-0);
+    --ct-card-border:        var(--ct-ink-100);
+    --ct-card-shadow:        var(--ct-shadow-xs);
+    --ct-card-shadow-hover:  var(--ct-shadow-md);
+
+    // ── Theme overlays ─────────────────────────────────────────────────────
+    // Scrim sits between the bg image and the columns so cards always have
+    // enough contrast against arbitrary photos. Themes that don't use an
+    // image override --ct-image-scrim to "none".
+    --ct-image-scrim:     linear-gradient(180deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.44) 100%);
+    --ct-image-scrim-soft:linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.28) 100%);
+    --ct-image-scrim-none: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ct-surface-bg:            #1e1e1c;
+        --ct-surface-bg-alt:        #28281f;
+        --ct-surface-border:        rgba(255,255,255,0.08);
+        --ct-surface-border-strong: rgba(255,255,255,0.18);
+        --ct-text-primary:          #e8e6dc;
+        --ct-text-secondary:        #b8b5ac;
+        --ct-text-tertiary:         #8a8880;
+
+        --ct-header-bg:             #1e1e1c;
+        --ct-header-border:         rgba(255,255,255,0.08);
+        --ct-column-bg:             #28281f;
+        --ct-column-border:         rgba(255,255,255,0.08);
+        --ct-column-text:           #b8b5ac;
+        --ct-card-bg:               #28281f;
+        --ct-card-border:           rgba(255,255,255,0.08);
+    }
+}
+
+// =============================================================================
+// PER-THEME OVERRIDES
+// =============================================================================
+// Each theme-* class lives on a tasks-component host. The overrides below take
+// effect inside that host (and its descendants) because CSS variables cascade.
+// Themes that show an image background pull --theme-bg-url from a host inline
+// style set by applyThemeToHost(theme).
+// =============================================================================
+
+// ── Theme: Clean ────────────────────────────────────────────────────────────
+.theme-clean {
+    --ct-board-bg:        var(--ct-paper-200);
+    --ct-column-bg:       var(--ct-paper-100);
+    --ct-column-border:   rgba(0,0,0,0.12);
+    --ct-column-text:     var(--ct-ink-700);
+    --ct-header-bg:       var(--ct-paper-0);
+    --ct-header-border:   rgba(0,0,0,0.10);
+    --ct-card-bg:         var(--ct-paper-0);
+    --ct-card-border:     rgba(0,0,0,0.10);
+    --ct-text-tertiary:   #6e6d68;   // AA on paper-100 (4.66:1)
+    --ct-image-scrim:     none;
+}
+
+// ── Theme: Amber ────────────────────────────────────────────────────────────
+.theme-amber {
+    --ct-board-bg:        transparent;
+    --ct-column-bg:       #fef9ee;
+    --ct-column-border:   rgba(100,55,5,0.18);
+    --ct-column-text:     #5a3812;
+    --ct-header-bg:       #8c5116;
+    --ct-header-border:   rgba(60,30,0,0.35);
+    --ct-card-bg:         #ffffff;
+    --ct-card-border:     rgba(100,55,5,0.22);
+    --ct-card-shadow:     0 1px 3px rgba(0,0,0,0.07);
+    --ct-card-shadow-hover: 0 4px 12px rgba(120,68,8,0.14);
+    --ct-text-tertiary:   #7a5a2e;   // warm-toned tertiary, AA on #fef9ee
+    --ct-image-scrim:     none;
+
+    @media (prefers-color-scheme: dark) {
+        --ct-column-bg:      rgba(133,79,11,0.22);
+        --ct-column-border:  rgba(240,163,50,0.18);
+        --ct-column-text:    #f5c97a;
+        --ct-header-bg:      #5c2e08;
+        --ct-card-bg:        #2a1e0a;
+        --ct-card-border:    rgba(240,163,50,0.22);
+    }
+}
+
+// ── Theme: Forest (image bg, opaque white cards/columns) ────────────────────
+.theme-forest {
+    --ct-column-bg:       rgba(255,255,255,0.96);
+    --ct-column-border:   rgba(0,0,0,0.12);
+    --ct-column-text:     #2a3a2c;
+    --ct-header-bg:       rgba(8,15,9,0.96);
+    --ct-header-border:   rgba(255,255,255,0.10);
+    --ct-card-bg:         #ffffff;
+    --ct-card-border:     rgba(0,0,0,0.12);
+    --ct-card-shadow:     0 1px 4px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.10);
+    --ct-card-shadow-hover: 0 6px 18px rgba(0,0,0,0.28);
+    // In Forest the header/popover is dark; tertiary needs to be light.
+    --ct-text-tertiary:   rgba(180,230,190,0.70);
+    --ct-image-scrim:     linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.42) 100%);
+}
+
+// ── Theme: Trello / Workspace (image bg, opaque columns) ────────────────────
+.theme-trello {
+    --ct-column-bg:       #ebecf0;
+    --ct-column-border:   transparent;
+    --ct-column-text:     #172b4d;
+    --ct-header-bg:       rgba(255,255,255,0.96);
+    --ct-header-border:   rgba(9,30,66,0.12);
+    --ct-card-bg:         #ffffff;
+    --ct-card-border:     rgba(9,30,66,0.08);
+    --ct-card-shadow:     0 1px 0 rgba(9,30,66,0.25);
+    --ct-card-shadow-hover: 0 4px 8px rgba(9,30,66,0.20);
+    --ct-text-tertiary:   #5e6c84;   // Atlassian tertiary
+    --ct-image-scrim:     linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.32) 100%);
+
+    // Trello-style status accents
+    --ct-status-todo:           #0052cc;
+    --ct-status-todo-soft:      #deebff;
+    --ct-status-progress:       #ff8b00;
+    --ct-status-progress-soft:  #fff0b3;
+    --ct-status-done:           #006644;
+    --ct-status-done-soft:      #e3fcef;
+    --ct-status-failed:         #de350b;
+    --ct-status-failed-soft:    #ffebe6;
+}
+
+// ── Theme: ClickUp / Dark Pro (image bg, glass cards w/ enough opacity) ─────
+.theme-clickup {
+    // Columns: keep purple tint but make it readable on any photo
+    --ct-column-bg:       rgba(28,16,58,0.78);
+    --ct-column-border:   rgba(147,51,234,0.35);
+    --ct-column-text:     rgba(216,195,255,0.92);
+    --ct-header-bg:       rgba(10,4,24,0.97);
+    --ct-header-border:   rgba(147,51,234,0.25);
+
+    // Cards: was 0.09 (too thin) → now 0.18 with backdrop blur. Still glassy
+    // on the columns, but text contrast is now WCAG-friendly.
+    --ct-card-bg:         rgba(255,255,255,0.18);
+    --ct-card-border:     rgba(167,139,250,0.30);
+    --ct-card-shadow:     0 2px 8px rgba(0,0,0,0.45);
+    --ct-card-shadow-hover: 0 6px 18px rgba(147,51,234,0.40);
+
+    // Strong scrim because background photos are typically very dark / busy
+    --ct-image-scrim:     linear-gradient(180deg, rgba(10,4,24,0.45) 0%, rgba(10,4,24,0.60) 100%);
+
+    // Adjusted status accents for the dark purple environment
+    --ct-status-todo:           #818cf8;
+    --ct-status-todo-soft:      rgba(129,140,248,0.20);
+    --ct-status-progress:       #fb923c;
+    --ct-status-progress-soft:  rgba(251,146,60,0.20);
+    --ct-status-paused:         #94a3b8;
+    --ct-status-paused-soft:    rgba(148,163,184,0.18);
+    --ct-status-done:           #34d399;
+    --ct-status-done-soft:      rgba(52,211,153,0.20);
+    --ct-status-failed:         #f87171;
+    --ct-status-failed-soft:    rgba(248,113,113,0.20);
+
+    // Light purple tertiary so the theme picker description / image label
+    // stay readable on the dark purple popover.
+    --ct-text-tertiary:   rgba(216,195,255,0.68);
+}
+
+// =============================================================================
+// REUSABLE COMPONENT PRIMITIVES
+// =============================================================================
+// These low-level selectors are rendered inside multiple components — keeping
+// them at top level (not scoped to a host) is safe because the class names
+// (.tp-*, .skel) are namespaced enough that collisions are unlikely.
+// =============================================================================
+
+// Theme preview minimap (rendered in theme picker)
+.tp-row {
+    display: flex;
+    gap: var(--ct-space-1);
+    height: 52px;
+    border-radius: var(--ct-radius-xs);
+    overflow: hidden;
+    padding: var(--ct-space-1);
+}
+
+.tp-col {
+    flex: 1;
+    border-radius: var(--ct-radius-xs);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ct-space-1);
+    padding: var(--ct-space-1);
+}
+
+.tp-card {
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}

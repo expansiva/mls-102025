@@ -76,15 +76,12 @@ import { openElementInServiceDetails } from '/_102027_/l2/libCommom.js';
 import { getUserId } from '/_102025_/l2/collabMessagesHelper.js';
 import {
   type TasksTheme,
-  TASKS_VALID_THEMES,
-  THEME_BG_OPTIONS,
   loadTasksTheme,
-  loadThemeBgUrl,
-  saveTasksTheme,
-  renderThemeCards,
-  renderImagePicker,
   applyThemeToHost,
 } from '/_102025_/l2/collabTasksTheme.js';
+
+import '/_102025_/l2/collabTasksThemePicker.js';
+import '/_102025_/l2/collabTasksDesignTokens.js';
 
 function getMsg() {
   return document.documentElement.lang === 'pt' ? message_pt : message_en;
@@ -141,6 +138,8 @@ export class CollabTasksMyTasks extends StateLitElement {
   private _refetchTimer: ReturnType<typeof setTimeout> | null = null;
   private _onTaskChange!: EventListener;
   private _onTaskMetaChanged!: EventListener;
+  private _onThemeChanged!: EventListener;
+  private _onBgChanged!: EventListener;
 
   connectedCallback() {
     super.connectedCallback();
@@ -149,9 +148,25 @@ export class CollabTasksMyTasks extends StateLitElement {
     this._applyThemeClass();
     this._onTaskChange    = (e: Event) => this._handleTaskChange(e as CustomEvent);
     this._onTaskMetaChanged = (e: Event) => this._handleTaskMetaChanged(e as CustomEvent);
+    // Stay in sync when theme is changed elsewhere (board picker, etc.).
+    this._onThemeChanged = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { theme: MyTasksTheme };
+      if (detail?.theme && detail.theme !== this._theme) {
+        this._theme = detail.theme;
+      }
+      applyThemeToHost(this._theme, this);
+    };
+    this._onBgChanged = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { theme: MyTasksTheme; url: string };
+      if (detail?.theme === this._theme) {
+        this.style.setProperty('--theme-bg-url', `url("${detail.url}")`);
+      }
+    };
     const w = window?.top ?? window;
     w.addEventListener('task-change', this._onTaskChange);
     w.addEventListener('task-meta-changed', this._onTaskMetaChanged);
+    w.addEventListener('tasks-theme-changed', this._onThemeChanged);
+    w.addEventListener('tasks-bg-changed',    this._onBgChanged);
     this._fetchAll();
   }
 
@@ -160,17 +175,13 @@ export class CollabTasksMyTasks extends StateLitElement {
     const w = window?.top ?? window;
     w.removeEventListener('task-change', this._onTaskChange);
     w.removeEventListener('task-meta-changed', this._onTaskMetaChanged);
+    w.removeEventListener('tasks-theme-changed', this._onThemeChanged);
+    w.removeEventListener('tasks-bg-changed',    this._onBgChanged);
     if (this._refetchTimer) clearTimeout(this._refetchTimer);
   }
 
   private _applyThemeClass() {
     applyThemeToHost(this._theme, this);
-  }
-
-  private _setTheme(theme: MyTasksTheme) {
-    this._showSettings = false;
-    saveTasksTheme(theme, this);
-    this._theme = theme;
   }
 
   private async _fetchAll() {
@@ -307,21 +318,14 @@ export class CollabTasksMyTasks extends StateLitElement {
     `;
   }
 
-  private _setBgImage(url: string) {
-    localStorage.setItem(`collab-tasks-bg-${this._theme}`, url);
-    applyThemeToHost(this._theme, this);
-  }
-
   private _renderSettings(m: typeof message_en) {
-    const lang   = document.documentElement.lang ?? 'en';
-    const bgUrl  = loadThemeBgUrl(this._theme);
     return html`
       <div class="settings-panel">
         <div class="settings-panel-title">${m.themes}</div>
-        ${renderThemeCards(this._theme, lang, (t) => this._setTheme(t))}
-        ${THEME_BG_OPTIONS[this._theme]
-          ? renderImagePicker(this._theme, bgUrl, lang, (url) => this._setBgImage(url))
-          : nothing}
+        <collab-tasks-theme-picker-102025
+          variant="compact"
+          hideTitle
+        ></collab-tasks-theme-picker-102025>
       </div>
     `;
   }

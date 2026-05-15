@@ -134,7 +134,7 @@ collab-tasks-card-102025 {
 
     .assignee-overflow {
         background: var(--color-background-secondary, #f5f4f0);
-        color: var(--color-text-tertiary, #888780);
+        color: var(--ct-text-tertiary, #6e6d68);
         font-size: 8px;
     }
 
@@ -173,14 +173,14 @@ collab-tasks-card-102025 {
     .b-feature  { background: #e6f1fb; color: #185fa5; }
     .b-business { background: #faeeda; color: #633806; }
     .b-process  { background: #e1f5ee; color: #085041; }
-    .b-neutral  { background: var(--color-background-secondary, #f5f4f0); color: var(--color-text-tertiary, #888780); }
+    .b-neutral  { background: var(--color-background-secondary, #f5f4f0); color: var(--ct-text-tertiary, #6e6d68); }
 
     .priority-pill {
         font-size: 9px;
         padding: 2px 6px;
         border-radius: 8px;
         background: var(--color-background-secondary, #f5f4f0);
-        color: var(--color-text-tertiary, #888780);
+        color: var(--ct-text-tertiary, #6e6d68);
     }
 
     .priority-high,
@@ -191,7 +191,7 @@ collab-tasks-card-102025 {
         padding: 2px 5px;
         border-radius: 6px;
         background: var(--color-background-secondary, #f5f4f0);
-        color: var(--color-text-tertiary, #888780);
+        color: var(--ct-text-tertiary, #6e6d68);
     }
 
     .pma-badge {
@@ -245,24 +245,25 @@ collab-tasks-card-102025 {
 
     // ── ClickUp: dark glass cards ──────────────────────────────────────────
     .theme-clickup & {
-        // Inherited from board.less: backdrop-filter, box-shadow
-        .card-title       { color: rgba(235,225,255,0.94); }
-        .card-description { color: rgba(190,175,240,0.70); }
-        .card-footer      { border-color: rgba(147,51,234,0.18); }
+        // Card bg is now 0.18 (glass) on top of the scrim+column — text needs
+        // to be high contrast to read well. We bump the title to near-white.
+        .card-title       { color: rgba(248,243,255,0.98); }
+        .card-description { color: rgba(220,210,250,0.82); }
+        .card-footer      { border-color: rgba(147,51,234,0.22); }
         .badge {
-            &.b-bug      { background: rgba(248,113,113,0.18); color: #fca5a5; }
-            &.b-feature  { background: rgba(129,140,248,0.18); color: #a5b4fc; }
-            &.b-business { background: rgba(251,146,60,0.18);  color: #fdba74; }
-            &.b-process  { background: rgba(52,211,153,0.18);  color: #6ee7b7; }
-            &.b-neutral  { background: rgba(255,255,255,0.08); color: rgba(200,185,255,0.65); }
+            &.b-bug      { background: rgba(248,113,113,0.22); color: #fecaca; }
+            &.b-feature  { background: rgba(129,140,248,0.22); color: #c7d2fe; }
+            &.b-business { background: rgba(251,146,60,0.22);  color: #fed7aa; }
+            &.b-process  { background: rgba(52,211,153,0.22);  color: #a7f3d0; }
+            &.b-neutral  { background: rgba(255,255,255,0.10); color: rgba(220,210,250,0.80); }
         }
         .priority-pill,
         .due-pill {
-            background: rgba(255,255,255,0.08);
-            color: rgba(200,185,255,0.75);
+            background: rgba(255,255,255,0.10);
+            color: rgba(220,210,250,0.85);
         }
-        .pma-badge { background: rgba(167,139,250,0.18); color: #c4b5fd; }
-        .assignee-chip { border-color: rgba(147,51,234,0.30); }
+        .pma-badge { background: rgba(167,139,250,0.22); color: #ddd6fe; }
+        .assignee-chip { border-color: rgba(147,51,234,0.35); }
     }
 
     @media (prefers-color-scheme: dark) {

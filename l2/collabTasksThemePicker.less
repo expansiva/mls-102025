@@ -1,0 +1,202 @@
+/// <mls fileReference="_102025_/l2/collabTasksThemePicker.less" enhancement="_102027_/l2/enhancementStyle" />
+
+collab-tasks-theme-picker-102025 {
+    display: block;
+    font-family: inherit;
+
+    // ── Title ──────────────────────────────────────────────────────────────
+    .ctp-title {
+        font-size: var(--ct-text-11);
+        font-weight: var(--ct-weight-semibold);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--ct-text-tertiary);
+        margin-bottom: var(--ct-space-5);
+    }
+
+    // ── Theme card grid ────────────────────────────────────────────────────
+    .ctp-grid {
+        display: grid;
+        gap: var(--ct-space-3);
+    }
+
+    // ── Card ───────────────────────────────────────────────────────────────
+    .ctp-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: var(--ct-space-3);
+        padding: var(--ct-space-4);
+        border: 0.5px solid var(--ct-card-border);
+        border-radius: var(--ct-radius-lg);
+        cursor: pointer;
+        background: var(--ct-surface-bg-alt);
+        font-family: inherit;
+        text-align: left;
+        transition:
+            border-color var(--ct-duration-normal) var(--ct-ease-out),
+            box-shadow   var(--ct-duration-normal) var(--ct-ease-out),
+            transform    var(--ct-duration-fast)   var(--ct-ease-out);
+
+        &:hover {
+            border-color: var(--ct-surface-border-strong);
+            box-shadow: var(--ct-shadow-md);
+            transform: translateY(-1px);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--ct-status-todo);
+            outline-offset: 2px;
+        }
+
+        &.is-selected {
+            border-color: var(--ct-status-todo);
+            box-shadow: var(--ct-shadow-glow);
+        }
+    }
+
+    // ── Preview minimap ────────────────────────────────────────────────────
+    .ctp-preview {
+        border-radius: var(--ct-radius-sm);
+        overflow: hidden;
+        border: 0.5px solid var(--ct-ink-50);
+    }
+
+    // ── Card meta row ──────────────────────────────────────────────────────
+    .ctp-card-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--ct-space-2);
+    }
+
+    .ctp-card-name {
+        font-size: var(--ct-text-12);
+        font-weight: var(--ct-weight-medium);
+        color: var(--ct-text-primary);
+    }
+
+    .ctp-check {
+        color: var(--ct-status-todo);
+        flex-shrink: 0;
+    }
+
+    .ctp-card-desc {
+        font-size: var(--ct-text-10);
+        color: var(--ct-text-tertiary);
+        line-height: var(--ct-leading-normal);
+    }
+
+    .ctp-img-badge {
+        position: absolute;
+        top: var(--ct-space-3);
+        right: var(--ct-space-3);
+        font-size: var(--ct-text-9);
+        opacity: 0.65;
+    }
+
+    // ── Image picker ───────────────────────────────────────────────────────
+    .ctp-img-section {
+        margin-top: var(--ct-space-6);
+        padding-top: var(--ct-space-6);
+        border-top: 0.5px solid var(--ct-surface-border);
+    }
+
+    .ctp-img-label {
+        font-size: var(--ct-text-10);
+        font-weight: var(--ct-weight-semibold);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--ct-text-tertiary);
+        margin-bottom: var(--ct-space-4);
+    }
+
+    .ctp-img-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--ct-space-3);
+    }
+
+    .ctp-img-thumb {
+        aspect-ratio: 16 / 9;
+        border-radius: var(--ct-radius-sm);
+        border: 2px solid transparent;
+        background-size: cover;
+        background-position: center;
+        background-color: var(--ct-surface-bg-alt);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        padding: 0;
+        transition:
+            border-color var(--ct-duration-normal) var(--ct-ease-out),
+            transform    var(--ct-duration-fast)   var(--ct-ease-out),
+            box-shadow   var(--ct-duration-normal) var(--ct-ease-out);
+
+        &:hover {
+            transform: scale(1.03);
+            box-shadow: var(--ct-shadow-md);
+        }
+
+        &.is-selected {
+            border-color: var(--ct-status-todo);
+            box-shadow: 0 0 0 1px var(--ct-status-todo), var(--ct-shadow-md);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--ct-status-todo);
+            outline-offset: 2px;
+        }
+    }
+
+    .ctp-img-check {
+        position: absolute;
+        top: var(--ct-space-2);
+        right: var(--ct-space-2);
+        display: flex;
+    }
+
+    // ── Variants ───────────────────────────────────────────────────────────
+    // 'compact' — used in board / my-tasks gear popover. 5 columns, tighter.
+    &[data-variant="compact"] {
+        .ctp-grid {
+            grid-template-columns: repeat(5, 1fr);
+            gap: var(--ct-space-2);
+        }
+
+        .ctp-card {
+            padding: var(--ct-space-3);
+            gap: var(--ct-space-2);
+        }
+
+        .ctp-card-name { font-size: var(--ct-text-11); }
+        .ctp-card-desc { font-size: var(--ct-text-9);  }
+
+        @media (max-width: 720px) {
+            .ctp-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 420px) {
+            .ctp-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    }
+
+    // 'panel' — used in larger surfaces. Wraps with breakpoints.
+    &[data-variant="panel"] {
+        .ctp-grid {
+            grid-template-columns: repeat(5, 1fr);
+            gap: var(--ct-space-4);
+
+            @media (max-width: 720px) { grid-template-columns: repeat(3, 1fr); }
+            @media (max-width: 420px) { grid-template-columns: repeat(2, 1fr); }
+        }
+    }
+
+    // ── Reduced motion ─────────────────────────────────────────────────────
+    @media (prefers-reduced-motion: reduce) {
+        .ctp-card,
+        .ctp-img-thumb {
+            transition: none;
+            &:hover { transform: none; }
+        }
+    }
+}
