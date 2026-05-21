@@ -7,7 +7,7 @@ import { msgAddMessage, msgEnsureTaskRoom, msgGetThreadUpdates } from '/_102025_
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { IMessage, IThreadInfo, loadNotificationDeviceId, getUserId as getCurrentUserId } from '/_102025_/l2/collabMessagesHelper.js';
 import { addMessage, addMessages, addThread, getMessagesByThreadId, getThread, getCompactUTC, updateThread, updateUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
-import { clearTaskNotification } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { clearTaskNotification, markThreadReadLocally } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 import '/_102025_/l2/collabMessagesChatMessage.js';
 import '/_102025_/l2/collabMessagesPrompt.js';
@@ -272,7 +272,29 @@ export class CollabMessagesTaskRoom extends StateLitElement {
         if (!this.roomThread) return;
         const messages = await getMessagesByThreadId(this.roomThread.threadId, 100, 0);
         this.messages = messages.sort((a, b) => a.orderAt.localeCompare(b.orderAt));
-        if (this.task?.PK) clearTaskNotification(this.task.PK);
+        await this.markRoomReadLocally();
+    }
+
+    private async markRoomReadLocally() {
+        if (!this.roomThread?.threadId || !this.task?.PK) return;
+
+        const localThread = await getThread(this.roomThread.threadId);
+        if (!localThread?.unreadCount) {
+            clearTaskNotification(this.task.PK);
+            return;
+        }
+
+        const lastMessage = this.messages.at(-1);
+        const updatedThread = await markThreadReadLocally(
+            this.roomThread.threadId,
+            lastMessage?.createAt,
+            {
+                threadId: this.getParentThreadId(),
+                sourceThreadId: this.roomThread.threadId,
+                taskId: this.task.PK
+            }
+        );
+        if (updatedThread) this.roomThread = updatedThread;
     }
 
     private async sendMessage(content: string, options: { replyTo?: string }) {

@@ -12,7 +12,7 @@ import {
     collab_bell
 } from '/_102025_/l2/collabMessagesIcons.js';
 
-import { removeThreadFromSync, clearTaskNotification, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 
 import {
@@ -1862,8 +1862,6 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async onTaskClick(taskId: string, messageId: string, threadId: string, message: IMessage) {
         this.saveScrollPosition();
-        clearTaskNotification(taskId);
-        this.requestUpdate();
         const task = await this.getTaskUpdate(taskId, messageId, threadId);
         if (!task) return;
         addOrUpdateTask(task);

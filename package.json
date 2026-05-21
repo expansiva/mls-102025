@@ -14,7 +14,7 @@
         "adm-zip": "0.5.16",
         "esbuild": "^0.27.7",
         "less": "^4.6.4",
-        "lit": "^3.3.2",
+        "lit": "^3.3.3",
         "mls-102027": "github:expansiva/mls-102027",
         "mls-102029": "github:expansiva/mls-102029",
         "mls-102036": "github:expansiva/mls-102036",
@@ -23,6 +23,6 @@
         "typescript": "^5.9.3"
     },
     "devDependencies": {
-        "@types/node": "^25.7.0"
+        "@types/node": "^25.9.1"
     }
 }
