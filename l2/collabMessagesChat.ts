@@ -12,7 +12,7 @@ import {
     collab_bell
 } from '/_102025_/l2/collabMessagesIcons.js';
 
-import { removeThreadFromSync, clearThreadNotification, clearTaskNotification, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { removeThreadFromSync, clearTaskNotification, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 
 import {
@@ -1332,6 +1332,7 @@ export class CollabMessagesChat extends StateLitElement {
             this.actualThread = { ...threadByServer };
             notifyThreadChange(threadUpdated);
             if (threadByServer.hasMore) await this.loadAllMessages(threadInfo);
+            await this.markActualThreadRead(threadByServer.thread.threadId);
             this.checkForRegisterNotification();
 
             if (threadByServer.threadsPending) {
@@ -1375,6 +1376,21 @@ export class CollabMessagesChat extends StateLitElement {
                 await getThreadUpdateInBackground(threadPending);
             }
         }
+    }
+
+    private async markActualThreadRead(threadId: string) {
+        const lastMessageReadTime = this.getLastKnownMessageCreateAt();
+        const thread = await markThreadReadLocally(threadId, lastMessageReadTime);
+        if (thread && this.actualThread?.thread.threadId === threadId) {
+            this.actualThread.thread = thread;
+        }
+    }
+
+    private getLastKnownMessageCreateAt(): string | undefined {
+        const lastMessage = [...this.actualMessages]
+            .sort((a, b) => (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt))
+            .at(-1);
+        return lastMessage?.createAt;
     }
 
     private openTask() {
@@ -1996,7 +2012,6 @@ export class CollabMessagesChat extends StateLitElement {
             });
 
             removeThreadFromSync(threadId);
-            clearThreadNotification(threadId);
 
             if (!result.success) {
                 if (result.statusCode === 403) {

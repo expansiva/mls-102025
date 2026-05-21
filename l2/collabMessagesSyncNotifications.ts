@@ -9,7 +9,8 @@ import {
 	getAllThreads,
 	addThread,
 	getCompactUTC,
-	updateMessage
+	updateMessage,
+	updateLastMessageReadTime
 } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 import { notifyThreadChange, notifyMessageChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
@@ -32,15 +33,20 @@ export function removeThreadFromSync(threadId: string) {
 }
 
 export function clearThreadNotification(threadId: string) {
-	pendingNotificationThreads.delete(threadId);
-	if (pendingNotificationThreads.size === 0 && pendingTaskRoomNotifications.size === 0) {
-		hasNotificationMessages = false;
-		changeFavIcon(false);
-		notifyThreadNotification(false);
-	}
+	clearPendingThreadNotification(threadId);
+	void refreshNotificationIndicator();
 }
 
 export function clearTaskNotification(taskId: string) {
+	clearPendingTaskNotification(taskId);
+	void refreshNotificationIndicator();
+}
+
+function clearPendingThreadNotification(threadId: string) {
+	pendingNotificationThreads.delete(threadId);
+}
+
+function clearPendingTaskNotification(taskId: string) {
 	const parentThreadId = pendingTaskRoomParentThreads.get(taskId);
 	pendingTaskRoomNotifications.delete(taskId);
 	pendingTaskRoomParentThreads.delete(taskId);
@@ -48,11 +54,39 @@ export function clearTaskNotification(taskId: string) {
 		const hasOtherTaskNotification = Array.from(pendingTaskRoomParentThreads.values()).some((threadId) => threadId === parentThreadId);
 		if (!hasOtherTaskNotification) pendingNotificationThreads.delete(parentThreadId);
 	}
-	if (pendingNotificationThreads.size === 0 && pendingTaskRoomNotifications.size === 0) {
-		hasNotificationMessages = false;
-		changeFavIcon(false);
-		notifyThreadNotification(false);
+}
+
+function clearPendingNotificationTarget(target: { threadId: string; taskId?: string }) {
+	clearPendingThreadNotification(target.threadId);
+	if (target.taskId) clearPendingTaskNotification(target.taskId);
+}
+
+export async function refreshNotificationIndicator() {
+	const hasPendingMessages = await checkIfNotificationUnread();
+	hasNotificationMessages = hasPendingMessages;
+	changeFavIcon(hasPendingMessages);
+	notifyThreadNotification(hasPendingMessages);
+}
+
+export async function markThreadReadLocally(
+	threadId: string,
+	lastMessageReadTime?: string,
+	notificationTarget?: { threadId: string; taskId?: string }
+): Promise<msg.ThreadPerformanceCache | undefined> {
+	let thread = await getThread(threadId);
+	if (thread) {
+		thread = await updateThread(threadId, thread, undefined, undefined, 0);
+		if (lastMessageReadTime) {
+			thread = await updateLastMessageReadTime(threadId, lastMessageReadTime);
+		}
+		notifyThreadChange(thread);
 	}
+
+	if (notificationTarget) clearPendingNotificationTarget(notificationTarget);
+	else clearPendingThreadNotification(threadId);
+
+	await refreshNotificationIndicator();
+	return thread;
 }
 
 export function hasThreadNotificationPending(threadId: string): boolean {
@@ -257,18 +291,26 @@ async function updateThreadInBackground(
 		const hasMessagesToCache = (response.messages?.length || 0) > 0;
 		if (!statusChanged && !hasMessagesToCache) return;
 
+		const notificationTarget = getNotificationTarget(response.thread);
+		const isActiveThreadVisible = isThreadOpenedAndVisible(notificationTarget.threadId);
+
 		if (statusChanged && !hasMessagesToCache) {
 			const thread = await updateThread(
 				threadId,
 				response.thread,
 				'',
 				'',
-				1,
+				isActiveThreadVisible ? 0 : 1,
 				getCompactUTC()
 			);
 
 			notifyThreadChange(thread);
-			const notificationTarget = getNotificationTarget(response.thread);
+			if (isActiveThreadVisible) {
+				clearPendingNotificationTarget(notificationTarget);
+				await refreshNotificationIndicator();
+				return;
+			}
+
 			if (await shouldNotifyByThreadPreference(notificationTarget, [], userId)) {
 				hasNotificationMessages = true;
 				await showThreadNotificationIfNeeded(notificationTarget);
@@ -299,7 +341,7 @@ async function updateThreadInBackground(
 			response.thread,
 			lastMessageText,
 			lastMessage.createAt,
-			newMessagesFiltered.length + lastUnreadCount,
+			isActiveThreadVisible ? 0 : newMessagesFiltered.length + lastUnreadCount,
 			lastMessage.createAt
 		);
 
@@ -319,9 +361,13 @@ async function updateThreadInBackground(
 
 		await addMessages(newMessages);
 
+		if (isActiveThreadVisible) {
+			await markThreadReadLocally(threadId, lastMessage.createAt, notificationTarget);
+			return;
+		}
+
 		notifyThreadChange(thread);
 
-		const notificationTarget = getNotificationTarget(response.thread);
 		if (await shouldNotifyByThreadPreference(notificationTarget, newMessagesFiltered, userId)) {
 			await showThreadNotificationIfNeeded(notificationTarget);
 		} else {
@@ -348,8 +394,8 @@ function getNotificationTarget(thread: msg.Thread): { threadId: string; taskId?:
 }
 
 function clearNotificationTarget(target: { threadId: string; taskId?: string }) {
-	clearThreadNotification(target.threadId);
-	if (target.taskId) clearTaskNotification(target.taskId);
+	clearPendingNotificationTarget(target);
+	void refreshNotificationIndicator();
 }
 
 async function shouldNotifyByThreadPreference(
@@ -391,6 +437,10 @@ function shouldShowThreadNotification(threadId: string): boolean {
 	const actualThreadId = chat?.actualThread?.thread?.threadId;
 	const isThreadOpened = actualThreadId === threadId;
 	return !isThreadOpened || document.visibilityState === 'hidden';
+}
+
+function isThreadOpenedAndVisible(threadId: string): boolean {
+	return !shouldShowThreadNotification(threadId);
 }
 
 async function showThreadNotificationIfNeeded(target: { threadId: string; taskId?: string }) {
