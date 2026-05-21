@@ -292,17 +292,9 @@ export class CollabMessagesPrompt extends StateLitElement {
             case 'code-block':
                 return html`${marker(token.markerStart)}<span class="code-block-preview">${token.value}</span>${marker(token.markerEnd)}`;
             case 'blockquote':
-                return html`${token.lines.map(line => html`
-                    <div class="blockquote-preview-line">
-                        <span class="blockquote-marker-preview">&gt; </span>${line.map(child => this.renderRichToken(child))}
-                    </div>
-                `)}`;
+                return html`${token.lines.map((line, index) => html`${index > 0 ? html`<br />` : nothing}<span class="blockquote-marker-preview">&gt; </span>${line.map(child => this.renderRichToken(child))}`)}`;
             case 'list':
-                return html`${token.items.map(item => html`
-                    <div class="list-preview-line">
-                        <span class="list-marker-preview">${item.marker} </span>${item.children.map(child => this.renderRichToken(child))}
-                    </div>
-                `)}`;
+                return html`${token.items.map((item, index) => html`${index > 0 ? html`<br />` : nothing}<span class="list-marker-preview">${item.marker} </span>${item.children.map(child => this.renderRichToken(child))}`)}`;
             default:
                 return html``;
         }
@@ -407,6 +399,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         const target = e.target as HTMLTextAreaElement;
         this.text = target.value;
         this.adjustTextAreaHeight();
+        this.handleScroll();
 
         const cursorPos = target.selectionStart;
         const beforeCursor = this.text.slice(0, cursorPos);
