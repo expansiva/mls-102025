@@ -12,7 +12,7 @@ import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 import '/_102025_/l2/collabMessagesAvatar.js';
-import { parseInlineRichText, RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
+import { parseRichText, RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
 
 
 /// **collab_i18n_start**
@@ -289,14 +289,27 @@ export class CollabMessagesPrompt extends StateLitElement {
                 return html`<span class="link-preview">[${token.text}](${token.url})</span>`;
             case 'raw-link':
                 return html`<span class="link-preview">${token.url}</span>`;
+            case 'code-block':
+                return html`${marker(token.markerStart)}<span class="code-block-preview">${token.value}</span>${marker(token.markerEnd)}`;
+            case 'blockquote':
+                return html`${token.lines.map(line => html`
+                    <div class="blockquote-preview-line">
+                        <span class="blockquote-marker-preview">&gt; </span>${line.map(child => this.renderRichToken(child))}
+                    </div>
+                `)}`;
+            case 'list':
+                return html`${token.items.map(item => html`
+                    <div class="list-preview-line">
+                        <span class="list-marker-preview">${item.marker} </span>${item.children.map(child => this.renderRichToken(child))}
+                    </div>
+                `)}`;
             default:
                 return html``;
         }
     }
 
     private renderRichOverlay() {
-        // skipCodeBlock = true para não processar ``` no prompt
-        const tokens = parseInlineRichText(this.text, true);
+        const tokens = parseRichText(this.text);
         return html`${tokens.map(token => this.renderRichToken(token))}`;
     }
 

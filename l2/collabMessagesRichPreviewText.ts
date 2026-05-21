@@ -293,20 +293,22 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
     }
 
     private renderLink(token: { text: string; url: string }) {
+        const href = this.normalizeLinkHref(token.url);
+        if (!href) return html`[${token.text}](${token.url})`;
+
         return html`
-            <a href="${token.url}" target="_blank" rel="noopener">
+            <a href="${href}" target="_blank" rel="noopener noreferrer">
             ${token.text}
             </a>
         `;
     }
 
     private renderRawLink(token: { url: string }) {
-        const href = token.url.startsWith('http')
-            ? token.url
-            : `https://${token.url}`;
+        const href = this.normalizeLinkHref(token.url);
+        if (!href) return html`${token.url}`;
 
         return html`
-            <a href="${href}" target="_blank" rel="noopener">
+            <a href="${href}" target="_blank" rel="noopener noreferrer">
             ${token.url}
             </a>
         `;
@@ -320,22 +322,37 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
         `;
     }
 
-    private renderList(token: { ordered: boolean; items: RichToken[][] }) {
+    private renderList(token: { ordered: boolean; items: { marker: string; children: RichToken[] }[] }) {
         return token.ordered
             ? html`
                 <ol>
                 ${token.items.map(
-                item => html`<li>${this.renderTokens(item)}</li>`
+                item => html`<li>${this.renderTokens(item.children)}</li>`
             )}
                 </ol>
             `
             : html`
                 <ul>
                 ${token.items.map(
-                item => html`<li>${this.renderTokens(item)}</li>`
+                item => html`<li>${this.renderTokens(item.children)}</li>`
             )}
                 </ul>
             `;
+    }
+
+    private normalizeLinkHref(url: string): string | undefined {
+        const trimmed = url.trim();
+        if (!trimmed || /[\s\u0000-\u001F]/.test(trimmed)) return undefined;
+
+        const href = trimmed.startsWith('www.') ? `https://${trimmed}` : trimmed;
+        if (!/^(https?:\/\/|mailto:)/i.test(href)) return undefined;
+
+        try {
+            const parsed = new URL(href);
+            return parsed.href;
+        } catch (_err) {
+            return undefined;
+        }
     }
 
     private copyToClipboard(e: MouseEvent, code: string) {

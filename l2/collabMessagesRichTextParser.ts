@@ -18,8 +18,8 @@ export type RichToken =
     | { type: 'help'; value: string }
     | { type: 'link'; text: string; url: string }
     | { type: 'raw-link'; url: string }
-    | { type: 'blockquote'; children: RichToken[] }
-    | { type: 'list'; ordered: boolean; items: RichToken[][] };
+    | { type: 'blockquote'; children: RichToken[]; lines: RichToken[][] }
+    | { type: 'list'; ordered: boolean; items: { marker: string; children: RichToken[] }[] };
 
 type ParserState = 'NORMAL' | 'INLINE_CODE' | 'CODE_BLOCK';
 
@@ -31,6 +31,21 @@ const isBoundary = (char?: string): boolean => !char || /\s/.test(char);
 
 const matchRawLink = (s: string): RegExpMatchArray | null =>
     s.match(/^(https?:\/\/[^\s]+|www\.[^\s]+)/);
+
+const matchCodeFenceStart = (line: string): RegExpMatchArray | null =>
+    line.match(/^\s{0,3}```([^`]*)$/);
+
+const matchCodeFenceEnd = (line: string): RegExpMatchArray | null =>
+    line.match(/^\s{0,3}```\s*$/);
+
+const matchBlockquote = (line: string): RegExpMatchArray | null =>
+    line.match(/^\s{0,3}>\s?(.*)$/);
+
+const matchUnorderedList = (line: string): RegExpMatchArray | null =>
+    line.match(/^\s{0,3}([-+*])\s+(.+)$/);
+
+const matchOrderedList = (line: string): RegExpMatchArray | null =>
+    line.match(/^\s{0,3}(\d+\.)\s+(.+)$/);
 
 // ─────────────────────────────────────────────────────────────
 // Parser principal - processa texto completo (com blocos)
@@ -46,47 +61,77 @@ export function parseRichText(input: string): RichToken[] {
         const line = lines[i];
 
         /* ───── CODE BLOCK ───── */
-        if (line.startsWith('```')) {
-            let block = line + '\n';
+        const codeFence = matchCodeFenceStart(line);
+        if (codeFence) {
+            const language = codeFence[1].trim();
+            const codeLines: string[] = [];
+            const rawLines = [line];
+            let closed = false;
             i++;
 
-            while (i < lines.length && !lines[i].startsWith('```')) {
-                block += lines[i] + '\n';
+            while (i < lines.length) {
+                rawLines.push(lines[i]);
+                if (matchCodeFenceEnd(lines[i])) {
+                    closed = true;
+                    i++;
+                    break;
+                }
+
+                codeLines.push(lines[i]);
                 i++;
             }
 
-            if (i < lines.length) {
-                block += lines[i];
-                i++;
+            if (!closed) {
+                tokens.push(...parseInlineRichText(rawLines.join('\n')));
+                continue;
             }
 
-            tokens.push(...parseInlineRichText(block));
+            tokens.push({
+                type: 'code-block',
+                language: language || 'plain',
+                value: codeLines.length > 0 ? `${codeLines.join('\n')}\n` : '',
+                markerStart: `\`\`\`${language}\n`,
+                markerEnd: '```',
+            });
             continue;
         }
 
         /* ───── BLOCKQUOTE ───── */
-        if (line.startsWith('>')) {
+        if (matchBlockquote(line)) {
             const quoteLines: string[] = [];
+            const quoteTokens: RichToken[][] = [];
 
-            while (i < lines.length && lines[i].startsWith('>')) {
-                quoteLines.push(lines[i].replace(/^>\s?/, ''));
+            while (i < lines.length) {
+                const match = matchBlockquote(lines[i]);
+                if (!match) break;
+
+                quoteLines.push(match[1]);
+                quoteTokens.push(parseInlineRichText(match[1]));
                 i++;
             }
 
             tokens.push({
                 type: 'blockquote',
                 children: parseRichText(quoteLines.join('\n')),
+                lines: quoteTokens,
             });
 
             continue;
         }
 
         /* ───── UNORDERED LIST ───── */
-        if (/^- /.test(line)) {
-            const items: RichToken[][] = [];
+        const unorderedList = matchUnorderedList(line);
+        if (unorderedList) {
+            const items: { marker: string; children: RichToken[] }[] = [];
 
-            while (i < lines.length && /^- /.test(lines[i])) {
-                items.push(parseInlineRichText(lines[i].replace(/^- /, '')));
+            while (i < lines.length) {
+                const match = matchUnorderedList(lines[i]);
+                if (!match) break;
+
+                items.push({
+                    marker: match[1],
+                    children: parseInlineRichText(match[2]),
+                });
                 i++;
             }
 
@@ -100,11 +145,18 @@ export function parseRichText(input: string): RichToken[] {
         }
 
         /* ───── ORDERED LIST ───── */
-        if (/^\d+\. /.test(line)) {
-            const items: RichToken[][] = [];
+        const orderedList = matchOrderedList(line);
+        if (orderedList) {
+            const items: { marker: string; children: RichToken[] }[] = [];
 
-            while (i < lines.length && /^\d+\. /.test(lines[i])) {
-                items.push(parseInlineRichText(lines[i].replace(/^\d+\. /, '')));
+            while (i < lines.length) {
+                const match = matchOrderedList(lines[i]);
+                if (!match) break;
+
+                items.push({
+                    marker: match[1],
+                    children: parseInlineRichText(match[2]),
+                });
                 i++;
             }
 
@@ -359,7 +411,7 @@ export function parseInlineRichText(input: string, skipCodeBlock: boolean = fals
             // markdown link [text](url)
             if (input[i] === '[') {
                 const closeText = input.indexOf(']', i + 1);
-                const openParen = input[closeText + 1] === '(' ? closeText + 1 : -1;
+                const openParen = closeText !== -1 && input[closeText + 1] === '(' ? closeText + 1 : -1;
                 const closeParen = openParen !== -1 ? input.indexOf(')', openParen + 1) : -1;
 
                 if (closeText !== -1 && openParen !== -1 && closeParen !== -1) {

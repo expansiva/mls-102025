@@ -99,11 +99,17 @@ collab-messages-chat-message-102025 {
                     margin-top: 0.4rem;
                     color: #000;
                     display: flex;
-                    align-items: center;
+                    align-items: flex-start;
                     gap: .4rem;
                     word-break: break-word;
 
+                    collab-messages-rich-preview-text-102025 {
+                        flex: 1;
+                        min-width: 0;
+                    }
+
                     svg {
+                        flex-shrink: 0;
                         width: 12px;
                         fill: @active-color;
                     }
@@ -619,5 +625,4 @@ collab-messages-chat-message-102025 {
     }
 
 }
-
 

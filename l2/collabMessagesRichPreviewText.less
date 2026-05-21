@@ -1,6 +1,36 @@
 /// <mls fileReference="_102025_/l2/collabMessagesRichPreviewText.less" enhancement="_102027_/l2/enhancementStyle" />
 
 collab-messages-rich-preview-text-102025 {
+    display: block;
+    width: 100%;
+
+    a {
+        color: @link-color;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+
+        &:hover {
+            color: @link-color-hover;
+        }
+    }
+
+    ul,
+    ol {
+        margin: .25rem 0;
+        padding-inline-start: 1.4rem;
+    }
+
+    li {
+        margin: .12rem 0;
+        padding-inline-start: .1rem;
+    }
+
+    blockquote {
+        margin: .35rem 0;
+        padding-inline-start: .75rem;
+        border-left: 3px solid @grey-color-dark;
+        color: @text-secondary-color;
+    }
 
     .collab-md-codeblock-card {
         margin: 1rem .3rem;
@@ -134,5 +164,4 @@ collab-messages-rich-preview-text-102025 {
 
 
 }
-
 
