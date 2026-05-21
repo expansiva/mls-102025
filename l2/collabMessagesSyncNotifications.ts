@@ -43,6 +43,8 @@ export function clearTaskNotification(taskId: string) {
 }
 
 function clearPendingThreadNotification(threadId: string) {
+	const hasTaskRoomNotification = Array.from(pendingTaskRoomParentThreads.values()).some((parentThreadId) => parentThreadId === threadId);
+	if (hasTaskRoomNotification) return;
 	pendingNotificationThreads.delete(threadId);
 }
 
