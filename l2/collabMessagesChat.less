@@ -78,6 +78,71 @@ collab-messages-chat-102025 {
         }
     }
 
+    .thread-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        min-height: 34px;
+        padding: .25rem .45rem;
+        border-bottom: 1px solid @grey-color-dark;
+        background: @bg-primary-color-darker;
+        color: @text-primary-color;
+        flex-shrink: 0;
+    }
+
+    .thread-toolbar-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .18rem;
+        min-width: 36px;
+        height: 26px;
+        padding: 0 .42rem;
+        border: 1px solid @grey-color-dark;
+        border-radius: 6px;
+        background: @bg-primary-color;
+        color: @text-primary-color;
+        cursor: pointer;
+        line-height: 1;
+
+        svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            stroke: currentColor;
+        }
+
+        &:hover,
+        &.active {
+            border-color: @active-color;
+            color: @active-color;
+            background: @bg-primary-color-focus;
+        }
+
+        &.important {
+            border-color: @warning-color;
+            color: @warning-color;
+        }
+    }
+
+    .toolbar-counter {
+        font-size: @font-size-12;
+        font-weight: 700;
+        min-width: 8px;
+    }
+
+    .toolbar-alert {
+        position: absolute;
+        top: -6px;
+        right: -3px;
+        color: @warning-color;
+        font-weight: 700;
+        font-size: @font-size-16;
+        line-height: 1;
+    }
+
     .welcome-message {
         padding: 1rem;
 

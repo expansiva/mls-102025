@@ -9,7 +9,12 @@ import {
     collab_gear,
     collab_plus,
     collab_folder_tree,
-    collab_bell
+    collab_bell,
+    collab_pin,
+    collab_star,
+    collab_paperclip,
+    collab_circle_exclamation,
+    collab_robot
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally } from '/_102025_/l2/collabMessagesSyncNotifications.js';
@@ -51,7 +56,8 @@ import {
     msgGetMessagesBefore,
     msgGetTaskUpdate,
     msgGetThreadUpdates,
-    msgAddMessage
+    msgAddMessage,
+    msgUpdateMessage
 } from '/_102025_/l2/shared/api.js';
 
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -95,7 +101,13 @@ const message_pt = {
     today: 'Hoje',
     yesterday: 'Ontem',
     newMessages: 'Novas mensagens',
-    lastMessagePrefix: 'Você'
+    lastMessagePrefix: 'Você',
+    toolbarPins: 'Mensagens fixadas',
+    toolbarSaved: 'Favoritos',
+    toolbarReadReceipts: 'Confirmações de leitura',
+    toolbarAttachments: 'Anexos',
+    toolbarAgent: 'Agente de resumo',
+    replaceOldestPin: 'Já existem 3 mensagens fixadas. Substituir a mais antiga?',
 }
 
 const message_en = {
@@ -116,7 +128,13 @@ const message_en = {
     today: 'Today',
     yesterday: 'Yesterday',
     newMessages: 'New messages',
-    lastMessagePrefix: 'You'
+    lastMessagePrefix: 'You',
+    toolbarPins: 'Pinned messages',
+    toolbarSaved: 'Saved messages',
+    toolbarReadReceipts: 'Read confirmations',
+    toolbarAttachments: 'Attachments',
+    toolbarAgent: 'Summary agent',
+    replaceOldestPin: 'There are already 3 pinned messages. Replace the oldest one?',
 }
 
 type MessageType = typeof message_en;
@@ -126,6 +144,7 @@ const messages: { [key: string]: MessageType } = {
 }
 /// **collab_i18n_end**
 
+type ToolbarItemKind = 'pins' | 'saved' | 'readReceipts' | 'attachments' | 'agent';
 
 @customElement('collab-messages-chat-102025')
 export class CollabMessagesChat extends StateLitElement {
@@ -145,6 +164,7 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private usersAvaliables: msg.User[] = [];
     @state() private elementTaskDetails: HTMLElement | undefined;
     @state() private taskNotificationNavDirection: 'up' | 'down' | '' = '';
+    @state() private toolbarView: Partial<Record<ToolbarItemKind, number>> = {};
 
     @property() group: 'CONNECT' | 'APPS' | 'DOCS' | 'CRM' = 'CONNECT';
     @property() userId: string | undefined;
@@ -350,6 +370,7 @@ export class CollabMessagesChat extends StateLitElement {
 
         return html`
             ${this.renderTopics()}
+            ${this.renderThreadToolbar()}
             <div
                 @scroll=${this.onChatScroll} class="chat-container"
                 @copy=${this.onCopyChat}
@@ -374,6 +395,7 @@ export class CollabMessagesChat extends StateLitElement {
                                     .onTaskClick=${this.onTaskClick.bind(this)}
                                     @reply-preview-click=${this.onReplyPreviewClick}
                                     @reply-message=${this.onReplyMessageClick}
+                                    @pin-message=${this.onPinMessageClick}
                                 ></collab-messages-chat-message-102025>
                                 ${nextNeedShowLabel ? html`<div class="new-messages-label">${this.msg.newMessages}</div>` : ''}`
             })}`
@@ -431,6 +453,119 @@ export class CollabMessagesChat extends StateLitElement {
                 @topic-selected=${(e: CustomEvent) => this.onTopicClick(e)}
             ></collab-messages-topics-102025>
         `
+    }
+
+    private renderThreadToolbar() {
+        const pinnedMessages = this.actualThread?.thread.pinnedMessages || [];
+        const attachments = this.getAttachmentMessages();
+        const items = [
+            {
+                kind: 'pins' as ToolbarItemKind,
+                icon: collab_pin,
+                title: this.msg.toolbarPins,
+                total: pinnedMessages.length,
+                active: this.toolbarView.pins !== undefined,
+                important: false,
+                onClick: () => this.navigateToolbarItem('pins')
+            },
+            {
+                kind: 'saved' as ToolbarItemKind,
+                icon: collab_star,
+                title: this.msg.toolbarSaved,
+                total: 0,
+                active: false,
+                important: false,
+                onClick: () => this.navigateToolbarItem('saved')
+            },
+            {
+                kind: 'readReceipts' as ToolbarItemKind,
+                icon: collab_circle_exclamation,
+                title: this.msg.toolbarReadReceipts,
+                total: 0,
+                active: false,
+                important: false,
+                onClick: () => this.navigateToolbarItem('readReceipts')
+            },
+            {
+                kind: 'attachments' as ToolbarItemKind,
+                icon: collab_paperclip,
+                title: this.msg.toolbarAttachments,
+                total: attachments.length,
+                active: this.toolbarView.attachments !== undefined,
+                important: false,
+                onClick: () => this.navigateToolbarItem('attachments')
+            },
+            {
+                kind: 'agent' as ToolbarItemKind,
+                icon: collab_robot,
+                title: this.msg.toolbarAgent,
+                total: 0,
+                active: false,
+                important: false,
+                onClick: () => this.navigateToolbarItem('agent')
+            }
+        ];
+
+        return html`
+            <div class="thread-toolbar" role="toolbar">
+                ${items.map(item => html`
+                    <button
+                        class="thread-toolbar-btn ${item.active ? 'active' : ''} ${item.important ? 'important' : ''}"
+                        title=${item.title}
+                        @click=${item.onClick}
+                    >
+                        ${item.icon}
+                        ${this.renderToolbarCounter(item.kind, item.total)}
+                        ${item.important ? html`<span class="toolbar-alert">*</span>` : nothing}
+                    </button>
+                `)}
+            </div>
+        `;
+    }
+
+    private renderToolbarCounter(kind: ToolbarItemKind, total: number) {
+        if (total <= 0) return nothing;
+        const index = this.toolbarView[kind];
+        const label = index === undefined ? `${total}` : `${index + 1}/${total}`;
+        return html`<span class="toolbar-counter">(${label})</span>`;
+    }
+
+    private navigateToolbarItem(kind: ToolbarItemKind) {
+        if (kind === 'pins') {
+            const pinnedMessages = this.actualThread?.thread.pinnedMessages || [];
+            if (pinnedMessages.length === 0) return;
+            const nextIndex = this.getNextToolbarIndex(kind, pinnedMessages.length);
+            this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
+            this.scrollToMessageId(pinnedMessages[nextIndex].messageId);
+            return;
+        }
+        if (kind === 'attachments') {
+            const attachments = this.getAttachmentMessages();
+            if (attachments.length === 0) return;
+            const nextIndex = this.getNextToolbarIndex(kind, attachments.length);
+            this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
+            this.scrollToMessageId(`${attachments[nextIndex].threadId}/${attachments[nextIndex].orderAt || attachments[nextIndex].createAt}`);
+        }
+    }
+
+    private getNextToolbarIndex(kind: ToolbarItemKind, total: number): number {
+        const current = this.toolbarView[kind];
+        if (current === undefined || current >= total - 1) return 0;
+        return current + 1;
+    }
+
+    private getAttachmentMessages(): IMessage[] {
+        return this.actualMessages.filter(message => !!message.url || (!!message.type && message.type !== 'text'));
+    }
+
+    private scrollToMessageId(messageId: string) {
+        const orderAt = messageId.split('/').pop();
+        if (!orderAt) return;
+        const messageEl = this.messageContainer?.querySelector(
+            `collab-messages-chat-message-102025[messageid="${orderAt}"]`
+        );
+        if (!messageEl) return;
+        messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     private async onTopicClick(e: CustomEvent) {
@@ -1918,6 +2053,49 @@ export class CollabMessagesChat extends StateLitElement {
             senderId: data.senderId,
             preview: data.content.slice(0, 80)
         });
+    }
+
+    private async onPinMessageClick(ev: CustomEvent) {
+        if (!this.userId || !this.actualThread) return;
+        const data = ev.detail as { message: IMessage, pin: boolean };
+        const message = data.message;
+        const messageId = `${message.threadId}/${message.orderAt || message.createAt}`;
+        const pinnedMessages = this.actualThread.thread.pinnedMessages || [];
+        const alreadyPinned = pinnedMessages.some(item => item.messageId === messageId);
+        if (data.pin && !alreadyPinned && pinnedMessages.length >= 3 && !window.confirm(this.msg.replaceOldestPin)) return;
+        const result = await msgUpdateMessage({
+            userId: this.userId,
+            threadId: this.actualThread.thread.threadId,
+            messageId: message.orderAt || message.createAt,
+            pin: data.pin
+        });
+
+        if (!result.success || !result.response?.message) {
+            throw new Error(result.error || 'Failed to update message pin');
+        }
+
+        await updateMessage(result.response.message);
+        if (result.response.thread) {
+            const updatedThread = await updateThread(
+                result.response.thread.threadId,
+                result.response.thread
+            );
+            this.actualThread.thread = updatedThread;
+            notifyThreadChange(updatedThread);
+        }
+
+        this.actualMessages = this.actualMessages.map(item =>
+            item.threadId === result.response!.message.threadId && item.createAt === result.response!.message.createAt
+                ? { ...item, ...result.response!.message }
+                : item
+        );
+
+        for (const responseMessage of result.response.messages || []) {
+            await this.updateMessage2(false, true, responseMessage as IMessage, responseMessage, undefined);
+        }
+
+        this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+        this.requestUpdate();
     }
 
     private async getTaskUpdate(

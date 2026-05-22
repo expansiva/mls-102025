@@ -6,10 +6,11 @@ import { customElement, property, state } from 'lit/decorators.js';
 import {
     collab_translate,
     collab_circle_exclamation,
-    collab_smile,
-    collab_chevron_down,
+	    collab_smile,
+	    collab_chevron_down,
     collab_reply,
     collab_copy,
+    collab_pin,
     collab_edit,
     collab_delete
 } from '/_102025_/l2/collabMessagesIcons.js';
@@ -29,6 +30,8 @@ const message_pt = {
     msgNotSend: 'Mensagem não enviada*',
     reply: 'Responder',
     copy: 'Copiar',
+    pin: 'Fixar',
+    unpin: 'Desfixar',
     delete: 'Apagar',
     edit: 'Editar',
     you: 'Você',
@@ -42,6 +45,8 @@ const message_en = {
     msgNotSend: 'Message not sent*',
     reply: 'Reply',
     copy: 'Copy',
+    pin: 'Pin',
+    unpin: 'Unpin',
     delete: 'Delete',
     edit: 'Edit',
     you: 'You',
@@ -133,7 +138,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                     <div class="message-row">
                         ${cls === 'user' ? this.renderReactionButtonAdd(message) : nothing}
                     
-                        <div class="message-card ${cls} ${isSame ? 'same' : ''}">
+                        <div class="message-card ${cls} ${isSame ? 'same' : ''} ${this.isPinned(message) ? 'pinned' : ''}">
 
                             ${this.renderSubMenuButton(message)}
                             ${this.renderMessageMenu(message)}
@@ -829,6 +834,10 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${collab_reply}
                 ${this.msg.reply}
             </button>
+            <button @click=${() => this.onPinClick(message)}>
+                ${collab_pin}
+                ${this.isPinned(message) ? this.msg.unpin : this.msg.pin}
+            </button>
             <button>
                 ${collab_edit}
                 ${this.msg.edit}
@@ -849,6 +858,23 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             bubbles: true,
             composed: true
         }));
+    }
+
+    private onPinClick(message: IMessage) {
+        this.closeMessageMenu();
+        this.dispatchEvent(new CustomEvent('pin-message', {
+            detail: {
+                message,
+                pin: !this.isPinned(message)
+            },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    private isPinned(message: IMessage): boolean {
+        const messageId = `${message.threadId}/${message.orderAt || message.createAt}`;
+        return !!this.actualThread?.thread.pinnedMessages?.some(item => item.messageId === messageId);
     }
 
     private closeAllPopups() {
