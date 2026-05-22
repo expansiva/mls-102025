@@ -193,6 +193,7 @@ export class CollabMessagesChat extends StateLitElement {
     private isLoadingMoreMessages = false;
     private isChangeTopics = false;
     private wasMessagesAtBottom: boolean = true;
+    private ignoreToolbarScrollClearUntil = 0;
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
 
@@ -373,6 +374,8 @@ export class CollabMessagesChat extends StateLitElement {
             ${this.renderThreadToolbar()}
             <div
                 @scroll=${this.onChatScroll} class="chat-container"
+                @wheel=${this.clearToolbarSelection}
+                @touchstart=${this.clearToolbarSelection}
                 @copy=${this.onCopyChat}
             >
                 ${repeat(Object.keys(sortedObj), (key) => key, (key) => {
@@ -391,11 +394,13 @@ export class CollabMessagesChat extends StateLitElement {
                                     .allThreads=${this.allThreads}
                                     .actualThread=${this.actualThread}
                                     .usersAvaliables=${this.usersAvaliables}
+                                    .currentUser=${this.getCurrentUser()}
                                     .userId=${this.userId}
                                     .onTaskClick=${this.onTaskClick.bind(this)}
                                     @reply-preview-click=${this.onReplyPreviewClick}
                                     @reply-message=${this.onReplyMessageClick}
                                     @pin-message=${this.onPinMessageClick}
+                                    @favorite-message=${this.onFavoriteMessageClick}
                                 ></collab-messages-chat-message-102025>
                                 ${nextNeedShowLabel ? html`<div class="new-messages-label">${this.msg.newMessages}</div>` : ''}`
             })}`
@@ -457,12 +462,12 @@ export class CollabMessagesChat extends StateLitElement {
 
     private renderThreadToolbar() {
         const pinnedMessages = this.actualThread?.thread.pinnedMessages || [];
+        const favoriteMessageIds = this.getFavoriteMessageIdsForThread();
         const attachments = this.getAttachmentMessages();
         const items = [
             {
                 kind: 'pins' as ToolbarItemKind,
                 icon: collab_pin,
-                title: this.msg.toolbarPins,
                 total: pinnedMessages.length,
                 active: this.toolbarView.pins !== undefined,
                 important: false,
@@ -471,16 +476,14 @@ export class CollabMessagesChat extends StateLitElement {
             {
                 kind: 'saved' as ToolbarItemKind,
                 icon: collab_star,
-                title: this.msg.toolbarSaved,
-                total: 0,
-                active: false,
+                total: favoriteMessageIds.length,
+                active: this.toolbarView.saved !== undefined,
                 important: false,
                 onClick: () => this.navigateToolbarItem('saved')
             },
             {
                 kind: 'readReceipts' as ToolbarItemKind,
                 icon: collab_circle_exclamation,
-                title: this.msg.toolbarReadReceipts,
                 total: 0,
                 active: false,
                 important: false,
@@ -489,7 +492,6 @@ export class CollabMessagesChat extends StateLitElement {
             {
                 kind: 'attachments' as ToolbarItemKind,
                 icon: collab_paperclip,
-                title: this.msg.toolbarAttachments,
                 total: attachments.length,
                 active: this.toolbarView.attachments !== undefined,
                 important: false,
@@ -498,7 +500,6 @@ export class CollabMessagesChat extends StateLitElement {
             {
                 kind: 'agent' as ToolbarItemKind,
                 icon: collab_robot,
-                title: this.msg.toolbarAgent,
                 total: 0,
                 active: false,
                 important: false,
@@ -511,7 +512,8 @@ export class CollabMessagesChat extends StateLitElement {
                 ${items.map(item => html`
                     <button
                         class="thread-toolbar-btn ${item.active ? 'active' : ''} ${item.important ? 'important' : ''}"
-                        title=${item.title}
+                        .title=${this.getToolbarTitle(item.kind)}
+                        aria-label=${this.getToolbarTitle(item.kind)}
                         @click=${item.onClick}
                     >
                         ${item.icon}
@@ -526,7 +528,7 @@ export class CollabMessagesChat extends StateLitElement {
     private renderToolbarCounter(kind: ToolbarItemKind, total: number) {
         if (total <= 0) return nothing;
         const index = this.toolbarView[kind];
-        const label = index === undefined ? `${total}` : `${index + 1}/${total}`;
+        const label = index === undefined ? `${total}` : `${Math.min(index + 1, total)}/${total}`;
         return html`<span class="toolbar-counter">(${label})</span>`;
     }
 
@@ -536,7 +538,17 @@ export class CollabMessagesChat extends StateLitElement {
             if (pinnedMessages.length === 0) return;
             const nextIndex = this.getNextToolbarIndex(kind, pinnedMessages.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
+            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
             this.scrollToMessageId(pinnedMessages[nextIndex].messageId);
+            return;
+        }
+        if (kind === 'saved') {
+            const favoriteMessageIds = this.getFavoriteMessageIdsForThread();
+            if (favoriteMessageIds.length === 0) return;
+            const nextIndex = this.getNextToolbarIndex(kind, favoriteMessageIds.length);
+            this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
+            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
+            this.scrollToMessageId(favoriteMessageIds[nextIndex]);
             return;
         }
         if (kind === 'attachments') {
@@ -544,8 +556,24 @@ export class CollabMessagesChat extends StateLitElement {
             if (attachments.length === 0) return;
             const nextIndex = this.getNextToolbarIndex(kind, attachments.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
+            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
             this.scrollToMessageId(`${attachments[nextIndex].threadId}/${attachments[nextIndex].orderAt || attachments[nextIndex].createAt}`);
         }
+    }
+
+    private getToolbarTitle(kind: ToolbarItemKind): string {
+        switch (kind) {
+            case 'pins': return this.msg.toolbarPins;
+            case 'saved': return this.msg.toolbarSaved;
+            case 'readReceipts': return this.msg.toolbarReadReceipts;
+            case 'attachments': return this.msg.toolbarAttachments;
+            case 'agent': return this.msg.toolbarAgent;
+        }
+    }
+
+    private clearToolbarSelection = () => {
+        if (Object.keys(this.toolbarView).length === 0) return;
+        this.toolbarView = {};
     }
 
     private getNextToolbarIndex(kind: ToolbarItemKind, total: number): number {
@@ -556,6 +584,20 @@ export class CollabMessagesChat extends StateLitElement {
 
     private getAttachmentMessages(): IMessage[] {
         return this.actualMessages.filter(message => !!message.url || (!!message.type && message.type !== 'text'));
+    }
+
+    private getFavoriteMessageIdsForThread(): string[] {
+        const threadId = this.actualThread?.thread.threadId;
+        if (!threadId) return [];
+        return (this.getCurrentUser()?.favorites || []).filter(messageId => messageId.startsWith(`${threadId}/`));
+    }
+
+    private getCurrentUser(): msg.User | undefined {
+        if (!this.userId) return undefined;
+        return [
+            ...(this.actualThread?.users || []),
+            ...this.usersAvaliables
+        ].find(user => user.userId === this.userId);
     }
 
     private scrollToMessageId(messageId: string) {
@@ -1099,6 +1141,10 @@ export class CollabMessagesChat extends StateLitElement {
             return;
         }
 
+        if (Date.now() > this.ignoreToolbarScrollClearUntil) {
+            this.clearToolbarSelection();
+        }
+
         const container = e.target as HTMLElement;
         this.savedScrollTop = container.scrollTop;
         const threshold = 5;
@@ -1443,6 +1489,8 @@ export class CollabMessagesChat extends StateLitElement {
         this.messagesOffset = 0;
         this.hasMoreMessagesLocalDB = true;
         this.hasMoreMessagesBefore = false;
+        this.toolbarView = {};
+        this.ignoreToolbarScrollClearUntil = 0;
         this.actualThread = threadInfo;
         const temp = await getThread(this.actualThread.thread.threadId)
         this.unreadCountInSelectedThread = temp?.unreadCount || 0;
@@ -2096,6 +2144,42 @@ export class CollabMessagesChat extends StateLitElement {
 
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         this.requestUpdate();
+    }
+
+    private async onFavoriteMessageClick(ev: CustomEvent) {
+        if (!this.userId || !this.actualThread) return;
+        const data = ev.detail as { message: IMessage, favorite: boolean };
+        const message = data.message;
+        const result = await msgUpdateMessage({
+            userId: this.userId,
+            threadId: this.actualThread.thread.threadId,
+            messageId: message.orderAt || message.createAt,
+            favorite: data.favorite
+        });
+
+        if (!result.success || !result.response?.user) {
+            throw new Error(result.error || 'Failed to update message favorite');
+        }
+
+        await updateUsers([result.response.user]);
+        this.updateCurrentUser(result.response.user);
+        this.requestUpdate();
+    }
+
+    private updateCurrentUser(user: msg.User) {
+        this.usersAvaliables = this.replaceUser(this.usersAvaliables, user);
+        if (this.actualThread) {
+            this.actualThread = {
+                ...this.actualThread,
+                users: this.replaceUser(this.actualThread.users, user),
+            };
+        }
+    }
+
+    private replaceUser(users: msg.User[], user: msg.User): msg.User[] {
+        const exists = users.some(item => item.userId === user.userId);
+        if (!exists) return [...users, user];
+        return users.map(item => item.userId === user.userId ? user : item);
     }
 
     private async getTaskUpdate(

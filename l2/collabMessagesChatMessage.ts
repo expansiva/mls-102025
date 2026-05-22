@@ -11,6 +11,7 @@ import {
     collab_reply,
     collab_copy,
     collab_pin,
+    collab_star,
     collab_edit,
     collab_delete
 } from '/_102025_/l2/collabMessagesIcons.js';
@@ -32,6 +33,8 @@ const message_pt = {
     copy: 'Copiar',
     pin: 'Fixar',
     unpin: 'Desfixar',
+    favorite: 'Favoritar',
+    unfavorite: 'Remover favorito',
     delete: 'Apagar',
     edit: 'Editar',
     you: 'Você',
@@ -47,6 +50,8 @@ const message_en = {
     copy: 'Copy',
     pin: 'Pin',
     unpin: 'Unpin',
+    favorite: 'Favorite',
+    unfavorite: 'Remove favorite',
     delete: 'Delete',
     edit: 'Edit',
     you: 'You',
@@ -71,6 +76,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @property({ attribute: false }) allThreads: msg.Thread[] = [];
     @property() actualThread: IThreadInfo | undefined;
     @property() usersAvaliables: msg.User[] = [];
+    @property() currentUser: msg.User | undefined;
     @property() userId: string | undefined;
     @property({ attribute: false }) openedReactionMessageId?: string;
     @property({ attribute: false }) reactionPickerTarget?: HTMLElement;
@@ -838,6 +844,10 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${collab_pin}
                 ${this.isPinned(message) ? this.msg.unpin : this.msg.pin}
             </button>
+            <button @click=${() => this.onFavoriteClick(message)}>
+                ${collab_star}
+                ${this.isFavorite(message) ? this.msg.unfavorite : this.msg.favorite}
+            </button>
             <button>
                 ${collab_edit}
                 ${this.msg.edit}
@@ -872,9 +882,26 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         }));
     }
 
+    private onFavoriteClick(message: IMessage) {
+        this.closeMessageMenu();
+        this.dispatchEvent(new CustomEvent('favorite-message', {
+            detail: {
+                message,
+                favorite: !this.isFavorite(message)
+            },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
     private isPinned(message: IMessage): boolean {
         const messageId = `${message.threadId}/${message.orderAt || message.createAt}`;
         return !!this.actualThread?.thread.pinnedMessages?.some(item => item.messageId === messageId);
+    }
+
+    private isFavorite(message: IMessage): boolean {
+        const messageId = `${message.threadId}/${message.orderAt || message.createAt}`;
+        return !!this.currentUser?.favorites?.includes(messageId);
     }
 
     private closeAllPopups() {
