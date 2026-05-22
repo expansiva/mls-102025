@@ -650,8 +650,8 @@ export class CollabMessagesChat extends StateLitElement {
     private getCurrentUser(): msg.User | undefined {
         if (!this.userId) return undefined;
         return [
-            ...(this.actualThread?.users || []),
-            ...this.usersAvaliables
+            ...this.usersAvaliables,
+            ...(this.actualThread?.users || [])
         ].find(user => user.userId === this.userId);
     }
 
@@ -1568,6 +1568,7 @@ export class CollabMessagesChat extends StateLitElement {
 
             await updateUsers(threadByServer.users);
             this.actualThread = { ...threadByServer };
+            this.updateUsersInState(threadByServer.users);
             notifyThreadChange(threadUpdated);
             if (threadByServer.hasMore) await this.loadAllMessages(threadInfo);
             await this.markActualThreadRead(threadByServer.thread.threadId);
