@@ -610,13 +610,41 @@ export class CollabMessagesChat extends StateLitElement {
         return [...new Set([
             ...(readConfirmations.pending || []),
             ...(readConfirmations.requested || []),
+            ...this.getReadConfirmationMessageIdsFromLoadedMessages(),
         ])].filter(messageId => messageId.startsWith(`${threadId}/`));
     }
 
     private hasPendingReadConfirmationsForThread(): boolean {
         const threadId = this.actualThread?.thread.threadId;
         if (!threadId) return false;
-        return !!this.getCurrentUser()?.readConfirmations?.pending?.some(messageId => messageId.startsWith(`${threadId}/`));
+        return !!this.getCurrentUser()?.readConfirmations?.pending?.some(messageId => messageId.startsWith(`${threadId}/`)) ||
+            this.actualMessages.some(message => this.isReadConfirmationPendingForCurrentUser(message));
+    }
+
+    private getReadConfirmationMessageIdsFromLoadedMessages(): string[] {
+        return this.actualMessages
+            .filter(message => this.isReadConfirmationRelevantForCurrentUser(message))
+            .map(message => `${message.threadId}/${message.orderAt || message.createAt}`);
+    }
+
+    private isReadConfirmationRelevantForCurrentUser(message: msg.Message): boolean {
+        return this.isReadConfirmationPendingForCurrentUser(message) ||
+            this.isReadConfirmationRequestedByCurrentUser(message);
+    }
+
+    private isReadConfirmationPendingForCurrentUser(message: msg.Message): boolean {
+        if (!this.userId) return false;
+        return !!message.readConfirmations?.some(request =>
+            request.targetUserIds.includes(this.userId!) && !request.confirmedBy?.[this.userId!]
+        );
+    }
+
+    private isReadConfirmationRequestedByCurrentUser(message: msg.Message): boolean {
+        if (!this.userId) return false;
+        return !!message.readConfirmations?.some(request =>
+            request.requestedBy === this.userId &&
+            request.targetUserIds.some(userId => !request.confirmedBy?.[userId])
+        );
     }
 
     private getCurrentUser(): msg.User | undefined {

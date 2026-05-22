@@ -38,8 +38,9 @@ const message_pt = {
     requestReadConfirmation: 'Confirmação de leitura',
     confirmRead: 'Recebi e li a mensagem',
     allConfirmedRead: 'Confirmado que todos receberam',
-    requestedReadConfirmationLine: '[requester] pediu confirmação de leitura em [time] para [targets]',
-    confirmedReadLine: '[user] confirmou leitura em [time]',
+    requestedReadConfirmation: 'pediu confirmação de leitura em',
+    confirmedRead: 'confirmou leitura em',
+    notConfirmedRead: 'não confirmado',
     delete: 'Apagar',
     edit: 'Editar',
     you: 'Você',
@@ -60,8 +61,9 @@ const message_en = {
     requestReadConfirmation: 'Read confirmation',
     confirmRead: 'I received and read the message',
     allConfirmedRead: 'Confirmed that everyone received it',
-    requestedReadConfirmationLine: '[requester] requested read confirmation at [time] from [targets]',
-    confirmedReadLine: '[user] confirmed reading at [time]',
+    requestedReadConfirmation: 'requested read confirmation at',
+    confirmedRead: 'confirmed reading at',
+    notConfirmedRead: 'not confirmed',
     delete: 'Delete',
     edit: 'Edit',
     you: 'You',
@@ -365,19 +367,25 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         return html`
             <div class="message-read-confirmations">
                 ${message.readConfirmations.map(request => {
-            const requestedLine = this.msg.requestedReadConfirmationLine
-                .replace('[requester]', this.formatUserMention(request.requestedBy))
-                .replace('[time]', this.formatLocalDateTime(request.requestedAt))
-                .replace('[targets]', request.targetUserIds.map(userId => this.formatUserMention(userId)).join(', '));
-            const confirmations = Object.entries(request.confirmedBy || {})
-                .filter(([userId]) => request.targetUserIds.includes(userId))
-                .map(([userId, confirmedAt]) => this.msg.confirmedReadLine
-                    .replace('[user]', this.formatUserMention(userId))
-                    .replace('[time]', this.formatLocalDateTime(confirmedAt))
-                );
             return html`
                     <div class="message-read-confirmation">
-                        ${this.renderCollabMessagesRichPreview([requestedLine, ...confirmations].join('\n'))}
+                        <div class="read-confirmation-line">
+                            ${this.renderUserLabel(request.requestedBy)}
+                            <span>${this.msg.requestedReadConfirmation}</span>
+                            <span class="read-confirmation-time">${this.formatLocalDateTime(request.requestedAt)}</span>
+                        </div>
+                        ${request.targetUserIds.map(userId => {
+                const confirmedAt = request.confirmedBy?.[userId];
+                return html`
+                            <div class="read-confirmation-line ${confirmedAt ? 'confirmed' : 'pending'}">
+                                ${this.renderUserLabel(userId)}
+                                ${confirmedAt ? html`
+                                    <span>${this.msg.confirmedRead}</span>
+                                    <span class="read-confirmation-time">${this.formatLocalDateTime(confirmedAt)}</span>
+                                ` : html`<span>${this.msg.notConfirmedRead}</span>`}
+                            </div>
+                        `;
+            })}
                     </div>
                 `;
         })}
@@ -385,9 +393,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         `;
     }
 
-    private formatUserMention(userId: string): string {
+    private renderUserLabel(userId: string) {
         const user = this.findUser(userId);
-        return `[@${user?.name || userId}](${userId})`;
+        return html`<span class="read-confirmation-user">@${user?.name || userId}</span>`;
     }
 
     private formatLocalDateTime(timestamp: string): string {
