@@ -3,7 +3,7 @@
 import { html, nothing } from 'lit';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { customElement, property, state, query, } from 'lit/decorators.js';
-import { collab_arrow_up_long } from '/_102025_/l2/collabMessagesIcons.js';
+import { collab_arrow_up_long, collab_link } from '/_102025_/l2/collabMessagesIcons.js';
 import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
 
@@ -14,6 +14,16 @@ import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import '/_102025_/l2/collabMessagesAvatar.js';
 import { parseInlineRichText } from '/_102025_/l2/collabMessagesRichTextParser.js';
 import type { RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
+import {
+    applySmartNewline,
+    indentSelection,
+    insertText,
+    makeCodeBlock,
+    makeLinePrefix,
+    outdentSelection,
+    wrapSelection,
+} from '/_102025_/l2/collabMessagesPromptEditing.js';
+import type { EditResult } from '/_102025_/l2/collabMessagesPromptEditing.js';
 
 
 /// **collab_i18n_start**
@@ -316,7 +326,8 @@ export class CollabMessagesPrompt extends StateLitElement {
         return html`
             </div>
                 ${this.renderReply()}
-            
+                ${this.renderToolbar()}
+
                 <div class="wrapper">
                     <div class="textarea-container ${this.enableRichPreview ? 'rich-preview-enabled' : ''}">
                         ${this.enableRichPreview ? html`
@@ -327,6 +338,7 @@ export class CollabMessagesPrompt extends StateLitElement {
                             @input=${this.handleInput}
                             @focus=${this.handleFocus}
                             @keydown=${this.handleKeyDown}
+                            @paste=${this.handlePaste}
                             @scroll=${this.handleScroll}
                             id="prompt_input"
                             placeholder="${ifDefined(this.placeholder)}">
@@ -355,6 +367,23 @@ export class CollabMessagesPrompt extends StateLitElement {
                         </ul>
                 ` : ''}
         </div>`
+    }
+
+    private renderToolbar() {
+        if (!this.enableRichPreview) return nothing;
+
+        return html`
+            <div class="prompt-toolbar" aria-label="Message formatting">
+                <button title="Bold" @mousedown=${this.preventToolbarFocus} @click=${() => this.applyInlineFormat('**', '**', 'bold')}><strong>B</strong></button>
+                <button title="Italic" @mousedown=${this.preventToolbarFocus} @click=${() => this.applyInlineFormat('_', '_', 'italic')}><em>I</em></button>
+                <button title="Inline code" @mousedown=${this.preventToolbarFocus} @click=${() => this.applyInlineFormat('`', '`', 'code')}>&#96;</button>
+                <button title="Code block" @mousedown=${this.preventToolbarFocus} @click=${() => this.applyCodeBlock()}>{}</button>
+                <button title="Quote" @mousedown=${this.preventToolbarFocus} @click=${() => this.applyLinePrefix('> ')}>&gt;</button>
+                <button title="Bulleted list" @mousedown=${this.preventToolbarFocus} @click=${() => this.applyLinePrefix('- ')}>-</button>
+                <button title="Numbered list" @mousedown=${this.preventToolbarFocus} @click=${() => this.applyLinePrefix('1. ')}>1.</button>
+                <button title="Link" @mousedown=${this.preventToolbarFocus} @click=${() => this.applyLink()}>${collab_link}</button>
+            </div>
+        `;
     }
 
     private renderReply() {
@@ -440,6 +469,60 @@ export class CollabMessagesPrompt extends StateLitElement {
         }
     }
 
+    private preventToolbarFocus(e: MouseEvent) {
+        e.preventDefault();
+    }
+
+    private async applyEditResult(result: EditResult) {
+        this.text = result.text;
+        await this.updateComplete;
+
+        if (!this.textArea) return;
+        this.textArea.selectionStart = result.selectionStart;
+        this.textArea.selectionEnd = result.selectionEnd;
+        this.textArea.focus();
+        this.adjustTextAreaHeight();
+        this.handleScroll();
+    }
+
+    private applyInlineFormat(before: string, after: string, placeholder: string) {
+        if (!this.textArea) return;
+        const result = wrapSelection(
+            this.text,
+            this.textArea.selectionStart,
+            this.textArea.selectionEnd,
+            before,
+            after,
+            placeholder
+        );
+        this.applyEditResult(result);
+    }
+
+    private applyCodeBlock() {
+        if (!this.textArea) return;
+        const result = makeCodeBlock(this.text, this.textArea.selectionStart, this.textArea.selectionEnd);
+        this.applyEditResult(result);
+    }
+
+    private applyLinePrefix(prefix: string) {
+        if (!this.textArea) return;
+        const result = makeLinePrefix(this.text, this.textArea.selectionStart, this.textArea.selectionEnd, prefix);
+        this.applyEditResult(result);
+    }
+
+    private applyLink() {
+        if (!this.textArea) return;
+
+        const selectionStart = this.textArea.selectionStart;
+        const selectionEnd = this.textArea.selectionEnd;
+        const selected = this.text.slice(selectionStart, selectionEnd);
+        const label = selected || 'link';
+        const inserted = `[${label}](https://)`;
+        const cursorOffset = selected ? inserted.length : 1 + label.length;
+        const result = insertText(this.text, selectionStart, selectionEnd, inserted, cursorOffset);
+        this.applyEditResult(result);
+    }
+
     private getUserSuggestions(query: string): IMentions[] {
         return this.allUsersValids
             .filter(user => user.name.toLowerCase().startsWith(query.toLowerCase()))
@@ -507,7 +590,31 @@ export class CollabMessagesPrompt extends StateLitElement {
                     e.preventDefault();
                     this.selectMention(mention);
                 }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.mentionActive = false;
+                this.mentionSuggestions = [];
+                this.mentionQuery = '';
             }
+            return;
+        }
+
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            if (!this.textArea) return;
+
+            const result = e.shiftKey
+                ? outdentSelection(this.text, this.textArea.selectionStart, this.textArea.selectionEnd)
+                : indentSelection(this.text, this.textArea.selectionStart, this.textArea.selectionEnd);
+
+            await this.applyEditResult(result);
+            return;
+        }
+
+        if (e.key === 'Enter' && e.shiftKey) {
+            e.preventDefault();
+            if (!this.textArea) return;
+            await this.applyEditResult(applySmartNewline(this.text, this.textArea.selectionStart, this.textArea.selectionEnd));
             return;
         }
 
@@ -515,6 +622,20 @@ export class CollabMessagesPrompt extends StateLitElement {
             e.preventDefault();
             await this.handleSend();
         }
+    }
+
+    private async handlePaste(e: ClipboardEvent) {
+        const value = e.clipboardData?.getData('text/plain');
+        if (!value || !this.textArea || !value.includes('\n')) return;
+
+        e.preventDefault();
+        const normalized = value.replace(/\r\n?/g, '\n');
+        await this.applyEditResult(insertText(
+            this.text,
+            this.textArea.selectionStart,
+            this.textArea.selectionEnd,
+            normalized
+        ));
     }
 
     private async scrollToActiveMention() {
