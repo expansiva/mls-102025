@@ -19,7 +19,12 @@ export type RichToken =
     | { type: 'link'; text: string; url: string }
     | { type: 'raw-link'; url: string }
     | { type: 'blockquote'; children: RichToken[]; lines: RichToken[][] }
-    | { type: 'list'; ordered: boolean; items: { marker: string; children: RichToken[] }[] };
+    | { type: 'list'; ordered: boolean; items: RichListItem[] };
+
+export interface RichListItem {
+    marker: string;
+    children: RichToken[];
+}
 
 type ParserState = 'NORMAL' | 'INLINE_CODE' | 'CODE_BLOCK';
 
@@ -41,11 +46,60 @@ const matchCodeFenceEnd = (line: string): RegExpMatchArray | null =>
 const matchBlockquote = (line: string): RegExpMatchArray | null =>
     line.match(/^\s{0,3}>\s?(.*)$/);
 
-const matchUnorderedList = (line: string): RegExpMatchArray | null =>
-    line.match(/^\s{0,3}([-+*])\s+(.+)$/);
+interface ListLine {
+    indent: number;
+    marker: string;
+    ordered: boolean;
+    content: string;
+}
 
-const matchOrderedList = (line: string): RegExpMatchArray | null =>
-    line.match(/^\s{0,3}(\d+\.)\s+(.+)$/);
+const matchListLine = (line: string): ListLine | undefined => {
+    const match = line.match(/^(\s*)([-+*]|\d+\.)\s+(.+)$/);
+    if (!match) return undefined;
+
+    return {
+        indent: match[1].length,
+        marker: match[2],
+        ordered: /^\d+\.$/.test(match[2]),
+        content: match[3],
+    };
+}
+
+function parseList(lines: string[], start: number, indent: number, ordered: boolean): { token: RichToken; nextIndex: number } {
+    const items: RichListItem[] = [];
+    let i = start;
+
+    while (i < lines.length) {
+        const line = matchListLine(lines[i]);
+        if (!line || line.indent !== indent || line.ordered !== ordered) break;
+
+        const children = parseInlineRichText(line.content);
+        i++;
+
+        while (i < lines.length) {
+            const nextLine = matchListLine(lines[i]);
+            if (!nextLine || nextLine.indent <= indent) break;
+
+            const nested = parseList(lines, i, nextLine.indent, nextLine.ordered);
+            children.push(nested.token);
+            i = nested.nextIndex;
+        }
+
+        items.push({
+            marker: line.marker,
+            children,
+        });
+    }
+
+    return {
+        token: {
+            type: 'list',
+            ordered,
+            items,
+        },
+        nextIndex: i,
+    };
+}
 
 // ─────────────────────────────────────────────────────────────
 // Parser principal - processa texto completo (com blocos)
@@ -119,53 +173,12 @@ export function parseRichText(input: string): RichToken[] {
             continue;
         }
 
-        /* ───── UNORDERED LIST ───── */
-        const unorderedList = matchUnorderedList(line);
-        if (unorderedList) {
-            const items: { marker: string; children: RichToken[] }[] = [];
-
-            while (i < lines.length) {
-                const match = matchUnorderedList(lines[i]);
-                if (!match) break;
-
-                items.push({
-                    marker: match[1],
-                    children: parseInlineRichText(match[2]),
-                });
-                i++;
-            }
-
-            tokens.push({
-                type: 'list',
-                ordered: false,
-                items,
-            });
-
-            continue;
-        }
-
-        /* ───── ORDERED LIST ───── */
-        const orderedList = matchOrderedList(line);
-        if (orderedList) {
-            const items: { marker: string; children: RichToken[] }[] = [];
-
-            while (i < lines.length) {
-                const match = matchOrderedList(lines[i]);
-                if (!match) break;
-
-                items.push({
-                    marker: match[1],
-                    children: parseInlineRichText(match[2]),
-                });
-                i++;
-            }
-
-            tokens.push({
-                type: 'list',
-                ordered: true,
-                items,
-            });
-
+        /* ───── LIST ───── */
+        const listLine = matchListLine(line);
+        if (listLine) {
+            const parsedList = parseList(lines, i, listLine.indent, listLine.ordered);
+            tokens.push(parsedList.token);
+            i = parsedList.nextIndex;
             continue;
         }
 

@@ -7,7 +7,10 @@ export const integrations: ICANIntegration[] = [];
 
 export const tests: ICANTest[] = [
     { functionName: 'testParseUnorderedList', params: [{}] },
+    { functionName: 'testParseOrderedList', params: [{}] },
     { functionName: 'testParseMultipleListItems', params: [{}] },
+    { functionName: 'testParseNestedUnorderedList', params: [{}] },
+    { functionName: 'testParseNestedOrderedList', params: [{}] },
     { functionName: 'testParseMarkdownLink', params: [{}] },
     { functionName: 'testParseRawLink', params: [{}] },
     { functionName: 'testParseCodeFence', params: [{}] },
@@ -40,12 +43,39 @@ export function testParseUnorderedList() {
     assert(tokenText(token.items[0].children) === 'item', 'Expected list item text');
 }
 
+export function testParseOrderedList() {
+    const token = firstToken('1. item');
+    assert(token.type === 'list', 'Expected ordered list token');
+    assert(token.ordered === true, 'Expected ordered list');
+    assert(token.items[0].marker === '1.', 'Expected ordered marker');
+    assert(tokenText(token.items[0].children) === 'item', 'Expected ordered item text');
+}
+
 export function testParseMultipleListItems() {
     const token = firstToken('- item 1\n* item 2\n+ item 3');
     assert(token.type === 'list', 'Expected list token');
     assert(token.items.length === 3, 'Expected three list items');
     assert(token.items[1].marker === '*', 'Expected asterisk marker');
     assert(tokenText(token.items[2].children) === 'item 3', 'Expected third list item text');
+}
+
+export function testParseNestedUnorderedList() {
+    const token = firstToken('- parent\n  - child');
+    assert(token.type === 'list', 'Expected parent list token');
+    const nested = token.items[0].children.find((child): child is Extract<RichToken, { type: 'list' }> => child.type === 'list');
+    assert(nested, 'Expected nested list token');
+    assert(nested.ordered === false, 'Expected nested unordered list');
+    assert(tokenText(nested.items[0].children) === 'child', 'Expected nested child text');
+}
+
+export function testParseNestedOrderedList() {
+    const token = firstToken('1. parent\n   1. child');
+    assert(token.type === 'list', 'Expected parent ordered list token');
+    assert(token.ordered === true, 'Expected parent ordered list');
+    const nested = token.items[0].children.find((child): child is Extract<RichToken, { type: 'list' }> => child.type === 'list');
+    assert(nested, 'Expected nested ordered list token');
+    assert(nested.ordered === true, 'Expected nested ordered list');
+    assert(tokenText(nested.items[0].children) === 'child', 'Expected nested ordered child text');
 }
 
 export function testParseMarkdownLink() {

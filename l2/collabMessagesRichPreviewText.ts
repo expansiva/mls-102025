@@ -5,7 +5,8 @@ import { customElement, property } from 'lit/decorators.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
-import { parseRichText, RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
+import { parseRichText } from '/_102025_/l2/collabMessagesRichTextParser.js';
+import type { RichListItem, RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
 
 import '/_102025_/l2/collabMessagesTextCode.js';
 
@@ -322,7 +323,7 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
         `;
     }
 
-    private renderList(token: { ordered: boolean; items: { marker: string; children: RichToken[] }[] }) {
+    private renderList(token: { ordered: boolean; items: RichListItem[] }) {
         return token.ordered
             ? html`
                 <ol>

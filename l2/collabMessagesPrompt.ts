@@ -12,7 +12,8 @@ import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 import '/_102025_/l2/collabMessagesAvatar.js';
-import { parseRichText, RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
+import { parseInlineRichText } from '/_102025_/l2/collabMessagesRichTextParser.js';
+import type { RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
 
 
 /// **collab_i18n_start**
@@ -301,8 +302,9 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private renderRichOverlay() {
-        const tokens = parseRichText(this.text);
-        return html`${tokens.map(token => this.renderRichToken(token))}`;
+        const lines = this.text.split(/\r?\n/);
+
+        return html`${lines.map((line, index) => html`${index > 0 ? html`<br />` : nothing}${parseInlineRichText(line, true).map(token => this.renderRichToken(token))}`)}`;
     }
 
 
