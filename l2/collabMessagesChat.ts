@@ -401,6 +401,7 @@ export class CollabMessagesChat extends StateLitElement {
                                     @reply-message=${this.onReplyMessageClick}
                                     @pin-message=${this.onPinMessageClick}
                                     @favorite-message=${this.onFavoriteMessageClick}
+                                    @read-confirmation-message=${this.onReadConfirmationMessageClick}
                                 ></collab-messages-chat-message-102025>
                                 ${nextNeedShowLabel ? html`<div class="new-messages-label">${this.msg.newMessages}</div>` : ''}`
             })}`
@@ -463,6 +464,7 @@ export class CollabMessagesChat extends StateLitElement {
     private renderThreadToolbar() {
         const pinnedMessages = this.actualThread?.thread.pinnedMessages || [];
         const favoriteMessageIds = this.getFavoriteMessageIdsForThread();
+        const readConfirmationMessageIds = this.getReadConfirmationMessageIdsForThread();
         const attachments = this.getAttachmentMessages();
         const items = [
             {
@@ -484,9 +486,9 @@ export class CollabMessagesChat extends StateLitElement {
             {
                 kind: 'readReceipts' as ToolbarItemKind,
                 icon: collab_circle_exclamation,
-                total: 0,
-                active: false,
-                important: false,
+                total: readConfirmationMessageIds.length,
+                active: this.toolbarView.readReceipts !== undefined,
+                important: this.hasPendingReadConfirmationsForThread(),
                 onClick: () => this.navigateToolbarItem('readReceipts')
             },
             {
@@ -551,6 +553,15 @@ export class CollabMessagesChat extends StateLitElement {
             this.scrollToMessageId(favoriteMessageIds[nextIndex]);
             return;
         }
+        if (kind === 'readReceipts') {
+            const readConfirmationMessageIds = this.getReadConfirmationMessageIdsForThread();
+            if (readConfirmationMessageIds.length === 0) return;
+            const nextIndex = this.getNextToolbarIndex(kind, readConfirmationMessageIds.length);
+            this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
+            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
+            this.scrollToMessageId(readConfirmationMessageIds[nextIndex]);
+            return;
+        }
         if (kind === 'attachments') {
             const attachments = this.getAttachmentMessages();
             if (attachments.length === 0) return;
@@ -590,6 +601,22 @@ export class CollabMessagesChat extends StateLitElement {
         const threadId = this.actualThread?.thread.threadId;
         if (!threadId) return [];
         return (this.getCurrentUser()?.favorites || []).filter(messageId => messageId.startsWith(`${threadId}/`));
+    }
+
+    private getReadConfirmationMessageIdsForThread(): string[] {
+        const threadId = this.actualThread?.thread.threadId;
+        if (!threadId) return [];
+        const readConfirmations = this.getCurrentUser()?.readConfirmations || {};
+        return [...new Set([
+            ...(readConfirmations.pending || []),
+            ...(readConfirmations.requested || []),
+        ])].filter(messageId => messageId.startsWith(`${threadId}/`));
+    }
+
+    private hasPendingReadConfirmationsForThread(): boolean {
+        const threadId = this.actualThread?.thread.threadId;
+        if (!threadId) return false;
+        return !!this.getCurrentUser()?.readConfirmations?.pending?.some(messageId => messageId.startsWith(`${threadId}/`));
     }
 
     private getCurrentUser(): msg.User | undefined {
@@ -2166,12 +2193,48 @@ export class CollabMessagesChat extends StateLitElement {
         this.requestUpdate();
     }
 
+    private async onReadConfirmationMessageClick(ev: CustomEvent) {
+        if (!this.userId || !this.actualThread) return;
+        const data = ev.detail as { message: IMessage, action: 'request' | 'confirm' };
+        const message = data.message;
+        const result = await msgUpdateMessage({
+            userId: this.userId,
+            threadId: this.actualThread.thread.threadId,
+            messageId: message.orderAt || message.createAt,
+            readConfirmation: data.action
+        });
+
+        if (!result.success || !result.response?.message) {
+            throw new Error(result.error || 'Failed to update read confirmation');
+        }
+
+        await updateMessage(result.response.message);
+        this.actualMessages = this.actualMessages.map(item =>
+            item.threadId === result.response!.message.threadId && item.createAt === result.response!.message.createAt
+                ? { ...item, ...result.response!.message }
+                : item
+        );
+
+        const users = result.response.users || [];
+        if (users.length > 0) {
+            await updateUsers(users);
+            this.updateUsersInState(users);
+        }
+
+        this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+        this.requestUpdate();
+    }
+
     private updateCurrentUser(user: msg.User) {
-        this.usersAvaliables = this.replaceUser(this.usersAvaliables, user);
+        this.updateUsersInState([user]);
+    }
+
+    private updateUsersInState(users: msg.User[]) {
+        this.usersAvaliables = users.reduce((items, user) => this.replaceUser(items, user), this.usersAvaliables);
         if (this.actualThread) {
             this.actualThread = {
                 ...this.actualThread,
-                users: this.replaceUser(this.actualThread.users, user),
+                users: users.reduce((items, user) => this.replaceUser(items, user), this.actualThread.users),
             };
         }
     }

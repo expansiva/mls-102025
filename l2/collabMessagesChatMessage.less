@@ -156,6 +156,17 @@ collab-messages-chat-message-102025 {
                     }
                 }
 
+                .message-read-confirmations {
+                    border-top: 1px solid @grey-color-dark;
+                    margin-top: .5rem;
+                    padding-top: .35rem;
+                    color: #000;
+                    font-size: @font-size-12;
+                    line-height: 1.35;
+                    word-break: break-word;
+                    white-space: pre-line;
+                }
+
                 .message-content.trace {
                     display: flex;
                     flex-direction: column;
@@ -537,13 +548,13 @@ collab-messages-chat-message-102025 {
 
     .message-menu {
         position: absolute;
-        min-width: 120px;
+        min-width: 180px;
         background: var(--bg-primary-color);
         border-radius: 6px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
         padding: 4px;
         z-index: 30;
-        max-width: 100px;
+        max-width: 240px;
         right: 10px;
         opacity: 0;
         transform: scale(0.95);
@@ -583,6 +594,15 @@ collab-messages-chat-message-102025 {
 
     .message-menu button:hover {
         background: @grey-color-lighter;
+    }
+
+    .message-menu button:disabled {
+        cursor: default;
+        opacity: .45;
+    }
+
+    .message-menu button:disabled:hover {
+        background: transparent;
     }
 
     // Reply Preview Message

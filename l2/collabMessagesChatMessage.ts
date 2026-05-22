@@ -35,6 +35,11 @@ const message_pt = {
     unpin: 'Desfixar',
     favorite: 'Favoritar',
     unfavorite: 'Remover favorito',
+    requestReadConfirmation: 'Confirmação de leitura',
+    confirmRead: 'Recebi e li a mensagem',
+    allConfirmedRead: 'Confirmado que todos receberam',
+    requestedReadConfirmationLine: '[requester] pediu confirmação de leitura em [time] para [targets]',
+    confirmedReadLine: '[user] confirmou leitura em [time]',
     delete: 'Apagar',
     edit: 'Editar',
     you: 'Você',
@@ -52,6 +57,11 @@ const message_en = {
     unpin: 'Unpin',
     favorite: 'Favorite',
     unfavorite: 'Remove favorite',
+    requestReadConfirmation: 'Read confirmation',
+    confirmRead: 'I received and read the message',
+    allConfirmedRead: 'Confirmed that everyone received it',
+    requestedReadConfirmationLine: '[requester] requested read confirmation at [time] from [targets]',
+    confirmedReadLine: '[user] confirmed reading at [time]',
     delete: 'Delete',
     edit: 'Edit',
     you: 'You',
@@ -176,8 +186,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                                 >
                                 </collab-messages-task-102025>
                             </div> `: html``
-            }
+                            }
                             ${this.renderMessageResultByLanguage(message)}
+                            ${this.renderReadConfirmations(message)}
                             ${this.renderMessageFooterResult(message)}
                             ${this.renderReactions(message)}
                             ${this.renderReactionPicker(message)}
@@ -347,6 +358,40 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             default:
                 return null;
         }
+    }
+
+    private renderReadConfirmations(message: msg.Message) {
+        if (!message.readConfirmations || message.readConfirmations.length === 0) return nothing;
+        return html`
+            <div class="message-read-confirmations">
+                ${message.readConfirmations.map(request => {
+            const requestedLine = this.msg.requestedReadConfirmationLine
+                .replace('[requester]', this.formatUserMention(request.requestedBy))
+                .replace('[time]', this.formatLocalDateTime(request.requestedAt))
+                .replace('[targets]', request.targetUserIds.map(userId => this.formatUserMention(userId)).join(', '));
+            const confirmations = Object.entries(request.confirmedBy || {})
+                .filter(([userId]) => request.targetUserIds.includes(userId))
+                .map(([userId, confirmedAt]) => this.msg.confirmedReadLine
+                    .replace('[user]', this.formatUserMention(userId))
+                    .replace('[time]', this.formatLocalDateTime(confirmedAt))
+                );
+            return html`
+                    <div class="message-read-confirmation">
+                        ${this.renderCollabMessagesRichPreview([requestedLine, ...confirmations].join('\n'))}
+                    </div>
+                `;
+        })}
+            </div>
+        `;
+    }
+
+    private formatUserMention(userId: string): string {
+        const user = this.findUser(userId);
+        return `[@${user?.name || userId}](${userId})`;
+    }
+
+    private formatLocalDateTime(timestamp: string): string {
+        return formatTimestamp(timestamp)?.dateFull || timestamp;
     }
 
     private renderMessageFooterResult(message: msg.MessagePerformanceCache) {
@@ -829,6 +874,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderMessageMenu(message: IMessage) {
         if (this.openedMenuFor !== message.createAt) return nothing;
+        const canRequestReadConfirmation = this.getMentionedUserIds(message).length > 0;
+        const canConfirmRead = this.hasPendingReadConfirmation(message);
+        const allConfirmedRead = this.hasAllReadConfirmationsConfirmed(message);
 
         return html`
         <div class="message-menu ${this.messageMenuPlacement}">
@@ -848,6 +896,20 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${collab_star}
                 ${this.isFavorite(message) ? this.msg.unfavorite : this.msg.favorite}
             </button>
+            <button ?disabled=${!canRequestReadConfirmation} @click=${() => this.onReadConfirmationClick(message, 'request')}>
+                ${collab_circle_exclamation}
+                ${this.msg.requestReadConfirmation}
+            </button>
+            <button ?disabled=${!canConfirmRead} @click=${() => this.onReadConfirmationClick(message, 'confirm')}>
+                ${collab_circle_exclamation}
+                ${this.msg.confirmRead}
+            </button>
+            ${allConfirmedRead ? html`
+                <button disabled>
+                    ${collab_circle_exclamation}
+                    ${this.msg.allConfirmedRead}
+                </button>
+            ` : nothing}
             <button>
                 ${collab_edit}
                 ${this.msg.edit}
@@ -894,6 +956,18 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         }));
     }
 
+    private onReadConfirmationClick(message: IMessage, action: 'request' | 'confirm') {
+        this.closeMessageMenu();
+        this.dispatchEvent(new CustomEvent('read-confirmation-message', {
+            detail: {
+                message,
+                action
+            },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
     private isPinned(message: IMessage): boolean {
         const messageId = `${message.threadId}/${message.orderAt || message.createAt}`;
         return !!this.actualThread?.thread.pinnedMessages?.some(item => item.messageId === messageId);
@@ -902,6 +976,30 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private isFavorite(message: IMessage): boolean {
         const messageId = `${message.threadId}/${message.orderAt || message.createAt}`;
         return !!this.currentUser?.favorites?.includes(messageId);
+    }
+
+    private getMentionedUserIds(message: IMessage): string[] {
+        if (!this.userId) return [];
+        const usersInThread = new Set(this.actualThread?.thread.users.map(user => user.userId) || []);
+        return [...message.content.matchAll(/\[@[^\]]+\]\(([^)]+)\)/g)]
+            .map(match => match[1])
+            .filter(userId => userId !== this.userId && usersInThread.has(userId))
+            .filter((userId, index, items) => items.indexOf(userId) === index);
+    }
+
+    private hasPendingReadConfirmation(message: IMessage): boolean {
+        if (!this.userId) return false;
+        return !!message.readConfirmations?.some(request =>
+            request.targetUserIds.includes(this.userId!) && !request.confirmedBy?.[this.userId!]
+        );
+    }
+
+    private hasAllReadConfirmationsConfirmed(message: IMessage): boolean {
+        if (!this.userId) return false;
+        return !!message.readConfirmations?.some(request =>
+            request.requestedBy === this.userId && request.targetUserIds.length > 0 &&
+            request.targetUserIds.every(userId => !!request.confirmedBy?.[userId])
+        );
     }
 
     private closeAllPopups() {
