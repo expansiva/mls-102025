@@ -15,6 +15,9 @@ export const tests: ICANTest[] = [
     { functionName: 'testParseRawLink', params: [{}] },
     { functionName: 'testParseCodeFence', params: [{}] },
     { functionName: 'testParseBlockquote', params: [{}] },
+    { functionName: 'testParseHeading', params: [{}] },
+    { functionName: 'testHashChannelIsNotHeading', params: [{}] },
+    { functionName: 'testParseHorizontalRule', params: [{}] },
     { functionName: 'testParseInlineFormatting', params: [{}] },
 ];
 
@@ -103,6 +106,23 @@ export function testParseBlockquote() {
     assert(token.type === 'blockquote', 'Expected blockquote token');
     assert(token.lines.length === 1, 'Expected one quote line');
     assert(tokenText(token.lines[0]) === 'quote', 'Expected quote text');
+}
+
+export function testParseHeading() {
+    const token = firstToken('## Title');
+    assert(token.type === 'heading', 'Expected heading token');
+    assert(token.level === 2, 'Expected h2 level');
+    assert(tokenText(token.children) === 'Title', 'Expected heading text');
+}
+
+export function testHashChannelIsNotHeading() {
+    const token = firstToken('#general');
+    assert(token.type !== 'heading', 'Expected channel-like hash without space to stay inline');
+}
+
+export function testParseHorizontalRule() {
+    const token = firstToken('---');
+    assert(token.type === 'horizontal-rule', 'Expected horizontal rule token');
 }
 
 export function testParseInlineFormatting() {

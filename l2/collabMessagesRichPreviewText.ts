@@ -79,6 +79,8 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
             case 'help': return this.renderHelp(token);
             case 'link': return this.renderLink(token);
             case 'raw-link': return this.renderRawLink(token);
+            case 'heading': return this.renderHeading(token);
+            case 'horizontal-rule': return html`<hr />`;
             case 'blockquote': return this.renderBlockquote(token);
             case 'list': return this.renderList(token);
             default:
@@ -313,6 +315,19 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
             ${token.url}
             </a>
         `;
+    }
+
+    private renderHeading(token: { level: number; children: RichToken[] }) {
+        const content = this.renderTokens(token.children);
+
+        switch (token.level) {
+            case 1: return html`<h1>${content}</h1>`;
+            case 2: return html`<h2>${content}</h2>`;
+            case 3: return html`<h3>${content}</h3>`;
+            case 4: return html`<h4>${content}</h4>`;
+            case 5: return html`<h5>${content}</h5>`;
+            default: return html`<h6>${content}</h6>`;
+        }
     }
 
     private renderBlockquote(token: { children: RichToken[] }) {

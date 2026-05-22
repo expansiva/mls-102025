@@ -62,6 +62,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() mentionIndex: number = 0;
     @state() allUsers: msg.User[] = [];
     @state() allUsersValids: msg.User[] = [];
+    @state() hasSelection: boolean = false;
 
     @state() allAgents: IMentionAgent[] = [];
     @state() alreadyLoadingAgents: boolean = false;
@@ -338,6 +339,10 @@ export class CollabMessagesPrompt extends StateLitElement {
                             @input=${this.handleInput}
                             @focus=${this.handleFocus}
                             @keydown=${this.handleKeyDown}
+                            @keyup=${this.updateSelectionState}
+                            @mouseup=${this.updateSelectionState}
+                            @select=${this.updateSelectionState}
+                            @blur=${this.clearSelectionState}
                             @paste=${this.handlePaste}
                             @scroll=${this.handleScroll}
                             id="prompt_input"
@@ -370,7 +375,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private renderToolbar() {
-        if (!this.enableRichPreview) return nothing;
+        if (!this.enableRichPreview || !this.hasSelection) return nothing;
 
         return html`
             <div class="prompt-toolbar" aria-label="Message formatting">
@@ -429,6 +434,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         if (!e.target) return;
         const target = e.target as HTMLTextAreaElement;
         this.text = target.value;
+        this.updateSelectionState();
         this.adjustTextAreaHeight();
         this.handleScroll();
 
@@ -473,6 +479,14 @@ export class CollabMessagesPrompt extends StateLitElement {
         e.preventDefault();
     }
 
+    private updateSelectionState() {
+        this.hasSelection = Boolean(this.textArea && this.textArea.selectionStart !== this.textArea.selectionEnd);
+    }
+
+    private clearSelectionState() {
+        this.hasSelection = false;
+    }
+
     private async applyEditResult(result: EditResult) {
         this.text = result.text;
         await this.updateComplete;
@@ -481,6 +495,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         this.textArea.selectionStart = result.selectionStart;
         this.textArea.selectionEnd = result.selectionEnd;
         this.textArea.focus();
+        this.updateSelectionState();
         this.adjustTextAreaHeight();
         this.handleScroll();
     }

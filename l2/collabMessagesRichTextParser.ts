@@ -18,6 +18,8 @@ export type RichToken =
     | { type: 'help'; value: string }
     | { type: 'link'; text: string; url: string }
     | { type: 'raw-link'; url: string }
+    | { type: 'heading'; level: number; children: RichToken[] }
+    | { type: 'horizontal-rule' }
     | { type: 'blockquote'; children: RichToken[]; lines: RichToken[][] }
     | { type: 'list'; ordered: boolean; items: RichListItem[] };
 
@@ -45,6 +47,12 @@ const matchCodeFenceEnd = (line: string): RegExpMatchArray | null =>
 
 const matchBlockquote = (line: string): RegExpMatchArray | null =>
     line.match(/^\s{0,3}>\s?(.*)$/);
+
+const matchHeading = (line: string): RegExpMatchArray | null =>
+    line.match(/^\s{0,3}(#{1,6})\s+(.+)$/);
+
+const matchHorizontalRule = (line: string): RegExpMatchArray | null =>
+    line.match(/^\s{0,3}---+\s*$/);
 
 interface ListLine {
     indent: number;
@@ -147,6 +155,25 @@ export function parseRichText(input: string): RichToken[] {
                 markerStart: `\`\`\`${language}\n`,
                 markerEnd: '```',
             });
+            continue;
+        }
+
+        /* ───── HEADING ───── */
+        const heading = matchHeading(line);
+        if (heading) {
+            tokens.push({
+                type: 'heading',
+                level: heading[1].length,
+                children: parseInlineRichText(heading[2]),
+            });
+            i++;
+            continue;
+        }
+
+        /* ───── HORIZONTAL RULE ───── */
+        if (matchHorizontalRule(line)) {
+            tokens.push({ type: 'horizontal-rule' });
+            i++;
             continue;
         }
 
