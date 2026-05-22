@@ -4,9 +4,7 @@ import { html,  nothing } from 'lit';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
- 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
-
 import {
     listThreads,
     addThread,
@@ -20,7 +18,6 @@ import {
     deletePooling,
     getAllThreads
 } from '/_102025_/l2/collabMessagesIndexedDB.js';
-
 import {
     saveLastTab,
     loadLastTab,
@@ -31,11 +28,9 @@ import {
 } from "/_102025_/l2/collabMessagesHelper.js";
 import { checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { msgGetUserUpdate, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
-
 import { ICollabMessageEvent } from '/_102025_/l2/collabMessagesEvents.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 import { collab_crm, collab_tasks, collab_connect, collab_moments, collab_gear, collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons.js';
-
 import '/_102025_/l2/collabMessagesAdd.js';
 import '/_102025_/l2/collabMessagesChat.js';
 import '/_102025_/l2/collabMessagesTasks.js';
@@ -55,8 +50,7 @@ const message_pt = {
     alertMsgBody: 'Para não perder mensagens importantes, permita notificações no navegador.',
     moments: 'Moments',
     apps: 'Apps',
-    setttins: 'Configurações'
-
+    settings: 'Configurações'
 }
 
 const message_en = {
@@ -69,8 +63,7 @@ const message_en = {
     alertMsgBody: 'To avoid missing important messages, allow notifications in your browser.',
     moments: 'Moments',
     apps: 'Apps',
-    setttins: 'Settings'
-
+    settings: 'Settings'
 }
 
 type MessageType = typeof message_en;
@@ -106,7 +99,7 @@ export class CollabMessages extends CollabLitElement {
         { id: 'TASK', icon: collab_tasks, label: this.msg.tasks, type: 'tab' },
         { id: 'CONNECT', icon: collab_connect, label: this.msg.connect, type: 'tab' },
         { id: 'MOMENTS', icon: collab_moments, label: this.msg.moments, type: 'tab', active: true },
-        { id: 'SETTINGS', icon: collab_gear, label: this.msg.setttins, type: 'button' }
+        { id: 'SETTINGS', icon: collab_gear, label: this.msg.settings, type: 'button' }
     ];
 
     async connectedCallback() {
