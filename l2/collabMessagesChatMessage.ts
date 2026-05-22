@@ -896,7 +896,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderMessageMenu(message: IMessage) {
         if (this.openedMenuFor !== message.createAt) return nothing;
-        const canRequestReadConfirmation = this.getMentionedUserIds(message).length > 0;
+        const canRequestReadConfirmation = this.getMentionedUserIds(message).length > 0 && !this.hasReadConfirmation(message);
         const canConfirmRead = this.hasPendingReadConfirmation(message);
         const allConfirmedRead = this.hasAllReadConfirmationsConfirmed(message);
 
@@ -1007,6 +1007,10 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             .map(match => match[1])
             .filter(userId => userId !== this.userId && usersInThread.has(userId))
             .filter((userId, index, items) => items.indexOf(userId) === index);
+    }
+
+    private hasReadConfirmation(message: IMessage): boolean {
+        return !!message.readConfirmations?.length;
     }
 
     private hasPendingReadConfirmation(message: IMessage): boolean {
