@@ -364,33 +364,47 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderReadConfirmations(message: msg.Message) {
         if (!message.readConfirmations || message.readConfirmations.length === 0) return nothing;
+        const statusByUser = this.getReadConfirmationStatusByUser(message.readConfirmations);
         return html`
             <div class="message-read-confirmations">
-                ${message.readConfirmations.map(request => {
-            return html`
-                    <div class="message-read-confirmation">
+                <div class="message-read-confirmation">
+                    ${message.readConfirmations.map(request => html`
                         <div class="read-confirmation-line">
                             ${this.renderUserLabel(request.requestedBy)}
                             <span>${this.msg.requestedReadConfirmation}</span>
                             <span class="read-confirmation-time">${this.formatLocalDateTime(request.requestedAt)}</span>
                         </div>
-                        ${request.targetUserIds.map(userId => {
-                const confirmedAt = request.confirmedBy?.[userId];
-                return html`
-                            <div class="read-confirmation-line ${confirmedAt ? 'confirmed' : 'pending'}">
-                                ${this.renderUserLabel(userId)}
-                                ${confirmedAt ? html`
-                                    <span>${this.msg.confirmedRead}</span>
-                                    <span class="read-confirmation-time">${this.formatLocalDateTime(confirmedAt)}</span>
-                                ` : html`<span>${this.msg.notConfirmedRead}</span>`}
-                            </div>
-                        `;
-            })}
-                    </div>
-                `;
-        })}
+                    `)}
+                    ${statusByUser.map(({ userId, confirmedAt }) => html`
+                        <div class="read-confirmation-line ${confirmedAt ? 'confirmed' : 'pending'}">
+                            ${this.renderUserLabel(userId)}
+                            ${confirmedAt ? html`
+                                <span>${this.msg.confirmedRead}</span>
+                                <span class="read-confirmation-time">${this.formatLocalDateTime(confirmedAt)}</span>
+                            ` : html`<span>${this.msg.notConfirmedRead}</span>`}
+                        </div>
+                    `)}
+                </div>
             </div>
         `;
+    }
+
+    private getReadConfirmationStatusByUser(readConfirmations: msg.MessageReadConfirmation[]) {
+        const statusByUser = new Map<string, { userId: string; confirmedAt?: string }>();
+        for (const request of readConfirmations) {
+            for (const userId of request.targetUserIds) {
+                const confirmedAt = request.confirmedBy?.[userId];
+                const current = statusByUser.get(userId);
+                if (!current) {
+                    statusByUser.set(userId, { userId, confirmedAt });
+                    continue;
+                }
+                if (!current.confirmedAt && confirmedAt) {
+                    statusByUser.set(userId, { userId, confirmedAt });
+                }
+            }
+        }
+        return [...statusByUser.values()];
     }
 
     private renderUserLabel(userId: string) {
