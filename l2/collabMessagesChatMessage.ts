@@ -450,7 +450,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (text.trim().startsWith('@@')) text = text.slice(0, 300) + (text.length > 300 ? '...' : '');
         return html`
         <collab-messages-rich-preview-text-102025 
-            @mention-hover=${this.onMentionHover}
+            @mention-click=${this.onMentionClick}
             @channel-hover=${this.onChannelHover}
             .allUsers=${this.usersAvaliables} 
             .allThreads=${this.allThreads}
@@ -458,7 +458,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         ></collab-messages-rich-preview-text-102025>`
     }
 
-    private async onMentionHover(ev: CustomEvent) {
+    private async onMentionClick(ev: CustomEvent) {
 
         this.removeAllUserModal();
         if (!ev.detail || !ev.detail.userId || !ev.detail.element) return;
@@ -468,12 +468,35 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const modal = document.createElement('collab-messages-user-modal-102025');
         (modal as any).user = actualUserModal;
         (modal as any).setAttribute('actualUserId', this.userId);
+        (modal as any).isDirectMessage = this.isCurrentThreadDirectMessage();
         this.appendChild(modal);
         await (modal as LitElement).updateComplete;
         const rectsModal = modal.getBoundingClientRect();
-        modal.style.top = (rects.top - rectsModal.height - rects.height - 70) + 'px';
-        modal.style.left = '20px';
+        this.positionModalByTarget(modal, rects, rectsModal);
 
+    }
+
+    private positionModalByTarget(modal: HTMLElement, targetRect: DOMRect, modalRect: DOMRect) {
+        const margin = 8;
+        const width = modalRect.width || 280;
+        const height = modalRect.height || 0;
+        const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+        const maxTop = Math.max(margin, window.innerHeight - height - margin);
+        let left = targetRect.left + (targetRect.width / 2) - (width / 2);
+        let top = targetRect.bottom + margin;
+
+        if (top + height > window.innerHeight - margin) {
+            top = targetRect.top - height - margin;
+        }
+
+        modal.style.position = 'fixed';
+        modal.style.left = `${Math.min(Math.max(left, margin), maxLeft)}px`;
+        modal.style.top = `${Math.min(Math.max(top, margin), maxTop)}px`;
+    }
+
+    private isCurrentThreadDirectMessage(): boolean {
+        const thread = this.actualThread?.thread;
+        return Boolean(thread?.name?.startsWith('@') && thread.users?.length === 2);
     }
 
 

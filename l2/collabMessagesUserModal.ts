@@ -1,8 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesUserModal.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { collab_message } from '/_102025_/l2/collabMessagesIcons.js';
 import { createThreadDM, getDmThreadByUsers } from '/_102025_/l2/collabMessagesHelper.js';
 import { dispatchThreadOpen } from '/_102025_/l2/collabMessagesEvents.js';
 
@@ -13,12 +12,12 @@ import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 /// **collab_i18n_start**
 const message_pt = {
     loading: 'Carregando...',
-    message: 'Mensagem',
+    messageDirect: 'Ir para direct message',
 }
 
 const message_en = {
     loading: 'Loading...',
-    message: 'Message',
+    messageDirect: 'Go to direct message',
 
 }
 
@@ -37,6 +36,7 @@ export class CollabMessagesUserModal extends StateLitElement {
     @property({ type: Boolean }) open = true;
     @property() user?: msg.User;
     @property() actualUserId?: string;
+    @property({ type: Boolean }) isDirectMessage: boolean = false;
 
     @state() private isLoading: boolean = false;
     @state() private errorMessage: string = '';
@@ -45,20 +45,19 @@ export class CollabMessagesUserModal extends StateLitElement {
         this.open = false;
     }
 
-    private handleGlobalMouseMove = (e: MouseEvent) => {
-        const modal = this.querySelector('collab-messages-user-modal-102025');
-        if (modal && !modal.contains(e.target as Node)) {
+    private handleGlobalClick = (e: MouseEvent) => {
+        if (!this.contains(e.target as Node)) {
             this.destroy();
         }
     };
 
     firstUpdated() {
-        document.addEventListener('mousemove', this.handleGlobalMouseMove);
+        document.addEventListener('click', this.handleGlobalClick);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        document.removeEventListener('mousemove', this.handleGlobalMouseMove);
+        document.removeEventListener('click', this.handleGlobalClick);
     }
 
     private destroy() {
@@ -88,16 +87,17 @@ export class CollabMessagesUserModal extends StateLitElement {
 
             ${this.errorMessage ? html`<small class="user-message-error">${this.errorMessage}<small>` : ''}
 
-            ${this.actualUserId !== this.user?.userId ?
+            ${this.actualUserId !== this.user?.userId && !this.isDirectMessage ?
                 html`    
                 <div class="collab-messages-user-modal-actions">
-                    <button
+                    <a
+                        href="#"
                         @click=${this.onClickUserAction} 
                         class="collab-messages-user-modal-message-btn"
-                        ?disabled=${this.isLoading}
+                        aria-disabled=${this.isLoading ? 'true' : 'false'}
                     >
-                        ${this.isLoading ? html`<span class="loader"></span>` : html`${collab_message} ${this.msg.message}`}
-                    </button>
+                        ${this.isLoading ? html`<span class="loader"></span>` : this.msg.messageDirect}
+                    </a>
                 </div>`: ''
             }
         
@@ -106,8 +106,10 @@ export class CollabMessagesUserModal extends StateLitElement {
     `;
     }
 
-    private async onClickUserAction() {
+    private async onClickUserAction(e: Event) {
 
+        e.preventDefault();
+        if (this.isLoading) return;
         if (!this.actualUserId || !this.user) return;
         this.isLoading = true;
         try {

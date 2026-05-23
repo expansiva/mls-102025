@@ -179,24 +179,6 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
                     composed: true,
                 }));
             }}
-
-            @mouseenter=${(e: MouseEvent) => {
-                if (!isValid) return;
-                this.dispatchEvent(new CustomEvent('mention-hover', {
-                    detail: { userId: user!.userId, element: e.target },
-                    bubbles: true,
-                    composed: true,
-                }));
-            }}
-
-            @mouseleave=${(e: MouseEvent) => {
-                if (!isValid) return;
-                this.dispatchEvent(new CustomEvent('mention-leave', {
-                    detail: { userId: user!.userId, element: e.target },
-                    bubbles: true,
-                    composed: true,
-                }));
-            }}
             >
             @${token.value}
             </span>
