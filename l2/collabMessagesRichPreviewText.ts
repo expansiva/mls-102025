@@ -173,6 +173,7 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
 
             @click=${(e: MouseEvent) => {
                 if (!isValid) return;
+                e.stopPropagation();
                 this.dispatchEvent(new CustomEvent('mention-click', {
                     detail: { userId: user!.userId, element: e.target },
                     bubbles: true,

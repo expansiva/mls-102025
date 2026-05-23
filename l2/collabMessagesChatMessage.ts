@@ -461,10 +461,8 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private async onMentionClick(ev: CustomEvent) {
 
         this.removeAllUserModal();
-        console.log('[onMentionClick] ev.detail:', ev.detail);
         if (!ev.detail || !ev.detail.userId || !ev.detail.element) return;
         const actualUserModal = this.usersAvaliables.find((user) => user.userId === ev.detail.userId);
-        console.log(`[onMentionClick] en.detail.userId: ${ev.detail.userId}, actualUserModal: ${actualUserModal?.userId}, actualUserModalName: ${actualUserModal?.name}`);
         if (!actualUserModal) return;
         const rects = (ev.detail.element as HTMLElement).getBoundingClientRect();
         const modal = document.createElement('collab-messages-user-modal-102025');
