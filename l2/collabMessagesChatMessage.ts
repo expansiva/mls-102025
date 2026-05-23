@@ -36,10 +36,12 @@ const message_pt = {
     favorite: 'Favoritar',
     unfavorite: 'Remover favorito',
     requestReadConfirmation: 'Confirmação de leitura',
+    cancelReadConfirmation: 'Cancelar confirmação de leitura',
     confirmRead: 'Recebi e li a mensagem',
     allConfirmedRead: 'Confirmado que todos receberam',
     requestedReadConfirmation: 'pediu confirmação de leitura em',
     confirmedRead: 'confirmou leitura em',
+    canceledReadConfirmation: 'cancelou confirmação de leitura em',
     notConfirmedRead: 'não confirmado',
     delete: 'Apagar',
     edit: 'Editar',
@@ -59,10 +61,12 @@ const message_en = {
     favorite: 'Favorite',
     unfavorite: 'Remove favorite',
     requestReadConfirmation: 'Read confirmation',
+    cancelReadConfirmation: 'Cancel read confirmation',
     confirmRead: 'I received and read the message',
     allConfirmedRead: 'Confirmed that everyone received it',
     requestedReadConfirmation: 'requested read confirmation at',
     confirmedRead: 'confirmed reading at',
+    canceledReadConfirmation: 'canceled read confirmation at',
     notConfirmedRead: 'not confirmed',
     delete: 'Delete',
     edit: 'Edit',
@@ -384,6 +388,13 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             ` : html`<span>${this.msg.notConfirmedRead}</span>`}
                         </div>
                     `)}
+                    ${message.readConfirmations.map(request => request.canceledAt ? html`
+                        <div class="read-confirmation-line canceled">
+                            ${this.renderUserLabel(request.canceledBy || request.requestedBy)}
+                            <span>${this.msg.canceledReadConfirmation}</span>
+                            <span class="read-confirmation-time">${this.formatLocalDateTime(request.canceledAt)}</span>
+                        </div>
+                    ` : nothing)}
                 </div>
             </div>
         `;
@@ -916,6 +927,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderMessageMenu(message: IMessage) {
         if (this.openedMenuFor !== message.createAt) return nothing;
+        const canCancelReadConfirmation = this.canCancelReadConfirmation(message);
         const canRequestReadConfirmation = this.getMentionedUserIds(message).length > 0 && !this.hasReadConfirmation(message);
         const canConfirmRead = this.hasPendingReadConfirmation(message);
         const allConfirmedRead = this.hasAllReadConfirmationsConfirmed(message);
@@ -938,9 +950,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${collab_star}
                 ${this.isFavorite(message) ? this.msg.unfavorite : this.msg.favorite}
             </button>
-            <button ?disabled=${!canRequestReadConfirmation} @click=${() => this.onReadConfirmationClick(message, 'request')}>
+            <button
+                ?disabled=${!canRequestReadConfirmation && !canCancelReadConfirmation}
+                @click=${() => this.onReadConfirmationClick(message, canCancelReadConfirmation ? 'cancel' : 'request')}
+            >
                 ${collab_circle_exclamation}
-                ${this.msg.requestReadConfirmation}
+                ${canCancelReadConfirmation ? this.msg.cancelReadConfirmation : this.msg.requestReadConfirmation}
             </button>
             <button ?disabled=${!canConfirmRead} @click=${() => this.onReadConfirmationClick(message, 'confirm')}>
                 ${collab_circle_exclamation}
@@ -998,7 +1013,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         }));
     }
 
-    private onReadConfirmationClick(message: IMessage, action: 'request' | 'confirm') {
+    private onReadConfirmationClick(message: IMessage, action: 'request' | 'confirm' | 'cancel') {
         this.closeMessageMenu();
         this.dispatchEvent(new CustomEvent('read-confirmation-message', {
             detail: {
@@ -1036,6 +1051,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private hasPendingReadConfirmation(message: IMessage): boolean {
         if (!this.userId) return false;
         return !!message.readConfirmations?.some(request =>
+            !request.canceledAt &&
             request.targetUserIds.includes(this.userId!) && !request.confirmedBy?.[this.userId!]
         );
     }
@@ -1043,8 +1059,18 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private hasAllReadConfirmationsConfirmed(message: IMessage): boolean {
         if (!this.userId) return false;
         return !!message.readConfirmations?.some(request =>
+            !request.canceledAt &&
             request.requestedBy === this.userId && request.targetUserIds.length > 0 &&
             request.targetUserIds.every(userId => !!request.confirmedBy?.[userId])
+        );
+    }
+
+    private canCancelReadConfirmation(message: IMessage): boolean {
+        if (!this.userId) return false;
+        return !!message.readConfirmations?.some(request =>
+            !request.canceledAt &&
+            request.requestedBy === this.userId &&
+            request.targetUserIds.some(userId => !request.confirmedBy?.[userId])
         );
     }
 

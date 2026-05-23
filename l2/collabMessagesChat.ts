@@ -611,14 +611,27 @@ export class CollabMessagesChat extends StateLitElement {
             ...(readConfirmations.pending || []),
             ...(readConfirmations.requested || []),
             ...this.getReadConfirmationMessageIdsFromLoadedMessages(),
-        ])].filter(messageId => messageId.startsWith(`${threadId}/`));
+        ])]
+            .filter(messageId => messageId.startsWith(`${threadId}/`))
+            .filter(messageId => {
+                const loadedMessage = this.getLoadedMessageById(messageId);
+                return loadedMessage ? this.isReadConfirmationRelevantForCurrentUser(loadedMessage) : true;
+            });
     }
 
     private hasPendingReadConfirmationsForThread(): boolean {
         const threadId = this.actualThread?.thread.threadId;
         if (!threadId) return false;
-        return !!this.getCurrentUser()?.readConfirmations?.pending?.some(messageId => messageId.startsWith(`${threadId}/`)) ||
+        return !!this.getCurrentUser()?.readConfirmations?.pending?.some(messageId => {
+            if (!messageId.startsWith(`${threadId}/`)) return false;
+            const loadedMessage = this.getLoadedMessageById(messageId);
+            return loadedMessage ? this.isReadConfirmationPendingForCurrentUser(loadedMessage) : true;
+        }) ||
             this.actualMessages.some(message => this.isReadConfirmationPendingForCurrentUser(message));
+    }
+
+    private getLoadedMessageById(messageId: string): msg.Message | undefined {
+        return this.actualMessages.find(message => `${message.threadId}/${message.orderAt || message.createAt}` === messageId);
     }
 
     private getReadConfirmationMessageIdsFromLoadedMessages(): string[] {
@@ -635,6 +648,7 @@ export class CollabMessagesChat extends StateLitElement {
     private isReadConfirmationPendingForCurrentUser(message: msg.Message): boolean {
         if (!this.userId) return false;
         return !!message.readConfirmations?.some(request =>
+            !request.canceledAt &&
             request.targetUserIds.includes(this.userId!) && !request.confirmedBy?.[this.userId!]
         );
     }
@@ -642,6 +656,7 @@ export class CollabMessagesChat extends StateLitElement {
     private isReadConfirmationRequestedByCurrentUser(message: msg.Message): boolean {
         if (!this.userId) return false;
         return !!message.readConfirmations?.some(request =>
+            !request.canceledAt &&
             request.requestedBy === this.userId &&
             request.targetUserIds.some(userId => !request.confirmedBy?.[userId])
         );
@@ -2225,7 +2240,7 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async onReadConfirmationMessageClick(ev: CustomEvent) {
         if (!this.userId || !this.actualThread) return;
-        const data = ev.detail as { message: IMessage, action: 'request' | 'confirm' };
+        const data = ev.detail as { message: IMessage, action: 'request' | 'confirm' | 'cancel' };
         const message = data.message;
         const result = await msgUpdateMessage({
             userId: this.userId,

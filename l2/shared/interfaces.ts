@@ -6,7 +6,7 @@ declare module '/_102036_/l2/shared/interfaces.js' {
   export interface RequestUpdateMessage {
     pin?: boolean;
     favorite?: boolean;
-    readConfirmation?: 'request' | 'confirm';
+    readConfirmation?: 'request' | 'confirm' | 'cancel';
   }
 
   export interface ResponseUpdateMessage {
@@ -35,6 +35,8 @@ declare module '/_102036_/l2/shared/interfaces.js' {
     requestedAt: string;
     targetUserIds: string[];
     confirmedBy?: Record<string, string>;
+    canceledAt?: string;
+    canceledBy?: string;
   }
 
   export interface Thread {
