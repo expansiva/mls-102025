@@ -866,6 +866,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const parent = submenu.offsetParent as HTMLElement;
         const parentRect = parent.getBoundingClientRect();
         const GAP = 8;
+        const VIEWPORT_GAP = 8;
 
         const spaceBelow = window.innerHeight - btnRect.bottom;
         let top: number;
@@ -885,6 +886,25 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
         submenu.style.top = `${top}px`;
         submenu.style.bottom = 'auto';
+
+        if (parent.classList.contains('user')) {
+            submenu.style.right = '10px';
+            submenu.style.left = 'auto';
+        } else {
+            submenu.style.left = '10px';
+            submenu.style.right = 'auto';
+        }
+
+        const menuRect = submenu.getBoundingClientRect();
+        if (menuRect.left < VIEWPORT_GAP) {
+            const currentLeft = parseFloat(submenu.style.left || '0') || 0;
+            submenu.style.left = `${currentLeft + VIEWPORT_GAP - menuRect.left}px`;
+            submenu.style.right = 'auto';
+        } else if (menuRect.right > window.innerWidth - VIEWPORT_GAP) {
+            const currentRight = parseFloat(submenu.style.right || '0') || 0;
+            submenu.style.right = `${currentRight + menuRect.right - (window.innerWidth - VIEWPORT_GAP)}px`;
+            submenu.style.left = 'auto';
+        }
     }
 
 

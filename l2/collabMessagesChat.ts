@@ -2219,6 +2219,7 @@ export class CollabMessagesChat extends StateLitElement {
 
         await updateUsers([result.response.user]);
         this.updateCurrentUser(result.response.user);
+        if (!data.favorite) this.clearToolbarSelection();
         this.requestUpdate();
     }
 
@@ -2472,15 +2473,28 @@ export class CollabMessagesChat extends StateLitElement {
         const message: msg.Message = customEvent.detail;
 
         if (!this.actualThread || !message || message.threadId !== this.actualThread.thread.threadId) return;
+        let updatedMessage: msg.MessagePerformanceCache | undefined;
+        this.actualMessages = this.actualMessages.map(item => {
+            if (item.createAt !== message.createAt) return item;
+            updatedMessage = {
+                ...item,
+                ...message,
+                footers: item.footers || []
+            };
+            return updatedMessage;
+        });
+
         for (const item of Object.values(this.actualMessagesParsed)) {
             const find = item.find(m => m.createAt === message.createAt);
             if (find) {
-                Object.assign(find, message);
+                Object.assign(find, updatedMessage || message);
                 const item = this.messageContainer?.querySelector(`collab-messages-chat-message-102025[messageid="${message.createAt}"]`);
-                if (item) (item as any)['message'] = message;
+                if (item) (item as any)['message'] = updatedMessage || message;
                 break;
             }
         }
+        this.clearToolbarSelection();
+        this.requestUpdate();
 
     }
 
