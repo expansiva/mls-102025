@@ -26,6 +26,7 @@ collab-messages-chat-message-102025 {
             display: flex;
             align-items: center;
             max-width: 80%;
+            min-width: 0;
             margin-bottom: 3px;
             margin-left: 50px;
             position: relative;
@@ -39,6 +40,9 @@ collab-messages-chat-message-102025 {
                 padding: .5rem;
                 position: relative;
                 font-size: 14px;
+                box-sizing: border-box;
+                max-width: 100%;
+                min-width: 0;
 
                 &.system:not(.same) {
                     border-top-left-radius: 0px;
@@ -131,7 +135,9 @@ collab-messages-chat-message-102025 {
                     flex-direction: column;
                     gap: .45rem;
                     margin-top: .45rem;
-                    min-width: 220px;
+                    width: min(360px, 100%);
+                    max-width: 100%;
+                    min-width: 0;
                 }
 
                 .message-attachment {
@@ -153,11 +159,24 @@ collab-messages-chat-message-102025 {
                     }
 
                     &.image {
+                        width: 100%;
+                        max-width: 100%;
+                        background: #fff;
+
+                        a {
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            width: 100%;
+                            background: #fff;
+                        }
+
                         img {
                             display: block;
                             width: 100%;
-                            max-width: 360px;
-                            max-height: 280px;
+                            height: auto;
+                            max-width: 100%;
+                            max-height: 360px;
                             object-fit: contain;
                             background: #fff;
                         }

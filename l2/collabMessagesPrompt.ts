@@ -32,6 +32,7 @@ const message_pt = {
     cancelReply: 'Cancelar resposta',
     attachFiles: 'Anexar arquivos',
     removeAttachment: 'Remover anexo',
+    sendError: 'Erro ao enviar mensagem',
 }
 
 const message_en = {
@@ -39,6 +40,7 @@ const message_en = {
     cancelReply: 'Cancel reply',
     attachFiles: 'Attach files',
     removeAttachment: 'Remove attachment',
+    sendError: 'Error sending message',
 }
 
 type MessageType = typeof message_en;
@@ -68,6 +70,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() allUsersValids: msg.User[] = [];
     @state() hasSelection: boolean = false;
     @state() selectedFiles: File[] = [];
+    @state() sendError: string = '';
 
     @state() allAgents: IMentionAgent[] = [];
     @state() alreadyLoadingAgents: boolean = false;
@@ -391,6 +394,7 @@ export class CollabMessagesPrompt extends StateLitElement {
                         </ul>
                 ` : ''}
         </div>
+        ${this.sendError ? html`<div class="prompt-error">${this.sendError}</div>` : nothing}
         ${this.renderSelectedAttachments()}`
     }
 
@@ -473,6 +477,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         if (!e.target) return;
         const target = e.target as HTMLTextAreaElement;
         this.text = target.value;
+        this.sendError = '';
         this.updateSelectionState();
         this.adjustTextAreaHeight();
         this.handleScroll();
@@ -586,6 +591,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         const input = e.target as HTMLInputElement;
         const files = Array.from(input.files || []);
         this.selectedFiles = [...this.selectedFiles, ...files].slice(0, 6);
+        this.sendError = '';
         input.value = '';
     }
 
@@ -807,12 +813,17 @@ export class CollabMessagesPrompt extends StateLitElement {
         }
 
         if (this.onSend && typeof this.onSend === 'function') {
-            this.onSend(finalText, {
-                isSpecialMention,
-                agentName,
-                replyTo: this.replyingTo?.messageId,
-                attachments: this.selectedFiles,
-            });
+            try {
+                await Promise.resolve(this.onSend(finalText, {
+                    isSpecialMention,
+                    agentName,
+                    replyTo: this.replyingTo?.messageId,
+                    attachments: this.selectedFiles,
+                }));
+            } catch (err: any) {
+                this.sendError = err?.message || this.msg.sendError;
+                return;
+            }
         }
 
         this.replyingTo = undefined;
