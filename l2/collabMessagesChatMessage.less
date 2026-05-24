@@ -126,6 +126,103 @@ collab-messages-chat-message-102025 {
                     }
                 }
 
+                .message-attachments {
+                    display: flex;
+                    flex-direction: column;
+                    gap: .45rem;
+                    margin-top: .45rem;
+                    min-width: 220px;
+                }
+
+                .message-attachment {
+                    border: 1px solid rgba(0, 0, 0, .08);
+                    border-radius: 6px;
+                    background: rgba(255, 255, 255, .72);
+                    color: #000;
+                    overflow: hidden;
+
+                    a {
+                        color: inherit;
+                        text-decoration: none;
+                    }
+
+                    svg {
+                        width: 16px;
+                        height: 16px;
+                        flex-shrink: 0;
+                    }
+
+                    &.image {
+                        img {
+                            display: block;
+                            width: 100%;
+                            max-width: 360px;
+                            max-height: 280px;
+                            object-fit: contain;
+                            background: #fff;
+                        }
+
+                        .attachment-meta {
+                            display: flex;
+                            align-items: center;
+                            gap: .45rem;
+                            padding: .35rem .45rem;
+                            font-size: @font-size-12;
+                        }
+                    }
+
+                    &.file,
+                    &.deleted {
+                        display: flex;
+                        align-items: center;
+                        gap: .45rem;
+                        padding: .45rem;
+                        font-size: @font-size-12;
+
+                        a {
+                            display: flex;
+                            align-items: center;
+                            gap: .45rem;
+                            min-width: 0;
+                            flex: 1;
+                        }
+                    }
+
+                    span {
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        min-width: 0;
+                        flex: 1;
+                    }
+
+                    small {
+                        color: #5f6368;
+                        white-space: nowrap;
+                    }
+
+                    &.deleted {
+                        color: #5f6368;
+                    }
+
+                    .attachment-delete {
+                        width: 24px;
+                        height: 24px;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: none;
+                        border-radius: 4px;
+                        background: transparent;
+                        color: @text-primary-color;
+                        cursor: pointer;
+
+                        &:hover {
+                            background: rgba(0, 0, 0, .06);
+                        }
+                    }
+                }
+
                 .message-result {
 
                     .message-result-text {

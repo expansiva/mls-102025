@@ -3,7 +3,7 @@
 import { html, nothing } from 'lit';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { customElement, property, state, query, } from 'lit/decorators.js';
-import { collab_arrow_up_long, collab_link } from '/_102025_/l2/collabMessagesIcons.js';
+import { collab_arrow_up_long, collab_link, collab_paperclip } from '/_102025_/l2/collabMessagesIcons.js';
 import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
 
@@ -29,12 +29,16 @@ import type { EditResult } from '/_102025_/l2/collabMessagesPromptEditing.js';
 /// **collab_i18n_start**
 const message_pt = {
     replyingTo: 'Respondendo a',
-    cancelReply: 'Cancelar resposta'
+    cancelReply: 'Cancelar resposta',
+    attachFiles: 'Anexar arquivos',
+    removeAttachment: 'Remover anexo',
 }
 
 const message_en = {
     replyingTo: 'Responding to',
-    cancelReply: 'Cancel reply'
+    cancelReply: 'Cancel reply',
+    attachFiles: 'Attach files',
+    removeAttachment: 'Remove attachment',
 }
 
 type MessageType = typeof message_en;
@@ -63,6 +67,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() allUsers: msg.User[] = [];
     @state() allUsersValids: msg.User[] = [];
     @state() hasSelection: boolean = false;
+    @state() selectedFiles: File[] = [];
 
     @state() allAgents: IMentionAgent[] = [];
     @state() alreadyLoadingAgents: boolean = false;
@@ -330,6 +335,20 @@ export class CollabMessagesPrompt extends StateLitElement {
                 ${this.renderToolbar()}
 
                 <div class="wrapper">
+                    <input
+                        class="attachment-input"
+                        type="file"
+                        multiple
+                        @change=${this.handleAttachmentInput}
+                    />
+                    <button
+                        class="attachment-button"
+                        title=${this.msg.attachFiles}
+                        aria-label=${this.msg.attachFiles}
+                        @click=${this.openAttachmentPicker}
+                    >
+                        ${collab_paperclip}
+                    </button>
                     <div class="textarea-container ${this.enableRichPreview ? 'rich-preview-enabled' : ''}">
                         ${this.enableRichPreview ? html`
                             <div class="prompt-overlay">${this.renderRichOverlay()}</div>
@@ -371,7 +390,8 @@ export class CollabMessagesPrompt extends StateLitElement {
                                 `)}
                         </ul>
                 ` : ''}
-        </div>`
+        </div>
+        ${this.renderSelectedAttachments()}`
     }
 
     private renderToolbar() {
@@ -419,6 +439,25 @@ export class CollabMessagesPrompt extends StateLitElement {
                 </div>
             ` : nothing
             }`
+    }
+
+    private renderSelectedAttachments() {
+        if (this.selectedFiles.length === 0) return nothing;
+        return html`
+            <div class="attachment-preview-list">
+                ${this.selectedFiles.map((file, index) => html`
+                    <div class="attachment-preview-item">
+                        <span>${file.name}</span>
+                        <small>${this.formatFileSize(file.size)}</small>
+                        <button
+                            title=${this.msg.removeAttachment}
+                            aria-label=${this.msg.removeAttachment}
+                            @click=${() => this.removeSelectedAttachment(index)}
+                        >×</button>
+                    </div>
+                `)}
+            </div>
+        `;
     }
     async handleFocus() {
         if (this.acceptAutoCompleteAgents &&
@@ -536,6 +575,28 @@ export class CollabMessagesPrompt extends StateLitElement {
         const cursorOffset = selected ? inserted.length : 1 + label.length;
         const result = insertText(this.text, selectionStart, selectionEnd, inserted, cursorOffset);
         this.applyEditResult(result);
+    }
+
+    private openAttachmentPicker() {
+        const input = this.querySelector('.attachment-input') as HTMLInputElement | null;
+        input?.click();
+    }
+
+    private handleAttachmentInput(e: Event) {
+        const input = e.target as HTMLInputElement;
+        const files = Array.from(input.files || []);
+        this.selectedFiles = [...this.selectedFiles, ...files].slice(0, 6);
+        input.value = '';
+    }
+
+    private removeSelectedAttachment(index: number) {
+        this.selectedFiles = this.selectedFiles.filter((_, itemIndex) => itemIndex !== index);
+    }
+
+    private formatFileSize(size: number): string {
+        if (size < 1024) return `${size} B`;
+        if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+        return `${(size / (1024 * 1024)).toFixed(1)} MB`;
     }
 
     private getUserSuggestions(query: string): IMentions[] {
@@ -722,7 +783,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     async handleSend() {
-        if (!this.text) return;
+        if (!this.text && this.selectedFiles.length === 0) return;
         let finalText = this.text.trim();
         let isSpecialMention = false;
         let agentName: string | undefined;
@@ -749,12 +810,14 @@ export class CollabMessagesPrompt extends StateLitElement {
             this.onSend(finalText, {
                 isSpecialMention,
                 agentName,
-                replyTo: this.replyingTo?.messageId
+                replyTo: this.replyingTo?.messageId,
+                attachments: this.selectedFiles,
             });
         }
 
         this.replyingTo = undefined;
         this.text = '';
+        this.selectedFiles = [];
         await this.updateComplete;
         this.adjustTextAreaHeight();
     }

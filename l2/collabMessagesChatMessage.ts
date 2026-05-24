@@ -13,12 +13,13 @@ import {
     collab_pin,
     collab_star,
     collab_edit,
-    collab_delete
+    collab_delete,
+    collab_paperclip
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import { loadChatPreferences, formatTimestamp } from '/_102025_/l2/collabMessagesHelper.js';
 import { getMessage, updateMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
-import { msgUpdateMessage } from '/_102025_/l2/shared/api.js';
+import { msgGetAttachmentUrl, msgUpdateMessage } from '/_102025_/l2/shared/api.js';
 import { hasTaskNotificationPending } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
@@ -49,6 +50,9 @@ const message_pt = {
     reactions: 'reações',
     reaction: 'reação',
     clickToRemove: 'Clique para remover',
+    attachmentRemoved: 'Anexo removido por',
+    openAttachment: 'Abrir anexo',
+    deleteAttachment: 'Apagar anexo',
 }
 
 const message_en = {
@@ -74,6 +78,9 @@ const message_en = {
     reactions: 'reactions',
     reaction: 'reaction',
     clickToRemove: 'Click to remove',
+    attachmentRemoved: 'Attachment removed by',
+    openAttachment: 'Open attachment',
+    deleteAttachment: 'Delete attachment',
 
 }
 
@@ -167,6 +174,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             ${!isSame ? html`<div class="message-title">@${userName}</div>` : ``}
                             ${message.replyTo ? this.renderReplyPreview(message.replyTo) : nothing}
                             ${this.renderMessageByLanguage(message)}
+                            ${this.renderAttachments(message)}
                             ${message.isLoading ? html`<span class="loader"></span>` : ''}
                             ${message.isFailed ? html`<div class="failed">
                             <div>
@@ -269,6 +277,150 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             default:
                 return null;
         }
+    }
+
+    private renderAttachments(message: msg.Message) {
+        if (!message.attachments?.length) return nothing;
+        return html`
+            <div class="message-attachments">
+                ${message.attachments.map(attachment => this.renderAttachment(message, attachment))}
+            </div>
+        `;
+    }
+
+    private renderAttachment(message: msg.Message, attachment: msg.MessageAttachment) {
+        if (attachment.status === 'deleted') {
+            return html`
+                <div class="message-attachment deleted">
+                    ${collab_paperclip}
+                    <span>${attachment.fileName}</span>
+                    <small>
+                        ${this.msg.attachmentRemoved}
+                        @${this.getUserName(attachment.deletedBy)}
+                        ${attachment.deletedAt ? this.formatLocalDateTime(attachment.deletedAt) : ''}
+                    </small>
+                </div>
+            `;
+        }
+
+        const canDelete = this.canDeleteAttachment(attachment);
+        if (attachment.kind === 'image') {
+            return html`
+                <div class="message-attachment image">
+                    <a
+                        href=${attachment.url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title=${this.msg.openAttachment}
+                        @click=${(ev: MouseEvent) => this.openAttachment(ev, message, attachment)}
+                    >
+                        <img
+                            src=${attachment.url || ''}
+                            alt=${attachment.fileName}
+                            loading="lazy"
+                            @error=${(ev: Event) => this.refreshAttachmentImage(ev, message, attachment)}
+                        />
+                    </a>
+                    <div class="attachment-meta">
+                        <span>${attachment.fileName}</span>
+                        <small>${this.formatFileSize(attachment.sizeBytes)}</small>
+                        ${canDelete ? this.renderDeleteAttachmentButton(message, attachment) : nothing}
+                    </div>
+                </div>
+            `;
+        }
+
+        return html`
+            <div class="message-attachment file">
+                <a
+                    href=${attachment.url || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title=${this.msg.openAttachment}
+                    @click=${(ev: MouseEvent) => this.openAttachment(ev, message, attachment)}
+                >
+                    ${collab_paperclip}
+                    <span>${attachment.fileName}</span>
+                    <small>${this.formatFileSize(attachment.sizeBytes)}</small>
+                </a>
+                ${canDelete ? this.renderDeleteAttachmentButton(message, attachment) : nothing}
+            </div>
+        `;
+    }
+
+    private renderDeleteAttachmentButton(message: msg.Message, attachment: msg.MessageAttachment) {
+        return html`
+            <button
+                class="attachment-delete"
+                title=${this.msg.deleteAttachment}
+                aria-label=${this.msg.deleteAttachment}
+                @click=${(ev: MouseEvent) => this.onDeleteAttachmentClick(ev, message, attachment)}
+            >
+                ${collab_delete}
+            </button>
+        `;
+    }
+
+    private async openAttachment(ev: MouseEvent, message: msg.Message, attachment: msg.MessageAttachment) {
+        ev.preventDefault();
+        const url = await this.loadAttachmentUrl(message, attachment);
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    private async refreshAttachmentImage(ev: Event, message: msg.Message, attachment: msg.MessageAttachment) {
+        const image = ev.currentTarget as HTMLImageElement;
+        if (!image || image.dataset.refreshing === 'true') return;
+        image.dataset.refreshing = 'true';
+        try {
+            image.src = await this.loadAttachmentUrl(message, attachment);
+        } finally {
+            image.dataset.refreshing = 'false';
+        }
+    }
+
+    private async loadAttachmentUrl(message: msg.Message, attachment: msg.MessageAttachment): Promise<string> {
+        if (!this.userId) throw new Error('User not found');
+        const result = await msgGetAttachmentUrl({
+            userId: this.userId,
+            threadId: message.threadId,
+            messageId: message.orderAt || message.createAt,
+            attachmentId: attachment.attachmentId
+        });
+        if (!result.success || !result.response?.url) {
+            throw new Error(result.error || 'Failed to open attachment');
+        }
+        attachment.url = result.response.url;
+        return result.response.url;
+    }
+
+    private onDeleteAttachmentClick(ev: MouseEvent, message: msg.Message, attachment: msg.MessageAttachment) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        this.dispatchEvent(new CustomEvent('delete-attachment-message', {
+            detail: {
+                message,
+                attachmentId: attachment.attachmentId
+            },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    private canDeleteAttachment(attachment: msg.MessageAttachment): boolean {
+        if (attachment.uploadedBy === this.userId) return true;
+        const currentThreadUser = this.actualThread?.thread.users.find(user => user.userId === this.userId);
+        return currentThreadUser?.auth === 'admin' || currentThreadUser?.auth === 'moderator';
+    }
+
+    private getUserName(userId?: string): string {
+        if (!userId) return '';
+        return this.usersAvaliables.find(user => user.userId === userId)?.name || userId;
+    }
+
+    private formatFileSize(size: number): string {
+        if (size < 1024) return `${size} B`;
+        if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+        return `${(size / (1024 * 1024)).toFixed(1)} MB`;
     }
 
 

@@ -57,6 +57,9 @@ import {
     msgGetTaskUpdate,
     msgGetThreadUpdates,
     msgAddMessage,
+    msgCompleteAttachmentUpload,
+    msgCreateAttachmentUpload,
+    msgDeleteAttachment,
     msgUpdateMessage
 } from '/_102025_/l2/shared/api.js';
 
@@ -402,6 +405,7 @@ export class CollabMessagesChat extends StateLitElement {
                                     @pin-message=${this.onPinMessageClick}
                                     @favorite-message=${this.onFavoriteMessageClick}
                                     @read-confirmation-message=${this.onReadConfirmationMessageClick}
+                                    @delete-attachment-message=${this.onDeleteAttachmentMessage}
                                 ></collab-messages-chat-message-102025>
                                 ${nextNeedShowLabel ? html`<div class="new-messages-label">${this.msg.newMessages}</div>` : ''}`
             })}`
@@ -594,7 +598,10 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private getAttachmentMessages(): IMessage[] {
-        return this.actualMessages.filter(message => !!message.url || (!!message.type && message.type !== 'text'));
+        return this.actualMessages.filter(message => {
+            const hasActiveAttachments = !!message.attachments?.some(attachment => attachment.status === 'active');
+            return hasActiveAttachments || !!message.url || (!!message.type && message.type !== 'text' && !message.attachments?.length);
+        });
     }
 
     private getFavoriteMessageIdsForThread(): string[] {
@@ -1783,7 +1790,8 @@ export class CollabMessagesChat extends StateLitElement {
         opt: {
             isSpecialMention: boolean,
             agentName: string,
-            replyTo?: string
+            replyTo?: string,
+            attachments?: File[]
         }
     ) {
         this.isSystemChangeScroll = true;
@@ -1806,7 +1814,9 @@ export class CollabMessagesChat extends StateLitElement {
         }
 
         try {
-            if (!opt.isSpecialMention) {
+            if (opt.attachments?.length) {
+                await this.addAttachmentMessage(value, opt.attachments, opt.replyTo);
+            } else if (!opt.isSpecialMention) {
                 await this.addMessage(value, opt.replyTo);
             } else {
                 await this.addMessageIA(value, opt.agentName, opt.replyTo);
@@ -1910,6 +1920,59 @@ export class CollabMessagesChat extends StateLitElement {
 
             console.error('Error sending message:', err);
         }
+    }
+
+    private async addAttachmentMessage(prompt: string, files: File[], replyTo: string | undefined) {
+        if (!this.userId || !this.actualThread) return;
+        if (files.length === 0) return;
+
+        const threadId = this.actualThread.thread.threadId;
+        const attachments: msg.AttachmentUploadCompletion[] = [];
+
+        for (const file of files.slice(0, 6)) {
+            const createResult = await msgCreateAttachmentUpload({
+                userId: this.userId,
+                threadId,
+                fileName: file.name,
+                contentType: file.type || 'application/octet-stream',
+                sizeBytes: file.size
+            });
+            if (!createResult.success || !createResult.response) {
+                throw new Error(createResult.error || 'Failed to create attachment upload');
+            }
+
+            const uploadResponse = await fetch(createResult.response.uploadUrl, {
+                method: 'PUT',
+                headers: createResult.response.headers,
+                body: file
+            });
+            if (!uploadResponse.ok) {
+                throw new Error(`Failed to upload attachment: ${file.name}`);
+            }
+
+            attachments.push({
+                attachmentId: createResult.response.attachmentId,
+                storageKey: createResult.response.storageKey,
+                fileName: file.name,
+                contentType: file.type || 'application/octet-stream',
+                sizeBytes: file.size
+            });
+        }
+
+        const result = await msgCompleteAttachmentUpload({
+            userId: this.userId,
+            threadId,
+            content: prompt,
+            ...(replyTo ? { replyTo } : {}),
+            attachments
+        });
+        if (!result.success || !result.response?.message) {
+            throw new Error(result.error || 'Failed to complete attachment upload');
+        }
+
+        await this.updateMessage2(false, true, result.response.message as IMessage, result.response.message, undefined);
+        this.clearToolbarSelection();
+        await this.scrollMessagesToBottom();
     }
 
     private async addMessageIA(prompt: string, agentName: string, replyTo: string | undefined) {
@@ -2266,6 +2329,32 @@ export class CollabMessagesChat extends StateLitElement {
             this.updateUsersInState(users);
         }
 
+        this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+        this.requestUpdate();
+    }
+
+    private async onDeleteAttachmentMessage(ev: CustomEvent) {
+        if (!this.userId || !this.actualThread) return;
+        const data = ev.detail as { message: IMessage, attachmentId: string };
+        const message = data.message;
+        const result = await msgDeleteAttachment({
+            userId: this.userId,
+            threadId: this.actualThread.thread.threadId,
+            messageId: message.orderAt || message.createAt,
+            attachmentId: data.attachmentId
+        });
+
+        if (!result.success || !result.response?.message) {
+            throw new Error(result.error || 'Failed to delete attachment');
+        }
+
+        await updateMessage(result.response.message);
+        this.actualMessages = this.actualMessages.map(item =>
+            item.threadId === result.response!.message.threadId && item.createAt === result.response!.message.createAt
+                ? { ...item, ...result.response!.message }
+                : item
+        );
+        this.clearToolbarSelection();
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         this.requestUpdate();
     }

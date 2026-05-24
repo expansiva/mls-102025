@@ -198,6 +198,50 @@ export function msgAddMessage(
 	);
 }
 
+export function msgCreateAttachmentUpload(
+	args: Omit<msg.RequestCreateAttachmentUpload, "action">
+) {
+	return handleRequest<msg.ResponseCreateAttachmentUpload>(
+		post<msg.ResponseCreateAttachmentUpload>({
+			action: "createAttachmentUpload",
+			...args
+		})
+	);
+}
+
+export function msgCompleteAttachmentUpload(
+	args: Omit<msg.RequestCompleteAttachmentUpload, "action">
+) {
+	return handleRequest<msg.ResponseCompleteAttachmentUpload>(
+		post<msg.ResponseCompleteAttachmentUpload>({
+			action: "completeAttachmentUpload",
+			...args
+		})
+	);
+}
+
+export function msgDeleteAttachment(
+	args: Omit<msg.RequestDeleteAttachment, "action">
+) {
+	return handleRequest<msg.ResponseDeleteAttachment>(
+		post<msg.ResponseDeleteAttachment>({
+			action: "deleteAttachment",
+			...args
+		})
+	);
+}
+
+export function msgGetAttachmentUrl(
+	args: Omit<msg.RequestGetAttachmentUrl, "action">
+) {
+	return handleRequest<msg.ResponseGetAttachmentUrl>(
+		post<msg.ResponseGetAttachmentUrl>({
+			action: "getAttachmentUrl",
+			...args
+		})
+	);
+}
+
 export function msgEnsureTaskRoom(
 	args: Omit<msg.RequestEnsureTaskRoom, "action">
 ) {
