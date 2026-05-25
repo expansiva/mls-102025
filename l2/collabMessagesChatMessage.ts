@@ -378,18 +378,25 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         return html`
             <div class="message-edit-history">
                 <div class="message-edit-history-title">${this.msg.editHistory}</div>
-                ${message.edits.map((edit, index) => html`
-                    <div class="message-edit-history-item">
-                        <small>
-                            ${index === 0
-                ? html`${this.msg.originalMessage} @${this.getUserName(message.senderId)} ${this.formatLocalDateTime(message.createAt)}`
-                : html`${this.msg.editedBy} @${this.getUserName(edit.editedBy)} ${this.formatLocalDateTime(edit.editedAt)}`}
-                        </small>
-                        <div>${this.renderCollabMessagesRichPreview(edit.content)}</div>
-                    </div>
-                `)}
+                ${message.edits.map((edit, index) => {
+            const previousEdit = message.edits?.[index - 1];
+            return html`
+                        <div class="message-edit-history-item">
+                            <small>
+                                ${index === 0
+                    ? html`${this.msg.originalMessage} @${this.getUserName(message.senderId)} ${this.formatLocalDateTime(message.createAt)}`
+                    : html`${this.msg.editedBy} @${this.getUserName(previousEdit?.editedBy)} ${this.formatLocalDateTime(previousEdit?.editedAt || '')}`}
+                            </small>
+                            <div>${this.renderCollabMessagesRichPreview(edit.content)}</div>
+                        </div>
+                    `;
+        })}
                 <div class="message-edit-history-item current">
-                    <small>${this.msg.currentMessage}</small>
+                    <small>
+                        ${message.editedBy && message.editedAt
+                ? html`${this.msg.currentMessage} - ${this.msg.editedBy} @${this.getUserName(message.editedBy)} ${this.formatLocalDateTime(message.editedAt)}`
+                : this.msg.currentMessage}
+                    </small>
                     <div>${this.renderCollabMessagesRichPreview(message.content)}</div>
                 </div>
             </div>
