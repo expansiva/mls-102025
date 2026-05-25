@@ -152,6 +152,140 @@ collab-messages-chat-102025 {
         text-align: center;
     }
 
+    .forward-message-scenario {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        height: 100%;
+        padding: 1rem;
+        color: @text-primary-color;
+        overflow: hidden;
+
+        label {
+            font-size: @font-size-12;
+            font-weight: 700;
+        }
+
+        input[type="search"] {
+            width: 100%;
+            padding: .55rem .75rem;
+            border: 1px solid @grey-color-dark;
+            border-radius: 6px;
+            background: @bg-primary-color;
+            color: @text-primary-color;
+            outline: none;
+        }
+
+        .forward-error {
+            color: @error-color;
+            font-size: @font-size-12;
+        }
+    }
+
+    .forward-destination-list {
+        flex: 1;
+        overflow-y: auto;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border: 1px solid @grey-color-dark;
+        border-radius: 6px;
+        background: @bg-primary-color;
+    }
+
+    .forward-destination-list li {
+        border-bottom: 1px solid @grey-color;
+
+        &:last-child {
+            border-bottom: none;
+        }
+    }
+
+    .forward-destination-list button {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        border: none;
+        background: transparent;
+        color: @text-primary-color;
+        padding: .65rem;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover,
+        &.selected {
+            background: @bg-primary-color-focus;
+        }
+    }
+
+    .forward-destination-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        border: 1px solid @grey-color-light;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+
+        img,
+        svg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            fill: currentColor;
+        }
+    }
+
+    .forward-destination-name {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .forward-empty {
+        padding: .8rem;
+        color: @text-secondary-color;
+        font-size: @font-size-12;
+    }
+
+    .forward-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: .5rem;
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            border: 1px solid @grey-color-dark;
+            border-radius: 6px;
+            padding: .5rem .75rem;
+            cursor: pointer;
+            color: @text-primary-color;
+            background: @bg-primary-color;
+
+            &.primary {
+                background: @info-color;
+                color: #ffffff;
+                border-color: @info-color;
+            }
+
+            &:disabled {
+                cursor: default;
+                opacity: .55;
+            }
+
+            svg {
+                width: 14px;
+                height: 14px;
+                fill: currentColor;
+            }
+        }
+    }
+
     .welcome-message {
         padding: 1rem;
 

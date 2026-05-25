@@ -20,7 +20,9 @@ import {
     collab_tasks,
     collab_bell_slash,
     collab_chevron_right,
-    collab_clock_static
+    collab_clock_static,
+    collab_xmark,
+    collab_check
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import { loadChatPreferences, formatTimestamp } from '/_102025_/l2/collabMessagesHelper.js';
@@ -1313,16 +1315,16 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ?disabled=${!canRequestReadConfirmation && !canCancelReadConfirmation}
                 @click=${() => this.onReadConfirmationClick(message, canCancelReadConfirmation ? 'cancel' : 'request')}
             >
-                ${collab_circle_exclamation}
+                ${canCancelReadConfirmation ? collab_xmark : collab_circle_exclamation}
                 ${canCancelReadConfirmation ? this.msg.cancelReadConfirmation : this.msg.requestReadConfirmation}
             </button>
             <button ?disabled=${!canConfirmRead} @click=${() => this.onReadConfirmationClick(message, 'confirm')}>
-                ${collab_circle_exclamation}
+                ${collab_check}
                 ${this.msg.confirmRead}
             </button>
             ${allConfirmedRead ? html`
                 <button disabled>
-                    ${collab_circle_exclamation}
+                    ${collab_check}
                     ${this.msg.allConfirmedRead}
                 </button>
             ` : nothing}

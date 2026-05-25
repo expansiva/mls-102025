@@ -6,6 +6,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import {
     collab_chevron_left,
+    collab_chevron_right,
     collab_gear,
     collab_plus,
     collab_folder_tree,
@@ -14,7 +15,9 @@ import {
     collab_star,
     collab_paperclip,
     collab_circle_exclamation,
-    collab_robot
+    collab_robot,
+    collab_message,
+    collab_xmark
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally } from '/_102025_/l2/collabMessagesSyncNotifications.js';
@@ -113,7 +116,13 @@ const message_pt = {
     toolbarAgent: 'Agente de resumo',
     replaceOldestPin: 'Já existem 3 mensagens fixadas. Substituir a mais antiga?',
     readOnlyThread: 'Você tem acesso somente leitura nesta sala.',
-    forwardPrompt: 'Digite o nome ou ID da sala de destino',
+    forwardMessageTitle: 'Encaminhar mensagem',
+    forwardDestinationLabel: 'Digite o nome do canal ou DM',
+    forwardDestinationPlaceholder: '#canal ou @user',
+    forwardEmpty: 'Nenhum canal ou DM encontrado',
+    forwardCancel: 'Cancelar',
+    forwardSend: 'Encaminhar',
+    forwardSelectDestination: 'Selecione um destino',
     forwardPrefix: 'Mensagem encaminhada',
     taskTitlePrompt: 'Título da task',
 }
@@ -144,7 +153,13 @@ const message_en = {
     toolbarAgent: 'Summary agent',
     replaceOldestPin: 'There are already 3 pinned messages. Replace the oldest one?',
     readOnlyThread: 'You have read-only access in this room.',
-    forwardPrompt: 'Type the destination room name or ID',
+    forwardMessageTitle: 'Forward message',
+    forwardDestinationLabel: 'Type the channel or DM name',
+    forwardDestinationPlaceholder: '#channel or @user',
+    forwardEmpty: 'No channel or DM found',
+    forwardCancel: 'Cancel',
+    forwardSend: 'Forward',
+    forwardSelectDestination: 'Select a destination',
     forwardPrefix: 'Forwarded message',
     taskTitlePrompt: 'Task title',
 }
@@ -195,6 +210,11 @@ export class CollabMessagesChat extends StateLitElement {
     @property({ attribute: false }) allThreads: msg.Thread[] = [];
     @property() lastMessageReaded: string | undefined = ''
     @property() unreadCountInSelectedThread: number = 0;
+    @state() private forwardMessageSource?: IMessage;
+    @state() private forwardDestinationQuery: string = '';
+    @state() private forwardDestinationThreadId: string = '';
+    @state() private forwardError: string = '';
+    @state() private isForwardingMessage: boolean = false;
 
     private isSystemChangeScroll: boolean = false;
     private savedScrollTop = 0;
@@ -242,6 +262,7 @@ export class CollabMessagesChat extends StateLitElement {
             && (changedProperties.get('activeScenerie') === 'task'
                 || changedProperties.get('activeScenerie') === 'addParticipant'
                 || changedProperties.get('activeScenerie') === 'threadDetails'
+                || changedProperties.get('activeScenerie') === 'forwardMessage'
             )
             && this.activeScenerie === 'details') {
             this.restoreScrollPosition();
@@ -328,6 +349,11 @@ export class CollabMessagesChat extends StateLitElement {
                     <div class="header">
                         <span @click=${this.onTitleClick}>${collab_chevron_left} ${this.msg.threadAdd}</span>
                     </div>`;
+            case 'forwardMessage':
+                return html`
+                    <div class="header">
+                        <span @click=${this.onTitleClick}>${collab_chevron_left} ${this.msg.forwardMessageTitle}</span>
+                    </div>`;
             default:
                 return null;
         }
@@ -345,6 +371,8 @@ export class CollabMessagesChat extends StateLitElement {
                 return this.renderThreadDetails();
             case 'threadAdd':
                 return this.renderThreadAdd();
+            case 'forwardMessage':
+                return this.renderForwardMessage();
             default:
                 return null;
         }
@@ -379,7 +407,7 @@ export class CollabMessagesChat extends StateLitElement {
             .sort(([a], [b]) => new Date(a as string).getTime() - new Date(b as string).getTime());
 
         const sortedObj: IMessageGrouped = Object.fromEntries(sortedEntries);
-        let nextNeedShowLabel: boolean = false;
+        const firstUnreadMessageCreateAt = this.getFirstUnreadMessageCreateAt();
 
         return html`
             ${this.renderTopics()}
@@ -397,9 +425,8 @@ export class CollabMessagesChat extends StateLitElement {
             return html`
                     <div class="message-time">${displayDate}</div>
                         ${repeat(threadMessages, (message) => `${message.threadId}/${message.createAt}`, (message) => {
-                if (this.lastMessageReaded === message.createAt && this.unreadCountInSelectedThread) nextNeedShowLabel = true;
-                else nextNeedShowLabel = false;
                 return html`
+                                ${firstUnreadMessageCreateAt === message.createAt ? html`<div class="new-messages-label">${this.msg.newMessages}</div>` : nothing}
                                 <collab-messages-chat-message-102025
                                     messageId=${message.createAt}
                                     .message=${message}
@@ -419,8 +446,7 @@ export class CollabMessagesChat extends StateLitElement {
                                     @mark-unread-message=${this.onMarkUnreadMessageClick}
                                     @forward-message=${this.onForwardMessageClick}
                                     @delete-attachment-message=${this.onDeleteAttachmentMessage}
-                                ></collab-messages-chat-message-102025>
-                                ${nextNeedShowLabel ? html`<div class="new-messages-label">${this.msg.newMessages}</div>` : ''}`
+                                ></collab-messages-chat-message-102025>`
             })}`
         })}
                         ${this.isLoadingMessages ? html`<div class="unread-messages">Loading messages...</div>` : html``}
@@ -444,6 +470,50 @@ export class CollabMessagesChat extends StateLitElement {
             >
                 ${this.renderTaskNotificationNavIcon(direction)}
             </button>
+        `;
+    }
+
+    private renderForwardMessage() {
+        const destinations = this.getForwardDestinationSuggestions();
+        const selectedThread = this.allThreads.find(thread => thread.threadId === this.forwardDestinationThreadId);
+        return html`
+            <div class="forward-message-scenario">
+                <label for="forward-destination">${this.msg.forwardDestinationLabel}</label>
+                <input
+                    id="forward-destination"
+                    type="search"
+                    .value=${this.forwardDestinationQuery}
+                    placeholder=${this.msg.forwardDestinationPlaceholder}
+                    @input=${this.onForwardDestinationInput}
+                />
+                ${this.forwardError ? html`<small class="forward-error">${this.forwardError}</small>` : nothing}
+                <ul class="forward-destination-list">
+                    ${destinations.length === 0 ? html`<li class="forward-empty">${this.msg.forwardEmpty}</li>` : nothing}
+                    ${destinations.map(thread => this.renderForwardDestination(thread))}
+                </ul>
+                <div class="forward-actions">
+                    <button class="secondary" @click=${this.cancelForwardMessage}>
+                        ${collab_xmark}
+                        ${this.msg.forwardCancel}
+                    </button>
+                    <button class="primary" ?disabled=${!selectedThread || this.isForwardingMessage} @click=${this.confirmForwardMessage}>
+                        ${collab_chevron_right}
+                        ${this.isForwardingMessage ? this.msg.loading : this.msg.forwardSend}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    private renderForwardDestination(thread: msg.Thread) {
+        const selected = this.forwardDestinationThreadId === thread.threadId;
+        return html`
+            <li>
+                <button class=${selected ? 'selected' : ''} @click=${() => this.selectForwardDestination(thread)}>
+                    <span class="forward-destination-avatar">${this.renderForwardDestinationAvatar(thread)}</span>
+                    <span class="forward-destination-name">${this.getForwardThreadName(thread)}</span>
+                </button>
+            </li>
         `;
     }
 
@@ -1256,6 +1326,9 @@ export class CollabMessagesChat extends StateLitElement {
         this.savedScrollTop = container.scrollTop;
         const threshold = 5;
         this.wasMessagesAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
+        if (this.wasMessagesAtBottom && this.unreadCountInSelectedThread > 0) {
+            await this.clearUnreadMarkerForActualThread();
+        }
         const scrollAnchor = this.getScrollAnchor(container);
 
         if (
@@ -1600,7 +1673,8 @@ export class CollabMessagesChat extends StateLitElement {
         this.ignoreToolbarScrollClearUntil = 0;
         this.actualThread = threadInfo;
         const temp = await getThread(this.actualThread.thread.threadId)
-        this.unreadCountInSelectedThread = temp?.unreadCount || 0;
+        this.unreadCountInSelectedThread = temp?.unreadCount ?? (threadInfo.thread as msg.ThreadPerformanceCache).unreadCount ?? 0;
+        this.lastMessageReaded = (temp as any)?.lastMessageReadTime || (threadInfo.thread as any).lastMessageReadTime || '';
         const messagesInDb = await getMessagesByThreadId(this.actualThread.thread.threadId, this.messagesLimit, 0);
         this.actualMessages = messagesInDb;
         this.isSystemChangeScroll = true;
@@ -1610,7 +1684,6 @@ export class CollabMessagesChat extends StateLitElement {
         this.isThreadError = false;
         this.threadErrorMsg = '';
         this.checkWelcomeMessage(this.actualThread.thread, messagesInDb);
-        this.lastMessageReaded = (threadInfo.thread as any).lastMessageReadTime;
 
         try {
             if (!this.userId) return;
@@ -1623,7 +1696,7 @@ export class CollabMessagesChat extends StateLitElement {
             this.updateUsersInState(threadByServer.users);
             notifyThreadChange(threadUpdated);
             if (threadByServer.hasMore) await this.loadAllMessages(threadInfo);
-            await this.markActualThreadRead(threadByServer.thread.threadId);
+            if (this.unreadCountInSelectedThread === 0) await this.markActualThreadRead(threadByServer.thread.threadId);
             this.checkForRegisterNotification();
 
             if (threadByServer.threadsPending) {
@@ -1675,6 +1748,15 @@ export class CollabMessagesChat extends StateLitElement {
         if (thread && this.actualThread?.thread.threadId === threadId) {
             this.actualThread.thread = thread;
         }
+    }
+
+    private async clearUnreadMarkerForActualThread() {
+        if (!this.actualThread) return;
+        const lastMessageReadTime = this.getLastKnownMessageCreateAt();
+        const thread = await markThreadReadLocally(this.actualThread.thread.threadId, lastMessageReadTime);
+        if (thread) this.actualThread.thread = thread;
+        this.unreadCountInSelectedThread = 0;
+        this.lastMessageReaded = lastMessageReadTime || '';
     }
 
     private getLastKnownMessageCreateAt(): string | undefined {
@@ -1751,10 +1833,11 @@ export class CollabMessagesChat extends StateLitElement {
 
         const lastMessages = newMessages[newMessages.length - 1] || this.actualMessages[0];
         await addMessages(newMessages);
-        if (lastMessages && this.actualThread) this.actualThread.thread = await updateLastMessageReadTime(threadInfo.thread.threadId, lastMessages.createAt);
+        const preserveUnreadMarker = this.shouldPreserveUnreadMarker(threadInfo.thread.threadId);
+        if (lastMessages && this.actualThread && !preserveUnreadMarker) this.actualThread.thread = await updateLastMessageReadTime(threadInfo.thread.threadId, lastMessages.createAt);
         this.actualMessages = this.mergeMessages(this.actualMessages, newMessages);
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
-        await this.updateLastMessage(threadInfo);
+        await this.updateLastMessage(threadInfo, preserveUnreadMarker);
         return threadInfo;
     }
 
@@ -1770,21 +1853,47 @@ export class CollabMessagesChat extends StateLitElement {
         return _thread;
     }
 
-    private async updateLastMessage(threadInfo: IThreadInfo) {
+    private shouldPreserveUnreadMarker(threadId: string): boolean {
+        return this.actualThread?.thread.threadId === threadId && this.unreadCountInSelectedThread > 0;
+    }
+
+    private getFirstUnreadMessageCreateAt(): string {
+        if (!this.unreadCountInSelectedThread) return '';
+        const sortedMessages = [...this.actualMessages].sort((a, b) =>
+            (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt)
+        );
+        if (!this.lastMessageReaded) return sortedMessages[0]?.createAt || '';
+        const lastReadIndex = sortedMessages.findIndex(message => message.createAt === this.lastMessageReaded);
+        return sortedMessages[lastReadIndex + 1]?.createAt || '';
+    }
+
+    private getUnreadMessagesCount(): number {
+        const firstUnreadMessageCreateAt = this.getFirstUnreadMessageCreateAt();
+        if (!firstUnreadMessageCreateAt) return 0;
+        const sortedMessages = [...this.actualMessages].sort((a, b) =>
+            (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt)
+        );
+        const firstUnreadIndex = sortedMessages.findIndex(message => message.createAt === firstUnreadMessageCreateAt);
+        return firstUnreadIndex >= 0 ? sortedMessages.length - firstUnreadIndex : 0;
+    }
+
+    private async updateLastMessage(threadInfo: IThreadInfo, preserveUnreadMarker = false) {
         const keys = Object.keys(this.actualMessagesParsed).sort();
         const lastKey = keys.length > 0 ? keys[keys.length - 1] : null;
         const lastArray = lastKey ? this.actualMessagesParsed[lastKey] : [];
         const lastMessage = lastArray.length > 0 ? lastArray[lastArray.length - 1] : undefined;
         if (lastMessage) {
             const lastMessageText = `${lastMessage.senderId}:${lastMessage.content}`;
+            const unreadCount = preserveUnreadMarker ? this.getUnreadMessagesCount() : 0;
             const thread = await updateThread(
                 threadInfo.thread.threadId,
                 threadInfo.thread,
                 lastMessageText,
                 lastMessage.createAt,
-                0,
+                unreadCount,
                 lastMessage.createAt,
             );
+            if (preserveUnreadMarker) this.unreadCountInSelectedThread = unreadCount;
             threadInfo.thread = thread;
             notifyThreadChange(thread);
         }
@@ -1803,6 +1912,10 @@ export class CollabMessagesChat extends StateLitElement {
         }
         if (this.activeScenerie === 'threadDetails') {
             this.activeScenerie = 'details';
+            return;
+        }
+        if (this.activeScenerie === 'forwardMessage') {
+            this.cancelForwardMessage();
             return;
         }
     }
@@ -2461,14 +2574,15 @@ export class CollabMessagesChat extends StateLitElement {
         if (index < 0) return;
         const previous = sortedMessages[index - 1];
         const unreadCount = sortedMessages.length - index;
-        const updatedThread = await updateThread(
+        let updatedThread = await updateThread(
             this.actualThread.thread.threadId,
             this.actualThread.thread,
             undefined,
             undefined,
             unreadCount
         );
-        if (previous) await updateLastMessageReadTime(this.actualThread.thread.threadId, previous.createAt);
+        const lastReadMessageId = previous?.createAt || '';
+        updatedThread = await updateLastMessageReadTime(this.actualThread.thread.threadId, lastReadMessageId);
         this.lastMessageReaded = previous?.createAt || '';
         this.unreadCountInSelectedThread = unreadCount;
         this.actualThread.thread = updatedThread;
@@ -2476,32 +2590,123 @@ export class CollabMessagesChat extends StateLitElement {
         this.requestUpdate();
     }
 
-    private async onForwardMessageClick(ev: CustomEvent) {
-        if (!this.userId || !this.actualThread) return;
+    private onForwardMessageClick(ev: CustomEvent) {
+        if (!this.actualThread) return;
         const message = (ev.detail as { message: IMessage }).message;
-        const target = window.prompt(this.msg.forwardPrompt);
-        if (!target) return;
-        const targetThread = this.findForwardTargetThread(target.trim());
-        if (!targetThread) throw new Error(`Thread not found: ${target}`);
-        const content = `${this.msg.forwardPrefix}\n${this.createMessageLink(message)}\n\n${message.content}`;
-        const result = await msgAddMessage({
-            userId: this.userId,
-            threadId: targetThread.threadId,
-            content
-        });
-        if (!result.success || !result.response?.message) {
-            throw new Error(result.error || 'Failed to forward message');
-        }
-        await addMessage(result.response.message as IMessage);
-        const thread = await getThread(targetThread.threadId);
-        if (thread) notifyThreadChange(thread);
+        this.forwardMessageSource = message;
+        this.forwardDestinationQuery = '';
+        this.forwardDestinationThreadId = '';
+        this.forwardError = '';
+        this.isForwardingMessage = false;
+        this.saveScrollPosition();
+        this.activeScenerie = 'forwardMessage';
     }
 
-    private findForwardTargetThread(value: string): msg.Thread | undefined {
-        return this.allThreads.find(thread =>
-            thread.threadId === value ||
-            thread.name?.toLowerCase() === value.toLowerCase()
-        );
+    private onForwardDestinationInput = (ev: Event) => {
+        this.forwardDestinationQuery = (ev.target as HTMLInputElement).value;
+        this.forwardDestinationThreadId = '';
+        this.forwardError = '';
+    }
+
+    private selectForwardDestination(thread: msg.Thread) {
+        this.forwardDestinationThreadId = thread.threadId;
+        this.forwardDestinationQuery = this.getForwardThreadName(thread);
+        this.forwardError = '';
+    }
+
+    private cancelForwardMessage = () => {
+        this.forwardMessageSource = undefined;
+        this.forwardDestinationQuery = '';
+        this.forwardDestinationThreadId = '';
+        this.forwardError = '';
+        this.isForwardingMessage = false;
+        this.activeScenerie = 'details';
+    }
+
+    private confirmForwardMessage = async () => {
+        if (!this.userId || !this.forwardMessageSource) return;
+        const targetThread = this.allThreads.find(thread => thread.threadId === this.forwardDestinationThreadId);
+        if (!targetThread) {
+            this.forwardError = this.msg.forwardSelectDestination;
+            return;
+        }
+        this.isForwardingMessage = true;
+        const message = this.forwardMessageSource;
+        const content = `${this.msg.forwardPrefix}\n${this.createMessageLink(message)}\n\n${message.content}`;
+        try {
+            const result = await msgAddMessage({
+                userId: this.userId,
+                threadId: targetThread.threadId,
+                content
+            });
+            if (!result.success || !result.response?.message) {
+                throw new Error(result.error || 'Failed to forward message');
+            }
+            await addMessage(result.response.message as IMessage);
+            const thread = await getThread(targetThread.threadId);
+            if (thread) {
+                const lastMessageText = `${this.userId}:${content}`;
+                let updatedThread = await updateThread(targetThread.threadId, thread, lastMessageText, result.response.message.createAt, 0, result.response.message.createAt);
+                updatedThread = await updateLastMessageReadTime(targetThread.threadId, result.response.message.createAt);
+                notifyThreadChange(updatedThread);
+            }
+            this.cancelForwardMessage();
+        } catch (err: any) {
+            this.forwardError = err?.message || 'Failed to forward message';
+            this.isForwardingMessage = false;
+        }
+    }
+
+    private getForwardDestinationSuggestions(): msg.Thread[] {
+        const query = this.forwardDestinationQuery.trim().toLowerCase();
+        const prefix = query[0];
+        const search = prefix === '#' || prefix === '@' ? query.slice(1) : query;
+        return this.allThreads
+            .filter(thread => this.isForwardDestinationAllowed(thread))
+            .filter(thread => {
+                const isDm = this.isDirectMessageThread(thread);
+                const name = this.getForwardThreadName(thread).toLowerCase();
+                if (!query) return true;
+                if (prefix === '#') return !isDm && name.includes(search);
+                if (prefix === '@') return isDm && name.replace(/^@/, '').includes(search);
+                return name.includes(search) || thread.threadId.toLowerCase().includes(search);
+            })
+            .sort((a, b) => this.getForwardThreadSortTime(b).localeCompare(this.getForwardThreadSortTime(a)))
+            .slice(0, 25);
+    }
+
+    private isForwardDestinationAllowed(thread: msg.Thread): boolean {
+        if (thread.threadId === this.actualThread?.thread.threadId) return false;
+        if (!thread.users.some(threadUser => threadUser.userId === this.userId)) return false;
+        return !['archived', 'deleting', 'deleted'].includes(thread.status || '');
+    }
+
+    private getForwardThreadSortTime(thread: msg.Thread): string {
+        return (thread as msg.ThreadPerformanceCache).lastMessageTime || thread.createdAt || thread.threadId;
+    }
+
+    private isDirectMessageThread(thread: msg.Thread) {
+        return thread.name?.startsWith('@') && thread.users.length === 2;
+    }
+
+    private getForwardThreadName(thread: msg.Thread): string {
+        if (this.isDirectMessageThread(thread)) {
+            const otherThreadUser = thread.users.find(item => item.userId !== this.userId);
+            const user = this.usersAvaliables.find(item => item.userId === otherThreadUser?.userId);
+            return `@${user?.name || otherThreadUser?.userId || thread.name.replace(/^@/, '')}`;
+        }
+        return thread.name || thread.threadId;
+    }
+
+    private renderForwardDestinationAvatar(thread: msg.Thread) {
+        if (this.isDirectMessageThread(thread)) {
+            const otherThreadUser = thread.users.find(item => item.userId !== this.userId);
+            const user = this.usersAvaliables.find(item => item.userId === otherThreadUser?.userId);
+            if (user?.avatar_url) return html`<img src=${user.avatar_url} alt=${user.name} />`;
+            return collab_message;
+        }
+        if (thread.avatar_url) return html`<img src=${thread.avatar_url} alt=${this.getForwardThreadName(thread)} />`;
+        return collab_folder_tree;
     }
 
     private createTaskTitleFromMessage(message: IMessage): string {
@@ -2927,4 +3132,4 @@ interface IFilteredThreads {
 }
 type IMessageGrouped = { [key: string]: IMessage[] }
 type IThread = { [key: string]: IThreadInfo[] }
-type IScenery = 'list' | 'details' | 'loading' | 'task' | 'threadDetails' | 'threadAdd'
+type IScenery = 'list' | 'details' | 'loading' | 'task' | 'threadDetails' | 'threadAdd' | 'forwardMessage'
