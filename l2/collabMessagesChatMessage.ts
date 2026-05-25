@@ -14,7 +14,13 @@ import {
     collab_star,
     collab_edit,
     collab_delete,
-    collab_paperclip
+    collab_paperclip,
+    collab_ban,
+    collab_link,
+    collab_tasks,
+    collab_bell_slash,
+    collab_chevron_right,
+    collab_clock_static
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import { loadChatPreferences, formatTimestamp } from '/_102025_/l2/collabMessagesHelper.js';
@@ -32,6 +38,10 @@ const message_pt = {
     msgNotSend: 'Mensagem não enviada*',
     reply: 'Responder',
     copy: 'Copiar',
+    copyLink: 'Copiar link',
+    markUnread: 'Marcar como não lida',
+    createTask: 'Criar task',
+    forward: 'Encaminhar',
     pin: 'Fixar',
     unpin: 'Desfixar',
     favorite: 'Favoritar',
@@ -40,12 +50,25 @@ const message_pt = {
     cancelReadConfirmation: 'Cancelar confirmação de leitura',
     confirmRead: 'Recebi e li a mensagem',
     allConfirmedRead: 'Confirmado que todos receberam',
+    deletedMessage: 'Mensagem deletada',
+    moderatedMessage: 'Mensagem moderada',
+    deletedBy: 'deletada por',
+    moderatedBy: 'moderada por',
+    originalVisibleToModerators: 'conteúdo original visível para admins e moderadores',
     requestedReadConfirmation: 'pediu confirmação de leitura em',
     confirmedRead: 'confirmou leitura em',
     canceledReadConfirmation: 'cancelou confirmação de leitura em',
     notConfirmedRead: 'não confirmado',
     delete: 'Apagar',
+    moderate: 'Moderar',
     edit: 'Editar',
+    edited: 'editado',
+    save: 'Salvar',
+    cancel: 'Cancelar',
+    viewHistory: 'Ver histórico',
+    editHistory: 'Histórico de edições',
+    originalMessage: 'Mensagem original',
+    currentMessage: 'Mensagem atual',
     you: 'Você',
     reactions: 'reações',
     reaction: 'reação',
@@ -60,6 +83,10 @@ const message_en = {
     msgNotSend: 'Message not sent*',
     reply: 'Reply',
     copy: 'Copy',
+    copyLink: 'Copy link',
+    markUnread: 'Mark as unread',
+    createTask: 'Create task',
+    forward: 'Forward',
     pin: 'Pin',
     unpin: 'Unpin',
     favorite: 'Favorite',
@@ -68,12 +95,25 @@ const message_en = {
     cancelReadConfirmation: 'Cancel read confirmation',
     confirmRead: 'I received and read the message',
     allConfirmedRead: 'Confirmed that everyone received it',
+    deletedMessage: 'Deleted message',
+    moderatedMessage: 'Moderated message',
+    deletedBy: 'deleted by',
+    moderatedBy: 'moderated by',
+    originalVisibleToModerators: 'original content visible to admins and moderators',
     requestedReadConfirmation: 'requested read confirmation at',
     confirmedRead: 'confirmed reading at',
     canceledReadConfirmation: 'canceled read confirmation at',
     notConfirmedRead: 'not confirmed',
     delete: 'Delete',
+    moderate: 'Moderate',
     edit: 'Edit',
+    edited: 'edited',
+    save: 'Save',
+    cancel: 'Cancel',
+    viewHistory: 'View history',
+    editHistory: 'Edit history',
+    originalMessage: 'Original message',
+    currentMessage: 'Current message',
     you: 'You',
     reactions: 'reactions',
     reaction: 'reaction',
@@ -111,6 +151,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @state() userPreferenceChat?: IChatPreferences;
     @state() private messageMenuPlacement: 'top' | 'bottom' = 'bottom';
     @state() private reactionListPlacement: 'top' | 'bottom' = 'top';
+    @state() private isEditingMessage = false;
+    @state() private editContent = '';
+    @state() private showEditHistory = false;
 
     public onTaskClick?: Function;
     private msg: MessageType = messages['en'];
@@ -161,6 +204,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const cls = message.senderId === this.userId ? 'user' : 'system';
         const titleTranslated = this.getTitleMessageTranslated(message);
         const hasReactions = message.reactions ? Object.keys(message.reactions).length > 0 : false;
+        const isMessageContentHidden = this.isMessageContentHidden(message);
         return html`
             <div class="message ${cls} ${isSame ? 'same' : ''} ${hasReactions ? 'reaction-on' : ''}">
                 <div class="message-group">
@@ -172,9 +216,10 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             ${this.renderSubMenuButton(message)}
                             ${this.renderMessageMenu(message)}
                             ${!isSame ? html`<div class="message-title">@${userName}</div>` : ``}
-                            ${message.replyTo ? this.renderReplyPreview(message.replyTo) : nothing}
-                            ${this.renderMessageByLanguage(message)}
-                            ${this.renderAttachments(message)}
+                            ${message.replyTo && !isMessageContentHidden ? this.renderReplyPreview(message.replyTo) : nothing}
+                            ${this.isEditingMessage ? this.renderEditMessageForm(message) : this.renderMessageByLanguage(message)}
+                            ${this.renderEditHistory(message)}
+                            ${!isMessageContentHidden ? this.renderAttachments(message) : nothing}
                             ${message.isLoading ? html`<span class="loader"></span>` : ''}
                             ${message.isFailed ? html`<div class="failed">
                             <div>
@@ -184,7 +229,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             <small>${message.isFailedError}</small>
                         </div>`: ''}
                         
-                        ${message.taskId ? html`
+                        ${message.taskId && !isMessageContentHidden ? html`
                             <div class="message-ai">
                                 <collab-messages-task-102025
                                     messageId=${this.getMessageOrderAt(message)}
@@ -201,12 +246,15 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                                 </collab-messages-task-102025>
                             </div> `: html``
                             }
-                            ${this.renderMessageResultByLanguage(message)}
-                            ${this.renderReadConfirmations(message)}
-                            ${this.renderMessageFooterResult(message)}
-                            ${this.renderReactions(message)}
-                            ${this.renderReactionPicker(message)}
-                            <div class="message-footer">${dateFormated?.timeShort}</div>
+                            ${!isMessageContentHidden ? this.renderMessageResultByLanguage(message) : nothing}
+                            ${!isMessageContentHidden ? this.renderReadConfirmations(message) : nothing}
+                            ${!isMessageContentHidden ? this.renderMessageFooterResult(message) : nothing}
+                            ${!isMessageContentHidden ? this.renderReactions(message) : nothing}
+                            ${!isMessageContentHidden ? this.renderReactionPicker(message) : nothing}
+                            <div class="message-footer">
+                                <span>${dateFormated?.timeShort}</span>
+                                ${message.editedAt ? html`<small>${this.msg.edited}</small>` : nothing}
+                            </div>
                         </div>
                         ${cls === 'system' ? this.renderReactionButtonAdd(message) : nothing}
                         ${cls === 'system' && !isSame ? html`<collab-messages-avatar-102025 avatar=${userAvatar} alt=${userName} ></collab-messages-avatar-102025>` : ''}
@@ -218,6 +266,15 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private renderMessageByLanguage(message: msg.Message) {
+        if (message.moderation) {
+            const notice = this.renderModerationNotice(message);
+            if (this.isMessageContentHidden(message)) return notice;
+            return html`${notice}${this.renderMessageContentByLanguage(message)}`;
+        }
+        return this.renderMessageContentByLanguage(message);
+    }
+
+    private renderMessageContentByLanguage(message: msg.Message) {
         const mode = this.userPreferenceChat?.translationMode || 'icon';
         if (!this.userPreferenceChat || mode === 'none' || !message.translations) {
             return html`
@@ -277,6 +334,64 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             default:
                 return null;
         }
+    }
+
+    private renderModerationNotice(message: msg.Message) {
+        const moderation = message.moderation;
+        if (!moderation) return nothing;
+        const isDeleted = moderation.status === 'deleted';
+        return html`
+            <div class="message-moderation-notice ${moderation.status}">
+                ${isDeleted ? collab_delete : collab_ban}
+                <div>
+                    <span>${isDeleted ? this.msg.deletedMessage : this.msg.moderatedMessage}</span>
+                    <small>
+                        ${isDeleted ? this.msg.deletedBy : this.msg.moderatedBy}
+                        @${this.getUserName(moderation.by)}
+                        ${this.formatLocalDateTime(moderation.at)}
+                    </small>
+                    ${!this.isMessageContentHidden(message) ? html`<small>${this.msg.originalVisibleToModerators}</small>` : nothing}
+                </div>
+            </div>
+        `;
+    }
+
+    private renderEditMessageForm(message: msg.Message) {
+        return html`
+            <div class="message-edit-form">
+                <textarea
+                    .value=${this.editContent}
+                    @input=${(ev: Event) => this.editContent = (ev.target as HTMLTextAreaElement).value}
+                ></textarea>
+                <div class="message-edit-actions">
+                    <button @click=${() => this.onEditCancelClick()}>${this.msg.cancel}</button>
+                    <button @click=${() => this.onEditSaveClick(message)}>${this.msg.save}</button>
+                </div>
+            </div>
+        `;
+    }
+
+    private renderEditHistory(message: msg.Message) {
+        if (!this.showEditHistory || !message.edits?.length || this.isMessageContentHidden(message)) return nothing;
+        return html`
+            <div class="message-edit-history">
+                <div class="message-edit-history-title">${this.msg.editHistory}</div>
+                ${message.edits.map((edit, index) => html`
+                    <div class="message-edit-history-item">
+                        <small>
+                            ${index === 0 ? this.msg.originalMessage : this.msg.edit}
+                            @${this.getUserName(edit.editedBy)}
+                            ${this.formatLocalDateTime(edit.editedAt)}
+                        </small>
+                        <div>${this.renderCollabMessagesRichPreview(edit.content)}</div>
+                    </div>
+                `)}
+                <div class="message-edit-history-item current">
+                    <small>${this.msg.currentMessage}</small>
+                    <div>${this.renderCollabMessagesRichPreview(message.content)}</div>
+                </div>
+            </div>
+        `;
     }
 
     private renderAttachments(message: msg.Message) {
@@ -417,6 +532,40 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         return currentThreadUser?.auth === 'admin' ||
             currentThreadUser?.auth === 'moderator' ||
             currentThreadUser?.auth === 'write';
+    }
+
+    private canModerateThread(): boolean {
+        const currentThreadUser = this.actualThread?.thread.users.find(user => user.userId === this.userId);
+        return currentThreadUser?.auth === 'admin' || currentThreadUser?.auth === 'moderator';
+    }
+
+    private isMessageContentHidden(message: msg.Message): boolean {
+        return !!message.moderation && !this.canModerateThread();
+    }
+
+    private canDeleteMessage(message: IMessage): boolean {
+        if (message.moderation) return false;
+        return (message.senderId === this.userId && this.canWriteThread()) || this.canModerateThread();
+    }
+
+    private canModerateMessage(message: IMessage): boolean {
+        return !message.moderation && this.canModerateThread();
+    }
+
+    private canEditMessage(message: IMessage): boolean {
+        if (message.moderation || message.attachments?.length) return false;
+        if (!(message.senderId === this.userId || this.canModerateThread())) return false;
+        return Date.now() - this.parseCompactDate(message.createAt).getTime() <= 24 * 60 * 60 * 1000;
+    }
+
+    private parseCompactDate(timestamp: string): Date {
+        const year = Number(timestamp.slice(0, 4));
+        const month = Number(timestamp.slice(4, 6)) - 1;
+        const day = Number(timestamp.slice(6, 8));
+        const hour = Number(timestamp.slice(8, 10));
+        const minute = Number(timestamp.slice(10, 12));
+        const second = Number(timestamp.slice(12, 14));
+        return new Date(Date.UTC(year, month, day, hour, minute, second));
     }
 
     private getUserName(userId?: string): string {
@@ -1115,22 +1264,35 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private renderMessageMenu(message: IMessage) {
         if (this.openedMenuFor !== message.createAt) return nothing;
         const canWrite = this.canWriteThread();
-        const canCancelReadConfirmation = canWrite && this.canCancelReadConfirmation(message);
-        const canRequestReadConfirmation = canWrite && this.getMentionedUserIds(message).length > 0 && !this.hasReadConfirmation(message);
-        const canConfirmRead = canWrite && this.hasPendingReadConfirmation(message);
+        const canUseMessageActions = canWrite && !message.moderation;
+        const canCancelReadConfirmation = canUseMessageActions && this.canCancelReadConfirmation(message);
+        const canRequestReadConfirmation = canUseMessageActions && this.getMentionedUserIds(message).length > 0 && !this.hasReadConfirmation(message);
+        const canConfirmRead = canUseMessageActions && this.hasPendingReadConfirmation(message);
         const allConfirmedRead = this.hasAllReadConfirmationsConfirmed(message);
+        const canDeleteMessage = this.canDeleteMessage(message);
+        const canModerateMessage = this.canModerateMessage(message);
+        const canEditMessage = this.canEditMessage(message);
+        const canReadContent = !this.isMessageContentHidden(message);
 
         return html`
         <div class="message-menu ${this.messageMenuPlacement}">
-            <button>
+            <button ?disabled=${!canReadContent} @click=${() => this.onCopyTextClick(message)}>
                 ${collab_copy}
                 ${this.msg.copy}
             </button>
-            <button @click=${() => this.onReplyClick(message)}>
+            <button @click=${() => this.onCopyLinkClick(message)}>
+                ${collab_link}
+                ${this.msg.copyLink}
+            </button>
+            <button ?disabled=${!canReadContent} @click=${() => this.onReplyClick(message)}>
                 ${collab_reply}
                 ${this.msg.reply}
             </button>
-            <button ?disabled=${!canWrite} @click=${() => this.onPinClick(message)}>
+            <button @click=${() => this.onMarkUnreadClick(message)}>
+                ${collab_bell_slash}
+                ${this.msg.markUnread}
+            </button>
+            <button ?disabled=${!canUseMessageActions} @click=${() => this.onPinClick(message)}>
                 ${collab_pin}
                 ${this.isPinned(message) ? this.msg.unpin : this.msg.pin}
             </button>
@@ -1155,13 +1317,31 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                     ${this.msg.allConfirmedRead}
                 </button>
             ` : nothing}
-            <button>
+            <button ?disabled=${!canUseMessageActions || !!message.taskId} @click=${() => this.onMessageActionClick(message, 'createTask')}>
+                ${collab_tasks}
+                ${this.msg.createTask}
+            </button>
+            <button ?disabled=${!canReadContent} @click=${() => this.onForwardClick(message)}>
+                ${collab_chevron_right}
+                ${this.msg.forward}
+            </button>
+            <button ?disabled=${!canEditMessage} @click=${() => this.onEditClick(message)}>
                 ${collab_edit}
                 ${this.msg.edit}
             </button>
-            <button>
+            ${message.edits?.length ? html`
+                <button ?disabled=${!canReadContent} @click=${() => this.onViewHistoryClick()}>
+                    ${collab_clock_static}
+                    ${this.msg.viewHistory}
+                </button>
+            ` : nothing}
+            <button ?disabled=${!canDeleteMessage} @click=${() => this.onMessageActionClick(message, 'delete')}>
                 ${collab_delete}
                 ${this.msg.delete}
+            </button>
+            <button ?disabled=${!canModerateMessage} @click=${() => this.onMessageActionClick(message, 'moderate')}>
+                ${collab_ban}
+                ${this.msg.moderate}
             </button>
         
         </div>
@@ -1175,6 +1355,72 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             bubbles: true,
             composed: true
         }));
+    }
+
+    private async onCopyTextClick(message: IMessage) {
+        if (this.isMessageContentHidden(message)) return;
+        this.closeMessageMenu();
+        await navigator.clipboard?.writeText(message.content || '');
+    }
+
+    private async onCopyLinkClick(message: IMessage) {
+        this.closeMessageMenu();
+        await navigator.clipboard?.writeText(this.getMessageLink(message));
+    }
+
+    private getMessageLink(message: IMessage): string {
+        const messageId = encodeURIComponent(message.orderAt || message.createAt);
+        const threadId = encodeURIComponent(message.threadId);
+        const url = new URL(window.location.href);
+        url.hash = `message/${threadId}/${messageId}`;
+        return url.toString();
+    }
+
+    private onMarkUnreadClick(message: IMessage) {
+        this.closeMessageMenu();
+        this.dispatchEvent(new CustomEvent('mark-unread-message', {
+            detail: { message },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    private onForwardClick(message: IMessage) {
+        if (this.isMessageContentHidden(message)) return;
+        this.closeMessageMenu();
+        this.dispatchEvent(new CustomEvent('forward-message', {
+            detail: { message },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    private onEditClick(message: IMessage) {
+        if (!this.canEditMessage(message)) return;
+        this.closeMessageMenu();
+        this.editContent = message.content || '';
+        this.isEditingMessage = true;
+    }
+
+    private onEditCancelClick() {
+        this.isEditingMessage = false;
+        this.editContent = '';
+    }
+
+    private onEditSaveClick(message: msg.Message) {
+        const content = this.editContent.trim();
+        if (!content || content === message.content) return;
+        this.isEditingMessage = false;
+        this.dispatchEvent(new CustomEvent('edit-message', {
+            detail: { message, content },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    private onViewHistoryClick() {
+        this.closeMessageMenu();
+        this.showEditHistory = !this.showEditHistory;
     }
 
     private onPinClick(message: IMessage) {
@@ -1206,6 +1452,21 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (!this.canWriteThread()) return;
         this.closeMessageMenu();
         this.dispatchEvent(new CustomEvent('read-confirmation-message', {
+            detail: {
+                message,
+                action
+            },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    private onMessageActionClick(message: IMessage, action: 'delete' | 'moderate' | 'createTask') {
+        if (action === 'delete' && !this.canDeleteMessage(message)) return;
+        if (action === 'moderate' && !this.canModerateMessage(message)) return;
+        if (action === 'createTask' && (message.moderation || message.taskId || !this.canWriteThread())) return;
+        this.closeMessageMenu();
+        this.dispatchEvent(new CustomEvent('message-action-message', {
             detail: {
                 message,
                 action

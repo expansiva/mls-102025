@@ -90,6 +90,9 @@ declare module '/_102036_/l2/shared/interfaces.js' {
     pin?: boolean;
     favorite?: boolean;
     readConfirmation?: 'request' | 'confirm' | 'cancel';
+    messageAction?: 'delete' | 'moderate' | 'createTask';
+    editContent?: string;
+    taskTitle?: string;
   }
 
   export interface ResponseUpdateMessage {
@@ -97,6 +100,8 @@ declare module '/_102036_/l2/shared/interfaces.js' {
     messages?: Message[];
     user?: User;
     users?: User[];
+    task?: TaskData;
+    taskRoomThread?: Thread;
   }
 
   export interface RequestRemoveUserInThread {
@@ -120,6 +125,22 @@ declare module '/_102036_/l2/shared/interfaces.js' {
   export interface Message {
     readConfirmations?: MessageReadConfirmation[];
     attachments?: MessageAttachment[];
+    moderation?: MessageModeration;
+    edits?: MessageEditVersion[];
+    editedAt?: string;
+    editedBy?: string;
+  }
+
+  export interface MessageModeration {
+    status: "deleted" | "moderated";
+    by: string;
+    at: string;
+  }
+
+  export interface MessageEditVersion {
+    content: string;
+    editedBy: string;
+    editedAt: string;
   }
 
   export interface MessageReadConfirmation {

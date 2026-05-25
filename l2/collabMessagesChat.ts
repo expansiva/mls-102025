@@ -24,6 +24,7 @@ import {
     addOrUpdateTask,
     addMessages,
     addMessage,
+    addThread,
     updateThread,
     updateUsers,
     updateMessage,
@@ -112,6 +113,9 @@ const message_pt = {
     toolbarAgent: 'Agente de resumo',
     replaceOldestPin: 'Já existem 3 mensagens fixadas. Substituir a mais antiga?',
     readOnlyThread: 'Você tem acesso somente leitura nesta sala.',
+    forwardPrompt: 'Digite o nome ou ID da sala de destino',
+    forwardPrefix: 'Mensagem encaminhada',
+    taskTitlePrompt: 'Título da task',
 }
 
 const message_en = {
@@ -140,6 +144,9 @@ const message_en = {
     toolbarAgent: 'Summary agent',
     replaceOldestPin: 'There are already 3 pinned messages. Replace the oldest one?',
     readOnlyThread: 'You have read-only access in this room.',
+    forwardPrompt: 'Type the destination room name or ID',
+    forwardPrefix: 'Forwarded message',
+    taskTitlePrompt: 'Task title',
 }
 
 type MessageType = typeof message_en;
@@ -407,6 +414,10 @@ export class CollabMessagesChat extends StateLitElement {
                                     @pin-message=${this.onPinMessageClick}
                                     @favorite-message=${this.onFavoriteMessageClick}
                                     @read-confirmation-message=${this.onReadConfirmationMessageClick}
+                                    @message-action-message=${this.onMessageActionMessageClick}
+                                    @edit-message=${this.onEditMessageClick}
+                                    @mark-unread-message=${this.onMarkUnreadMessageClick}
+                                    @forward-message=${this.onForwardMessageClick}
                                     @delete-attachment-message=${this.onDeleteAttachmentMessage}
                                 ></collab-messages-chat-message-102025>
                                 ${nextNeedShowLabel ? html`<div class="new-messages-label">${this.msg.newMessages}</div>` : ''}`
@@ -2361,6 +2372,148 @@ export class CollabMessagesChat extends StateLitElement {
 
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         this.requestUpdate();
+    }
+
+    private async onMessageActionMessageClick(ev: CustomEvent) {
+        if (!this.userId || !this.actualThread) return;
+        if (!this.canWriteCurrentThread()) {
+            this.showReadOnlyThreadError();
+            return;
+        }
+        const data = ev.detail as { message: IMessage, action: 'delete' | 'moderate' | 'createTask' };
+        const message = data.message;
+        const taskTitle = data.action === 'createTask'
+            ? window.prompt(this.msg.taskTitlePrompt, this.createTaskTitleFromMessage(message)) || undefined
+            : undefined;
+        if (data.action === 'createTask' && !taskTitle) return;
+        const result = await msgUpdateMessage({
+            userId: this.userId,
+            threadId: this.actualThread.thread.threadId,
+            messageId: message.orderAt || message.createAt,
+            messageAction: data.action,
+            ...(taskTitle ? { taskTitle } : {})
+        });
+
+        if (!result.success || !result.response?.message) {
+            throw new Error(result.error || 'Failed to update message');
+        }
+
+        await this.applyMessageUpdateResponse(result.response);
+    }
+
+    private async onEditMessageClick(ev: CustomEvent) {
+        if (!this.userId || !this.actualThread) return;
+        const data = ev.detail as { message: IMessage, content: string };
+        const result = await msgUpdateMessage({
+            userId: this.userId,
+            threadId: this.actualThread.thread.threadId,
+            messageId: data.message.orderAt || data.message.createAt,
+            editContent: data.content
+        });
+
+        if (!result.success || !result.response?.message) {
+            throw new Error(result.error || 'Failed to edit message');
+        }
+
+        await this.applyMessageUpdateResponse(result.response);
+    }
+
+    private async applyMessageUpdateResponse(response: msg.ResponseUpdateMessage) {
+        await updateMessage(response.message);
+        this.actualMessages = this.actualMessages.map(item =>
+            item.threadId === response.message.threadId && item.createAt === response.message.createAt
+                ? { ...item, ...response.message }
+                : item
+        );
+
+        if (response.task) await addOrUpdateTask(response.task);
+        if (response.taskRoomThread) {
+            const existingThread = await getThread(response.taskRoomThread.threadId);
+            const threadCache = existingThread
+                ? await updateThread(response.taskRoomThread.threadId, response.taskRoomThread)
+                : await addThread(response.taskRoomThread);
+            notifyThreadChange(threadCache);
+        }
+
+        if (response.thread) {
+            const updatedThread = await updateThread(
+                response.thread.threadId,
+                response.thread
+            );
+            if (this.actualThread && updatedThread.threadId === this.actualThread.thread.threadId) {
+                this.actualThread.thread = updatedThread;
+            }
+            notifyThreadChange(updatedThread);
+        }
+
+        this.clearToolbarSelection();
+        this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+        this.requestUpdate();
+    }
+
+    private async onMarkUnreadMessageClick(ev: CustomEvent) {
+        if (!this.actualThread) return;
+        const message = (ev.detail as { message: IMessage }).message;
+        const sortedMessages = [...this.actualMessages].sort((a, b) =>
+            (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt)
+        );
+        const index = sortedMessages.findIndex(item => item.threadId === message.threadId && item.createAt === message.createAt);
+        if (index < 0) return;
+        const previous = sortedMessages[index - 1];
+        const unreadCount = sortedMessages.length - index;
+        const updatedThread = await updateThread(
+            this.actualThread.thread.threadId,
+            this.actualThread.thread,
+            undefined,
+            undefined,
+            unreadCount
+        );
+        if (previous) await updateLastMessageReadTime(this.actualThread.thread.threadId, previous.createAt);
+        this.lastMessageReaded = previous?.createAt || '';
+        this.unreadCountInSelectedThread = unreadCount;
+        this.actualThread.thread = updatedThread;
+        notifyThreadChange(updatedThread);
+        this.requestUpdate();
+    }
+
+    private async onForwardMessageClick(ev: CustomEvent) {
+        if (!this.userId || !this.actualThread) return;
+        const message = (ev.detail as { message: IMessage }).message;
+        const target = window.prompt(this.msg.forwardPrompt);
+        if (!target) return;
+        const targetThread = this.findForwardTargetThread(target.trim());
+        if (!targetThread) throw new Error(`Thread not found: ${target}`);
+        const content = `${this.msg.forwardPrefix}\n${this.createMessageLink(message)}\n\n${message.content}`;
+        const result = await msgAddMessage({
+            userId: this.userId,
+            threadId: targetThread.threadId,
+            content
+        });
+        if (!result.success || !result.response?.message) {
+            throw new Error(result.error || 'Failed to forward message');
+        }
+        await addMessage(result.response.message as IMessage);
+        const thread = await getThread(targetThread.threadId);
+        if (thread) notifyThreadChange(thread);
+    }
+
+    private findForwardTargetThread(value: string): msg.Thread | undefined {
+        return this.allThreads.find(thread =>
+            thread.threadId === value ||
+            thread.name?.toLowerCase() === value.toLowerCase()
+        );
+    }
+
+    private createTaskTitleFromMessage(message: IMessage): string {
+        return (message.content || '').replace(/\s+/g, ' ').trim().slice(0, 80) || this.msg.taskTitlePrompt;
+    }
+
+    private createMessageLink(message: IMessage): string {
+        const messageId = encodeURIComponent(message.orderAt || message.createAt);
+        const threadId = encodeURIComponent(message.threadId);
+        const url = new URL(window.location.href);
+        url.hash = `message/${threadId}/${messageId}`;
+        return url.toString();
     }
 
     private async onDeleteAttachmentMessage(ev: CustomEvent) {
