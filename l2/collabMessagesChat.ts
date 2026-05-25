@@ -111,6 +111,7 @@ const message_pt = {
     toolbarAttachments: 'Anexos',
     toolbarAgent: 'Agente de resumo',
     replaceOldestPin: 'Já existem 3 mensagens fixadas. Substituir a mais antiga?',
+    readOnlyThread: 'Você tem acesso somente leitura nesta sala.',
 }
 
 const message_en = {
@@ -138,6 +139,7 @@ const message_en = {
     toolbarAttachments: 'Attachments',
     toolbarAgent: 'Summary agent',
     replaceOldestPin: 'There are already 3 pinned messages. Replace the oldest one?',
+    readOnlyThread: 'You have read-only access in this room.',
 }
 
 type MessageType = typeof message_en;
@@ -713,6 +715,9 @@ export class CollabMessagesChat extends StateLitElement {
 
 
     private renderPrompt() {
+        if (!this.canWriteCurrentThread()) {
+            return html`<div class="read-only-thread">${this.msg.readOnlyThread}</div>`;
+        }
         return html`
             <collab-messages-prompt-102025
                 acceptAutoCompleteAgents="true"
@@ -725,6 +730,20 @@ export class CollabMessagesChat extends StateLitElement {
                 scope="*"
             ></collab-messages-prompt-102025>
         `;
+    }
+
+    private getCurrentThreadUserAuth(): msg.UserAuth | undefined {
+        return this.actualThread?.thread.users.find(user => user.userId === this.userId)?.auth;
+    }
+
+    private canWriteCurrentThread(): boolean {
+        const auth = this.getCurrentThreadUserAuth();
+        return auth === 'admin' || auth === 'moderator' || auth === 'write';
+    }
+
+    private showReadOnlyThreadError() {
+        this.isThreadError = true;
+        this.threadErrorMsg = this.msg.readOnlyThread;
     }
 
     private renderListThreads() {
@@ -1794,6 +1813,9 @@ export class CollabMessagesChat extends StateLitElement {
             attachments?: File[]
         }
     ) {
+        if (!this.canWriteCurrentThread()) {
+            throw new Error(this.msg.readOnlyThread);
+        }
         this.isSystemChangeScroll = true;
         this.lastTopicFilter = '';
 
@@ -2239,6 +2261,10 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async onPinMessageClick(ev: CustomEvent) {
         if (!this.userId || !this.actualThread) return;
+        if (!this.canWriteCurrentThread()) {
+            this.showReadOnlyThreadError();
+            return;
+        }
         const data = ev.detail as { message: IMessage, pin: boolean };
         const message = data.message;
         const messageId = `${message.threadId}/${message.orderAt || message.createAt}`;
@@ -2303,6 +2329,10 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async onReadConfirmationMessageClick(ev: CustomEvent) {
         if (!this.userId || !this.actualThread) return;
+        if (!this.canWriteCurrentThread()) {
+            this.showReadOnlyThreadError();
+            return;
+        }
         const data = ev.detail as { message: IMessage, action: 'request' | 'confirm' | 'cancel' };
         const message = data.message;
         const result = await msgUpdateMessage({
@@ -2335,6 +2365,10 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async onDeleteAttachmentMessage(ev: CustomEvent) {
         if (!this.userId || !this.actualThread) return;
+        if (!this.canWriteCurrentThread()) {
+            this.showReadOnlyThreadError();
+            return;
+        }
         const data = ev.detail as { message: IMessage, attachmentId: string };
         const message = data.message;
         const result = await msgDeleteAttachment({

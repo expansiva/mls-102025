@@ -71,6 +71,8 @@ const message_pt = {
     successSaving: 'Alterações salvas com sucesso!',
     noChanges: 'Nenhuma alteração detectada.',
     addParticipant: 'Adicionar participante',
+    leaveRoom: 'Sair da sala',
+    removeVisibilityAll: 'Mostrar esta remoção para todos os participantes?',
     addAgent: 'Adicionar Agent',
     labelUserId: 'Nome do usuario ou Id',
     labelPermission: 'Autoridade:',
@@ -135,6 +137,8 @@ const message_en = {
     successSaving: 'Saved successfully',
     noChanges: 'No changes.',
     addParticipant: 'Add Participant',
+    leaveRoom: 'Leave room',
+    removeVisibilityAll: 'Show this removal to all participants?',
     addAgent: 'Add Agent',
     labelUserId: 'User id or name',
     labelPermission: 'Auth:',
@@ -294,7 +298,26 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         }
     }
 
+    private getCurrentUserThreadAuth(): msg.UserAuth | undefined {
+        return this.editedThreadDetails?.thread.users.find(user => user.userId === this.userId)?.auth;
+    }
+
+    private canManageThread(): boolean {
+        return this.getCurrentUserThreadAuth() === 'admin';
+    }
+
+    private canModerateThread(): boolean {
+        const auth = this.getCurrentUserThreadAuth();
+        return auth === 'admin' || auth === 'moderator';
+    }
+
+    private isLastAdmin(userId: string): boolean {
+        const admins = this.editedThreadDetails?.thread.users.filter(user => user.auth === 'admin') || [];
+        return admins.length === 1 && admins[0].userId === userId;
+    }
+
     private enterEditMode() {
+        if (!this.canManageThread()) return;
         this.editedThreadDetails = JSON.parse(JSON.stringify(this.threadDetails));
         this.isEditingDetails = true;
         this.labelOk = '';
@@ -335,9 +358,11 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         <div class="section details details-view">
             <div class="details-header">
                 <h3>${this.msg.details}
+                    ${this.canManageThread() ? html`
                     <button class="btn-edit" @click=${this.enterEditMode} title="${this.msg.btnEdit}">
                     ${collab_edit}
                     </button>
+                    ` : nothing}
                 </h3>
             
             </div>
@@ -544,6 +569,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         const usersValids = this.editedThreadDetails?.thread.users.filter(user =>
             threadUsers.some(tu => tu.userId === user.userId)
         );
+        const canModerate = this.canModerateThread();
 
         return html`
         <div class="section users">
@@ -556,11 +582,17 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             ((user: { userId: string }) => user.userId) as any,
             ((user: { userId: string, auth: string }) => {
                 const details = users.find((us) => us.userId === user.userId);
+                const isCurrentUser = user.userId === this.userId;
+                const isLastAdminUser = this.isLastAdmin(user.userId);
+                const canRemoveUser = !isDm && !isLastAdminUser && (
+                    isCurrentUser
+                    || canModerate
+                );
                 return html`
                         <li>
                             ${this.renderAvatar(details?.avatar_url ? details.avatar_url : generateAgentAvatar(details?.name || ''))}
                                 <small>${details?.name}<b>(${user.auth})</b> - ${user.userId}</small>
-                                ${!isDm ? html`<button class="remove" @click="${(e: MouseEvent) => this.removeUser(e, user.userId)}">${this.msg.remove}</button>` : ''}            
+                                ${canRemoveUser ? html`<button class="remove" @click="${(e: MouseEvent) => this.removeUser(e, user.userId)}">${isCurrentUser ? this.msg.leaveRoom : this.msg.remove}</button>` : ''}            
                             </li>
                         `;
             }
@@ -568,7 +600,7 @@ export class CollabMessagesThreadDetails extends StateLitElement {
             </ul>
             ${this.labelErrorRemoveUser ? html`<small class="saving-error">${collab_triangle_exclamation} ${this.labelErrorRemoveUser}<small>` : ''}   
 
-            ${!isDm
+            ${!isDm && canModerate
                 ? html`<details class="details-add-participant">
                             <summary>${this.msg.addParticipant}</summary>
                             <div class="add-participant">
@@ -1096,10 +1128,13 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         const button = (e.target as HTMLElement).closest('button');
         try {
             button?.classList.add('loading');
-            const newThread = await this.removeUserFromThread(this.threadDetails.thread.threadId, this.userId, userId);
+            const eventVisibility = userId === this.userId
+                ? 'admin'
+                : window.confirm(this.msg.removeVisibilityAll) ? 'all' : 'admin';
+            const newThread = await this.removeUserFromThread(this.threadDetails.thread.threadId, this.userId, userId, eventVisibility);
             if (newThread) {
-                this.threadDetails = JSON.parse(JSON.stringify(this.editedThreadDetails));
                 this.editedThreadDetails.thread = { ...newThread };
+                this.threadDetails = JSON.parse(JSON.stringify(this.editedThreadDetails));
                 const threadCache = await updateThread(newThread.threadId, newThread);
                 notifyThreadChange(threadCache);
             }
@@ -1292,13 +1327,15 @@ export class CollabMessagesThreadDetails extends StateLitElement {
     private async removeUserFromThread(
         threadId: string,
         userId: string,
-        userIdOrName: string
+        userIdOrName: string,
+        eventVisibility: 'all' | 'admin'
     ) {
         try {
             const result = await msgRemoveParticipantFromThread({
                 threadId,
                 userId,
-                userIdOrName
+                userIdOrName,
+                eventVisibility
             });
 
             if (!result.success || !result.response?.thread) {

@@ -407,9 +407,16 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private canDeleteAttachment(attachment: msg.MessageAttachment): boolean {
-        if (attachment.uploadedBy === this.userId) return true;
+        if (attachment.uploadedBy === this.userId && this.canWriteThread()) return true;
         const currentThreadUser = this.actualThread?.thread.users.find(user => user.userId === this.userId);
         return currentThreadUser?.auth === 'admin' || currentThreadUser?.auth === 'moderator';
+    }
+
+    private canWriteThread(): boolean {
+        const currentThreadUser = this.actualThread?.thread.users.find(user => user.userId === this.userId);
+        return currentThreadUser?.auth === 'admin' ||
+            currentThreadUser?.auth === 'moderator' ||
+            currentThreadUser?.auth === 'write';
     }
 
     private getUserName(userId?: string): string {
@@ -828,6 +835,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private removeReactionFromList(message: IMessage, reactionName: string) {
         if (!this.userId) return;
+        if (!this.canWriteThread()) return;
 
         const updated = this.toggleReaction(message, reactionName, this.userId);
         this.message = updated;
@@ -847,6 +855,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private renderReactionButtonAdd(message: IMessage) {
+        if (!this.canWriteThread()) return nothing;
         return html`
             <button
                 class="reaction add"
@@ -858,6 +867,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private renderReactionPicker(message: IMessage) {
+        if (!this.canWriteThread()) return nothing;
         if (this.openedReactionMessageId !== message.createAt) return nothing;
 
         return html`
@@ -877,6 +887,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private onPickerEmojiSelect(message: IMessage, emoji: string) {
         if (!this.userId) return;
+        if (!this.canWriteThread()) return;
         const updated = this.toggleReaction(message, emoji, this.userId);
         this.message = updated;
         this.closeReactionPicker();
@@ -885,6 +896,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private openReactionPicker(message: IMessage, ev?: Event) {
         ev?.stopPropagation();
+        if (!this.canWriteThread()) return;
 
         if (this.openedReactionMessageId === message.createAt) {
             this.closeReactionPicker();
@@ -1102,9 +1114,10 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderMessageMenu(message: IMessage) {
         if (this.openedMenuFor !== message.createAt) return nothing;
-        const canCancelReadConfirmation = this.canCancelReadConfirmation(message);
-        const canRequestReadConfirmation = this.getMentionedUserIds(message).length > 0 && !this.hasReadConfirmation(message);
-        const canConfirmRead = this.hasPendingReadConfirmation(message);
+        const canWrite = this.canWriteThread();
+        const canCancelReadConfirmation = canWrite && this.canCancelReadConfirmation(message);
+        const canRequestReadConfirmation = canWrite && this.getMentionedUserIds(message).length > 0 && !this.hasReadConfirmation(message);
+        const canConfirmRead = canWrite && this.hasPendingReadConfirmation(message);
         const allConfirmedRead = this.hasAllReadConfirmationsConfirmed(message);
 
         return html`
@@ -1117,7 +1130,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${collab_reply}
                 ${this.msg.reply}
             </button>
-            <button @click=${() => this.onPinClick(message)}>
+            <button ?disabled=${!canWrite} @click=${() => this.onPinClick(message)}>
                 ${collab_pin}
                 ${this.isPinned(message) ? this.msg.unpin : this.msg.pin}
             </button>
@@ -1165,6 +1178,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private onPinClick(message: IMessage) {
+        if (!this.canWriteThread()) return;
         this.closeMessageMenu();
         this.dispatchEvent(new CustomEvent('pin-message', {
             detail: {
@@ -1189,6 +1203,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private onReadConfirmationClick(message: IMessage, action: 'request' | 'confirm' | 'cancel') {
+        if (!this.canWriteThread()) return;
         this.closeMessageMenu();
         this.dispatchEvent(new CustomEvent('read-confirmation-message', {
             detail: {

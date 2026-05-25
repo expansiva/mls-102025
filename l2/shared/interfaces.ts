@@ -99,6 +99,14 @@ declare module '/_102036_/l2/shared/interfaces.js' {
     users?: User[];
   }
 
+  export interface RequestRemoveUserInThread {
+    eventVisibility?: "all" | "admin";
+  }
+
+  export interface ResponseRemoveUserInThread {
+    messages?: Message[];
+  }
+
   export interface User {
     favorites?: string[];
     readConfirmations?: UserReadConfirmations;
