@@ -68,6 +68,7 @@ const message_pt = {
     viewHistory: 'Ver histórico',
     editHistory: 'Histórico de edições',
     originalMessage: 'Mensagem original',
+    editedBy: 'Editada por',
     currentMessage: 'Mensagem atual',
     you: 'Você',
     reactions: 'reações',
@@ -113,6 +114,7 @@ const message_en = {
     viewHistory: 'View history',
     editHistory: 'Edit history',
     originalMessage: 'Original message',
+    editedBy: 'Edited by',
     currentMessage: 'Current message',
     you: 'You',
     reactions: 'reactions',
@@ -379,9 +381,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${message.edits.map((edit, index) => html`
                     <div class="message-edit-history-item">
                         <small>
-                            ${index === 0 ? this.msg.originalMessage : this.msg.edit}
-                            @${this.getUserName(edit.editedBy)}
-                            ${this.formatLocalDateTime(edit.editedAt)}
+                            ${index === 0
+                ? html`${this.msg.originalMessage} @${this.getUserName(message.senderId)} ${this.formatLocalDateTime(message.createAt)}`
+                : html`${this.msg.editedBy} @${this.getUserName(edit.editedBy)} ${this.formatLocalDateTime(edit.editedAt)}`}
                         </small>
                         <div>${this.renderCollabMessagesRichPreview(edit.content)}</div>
                     </div>
