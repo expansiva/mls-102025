@@ -254,6 +254,8 @@ export class CollabMessagesChat extends StateLitElement {
     private isChangeTopics = false;
     private wasMessagesAtBottom: boolean = true;
     private ignoreToolbarScrollClearUntil = 0;
+    private isToolbarAutoScroll = false;
+    private toolbarAutoScrollTimer?: ReturnType<typeof setTimeout>;
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
 
@@ -707,7 +709,6 @@ export class CollabMessagesChat extends StateLitElement {
             if (pinnedMessages.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, pinnedMessages.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
             this.scrollToMessageId(pinnedMessages[nextIndex].messageId);
             return;
         }
@@ -716,7 +717,6 @@ export class CollabMessagesChat extends StateLitElement {
             if (favoriteMessageIds.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, favoriteMessageIds.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
             this.scrollToMessageId(favoriteMessageIds[nextIndex]);
             return;
         }
@@ -725,7 +725,6 @@ export class CollabMessagesChat extends StateLitElement {
             if (readConfirmationMessageIds.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, readConfirmationMessageIds.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
             this.scrollToMessageId(readConfirmationMessageIds[nextIndex]);
             return;
         }
@@ -734,7 +733,6 @@ export class CollabMessagesChat extends StateLitElement {
             if (attachments.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, attachments.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
             this.scrollToMessageId(`${attachments[nextIndex].threadId}/${attachments[nextIndex].orderAt || attachments[nextIndex].createAt}`);
             return;
         }
@@ -743,7 +741,6 @@ export class CollabMessagesChat extends StateLitElement {
             if (agentMessages.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, agentMessages.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
             this.scrollToMessageId(`${agentMessages[nextIndex].threadId}/${agentMessages[nextIndex].orderAt || agentMessages[nextIndex].createAt}`);
         }
     }
@@ -762,6 +759,8 @@ export class CollabMessagesChat extends StateLitElement {
         if (Object.keys(this.toolbarView).length === 0 && !this.highlightedMessageId) return;
         this.toolbarView = {};
         this.highlightedMessageId = '';
+        this.isToolbarAutoScroll = false;
+        if (this.toolbarAutoScrollTimer) clearTimeout(this.toolbarAutoScrollTimer);
     }
 
     private getNextToolbarIndex(kind: ToolbarItemKind, total: number): number {
@@ -866,6 +865,9 @@ export class CollabMessagesChat extends StateLitElement {
 
     private scrollToMessageId(messageId: string) {
         this.highlightedMessageId = messageId;
+        this.isToolbarAutoScroll = true;
+        this.ignoreToolbarScrollClearUntil = Date.now() + 2000;
+        this.deferToolbarAutoScrollEnd();
         const orderAt = messageId.split('/').pop();
         if (!orderAt) return;
         const messageEl = this.messageContainer?.querySelector(
@@ -873,6 +875,13 @@ export class CollabMessagesChat extends StateLitElement {
         );
         if (!messageEl) return;
         messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    private deferToolbarAutoScrollEnd() {
+        if (this.toolbarAutoScrollTimer) clearTimeout(this.toolbarAutoScrollTimer);
+        this.toolbarAutoScrollTimer = setTimeout(() => {
+            this.isToolbarAutoScroll = false;
+        }, 500);
     }
 
     private isMessageHighlightedByToolbar(message: IMessage): boolean {
@@ -1427,7 +1436,9 @@ export class CollabMessagesChat extends StateLitElement {
             return;
         }
 
-        if (Date.now() > this.ignoreToolbarScrollClearUntil) {
+        if (this.isToolbarAutoScroll || Date.now() <= this.ignoreToolbarScrollClearUntil) {
+            this.deferToolbarAutoScrollEnd();
+        } else {
             this.clearToolbarSelection();
         }
 
