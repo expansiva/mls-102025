@@ -145,6 +145,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @property() usersAvaliables: msg.User[] = [];
     @property() currentUser: msg.User | undefined;
     @property() userId: string | undefined;
+    @property({ type: Boolean }) toolbarHighlighted: boolean = false;
     @property({ attribute: false }) openedReactionMessageId?: string;
     @property({ attribute: false }) reactionPickerTarget?: HTMLElement;
     @property() openedMenuFor?: string;
@@ -215,7 +216,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                     <div class="message-row">
                         ${cls === 'user' ? this.renderReactionButtonAdd(message) : nothing}
                     
-                        <div class="message-card ${cls} ${isSame ? 'same' : ''} ${this.isPinned(message) ? 'pinned' : ''}">
+                        <div class="message-card ${cls} ${isSame ? 'same' : ''} ${this.isPinned(message) ? 'pinned' : ''} ${this.toolbarHighlighted ? 'toolbar-highlighted' : ''}">
 
                             ${this.renderSubMenuButton(message)}
                             ${this.renderMessageMenu(message)}

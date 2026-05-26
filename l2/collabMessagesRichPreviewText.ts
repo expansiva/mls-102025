@@ -1,7 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesRichPreviewText.ts" enhancement="_102027_/l2/enhancementLit" />
 
 import { html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
@@ -15,12 +15,16 @@ const message_pt = {
     loading: 'Carregando...',
     copy: 'Copiar',
     copied: 'Copiado',
+    showMore: 'ver mais',
+    showLess: 'ver menos',
 }
 
 const message_en = {
     loading: 'Loading...',
     copy: 'Copy',
     copied: 'Copied',
+    showMore: 'show more',
+    showLess: 'show less',
 }
 
 type MessageType = typeof message_en;
@@ -47,16 +51,17 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
     @property({ type: String }) text = ``;
 
     @property({ type: Boolean }) showMarkers: boolean = false;
+    @state() private expandedCodeBlocks: string[] = [];
 
     render() {
         const lang = this.getMessageKey(messages);
         this.msg = messages[lang];
         const tokens = parseRichText(this.text);
-        return this.renderTokens(tokens);
+        return this.renderTokens(tokens, 'root');
     }
 
-    private renderTokens(tokens: RichToken[]): any {
-        return html`${tokens.map(token => this.renderToken(token))}`;
+    private renderTokens(tokens: RichToken[], path: string): any {
+        return html`${tokens.map((token, index) => this.renderToken(token, `${path}-${index}`))}`;
     }
 
     private renderMarker(marker?: string) {
@@ -64,14 +69,14 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
         return html`<span class="marker">${marker}</span>`;
     }
 
-    private renderToken(token: RichToken) {
+    private renderToken(token: RichToken, key: string) {
         switch (token.type) {
             case 'text': return this.renderText(token);
             case 'bold': return this.renderBold(token);
             case 'italic': return this.renderItalic(token);
             case 'strike': return this.renderStrike(token);
             case 'inline-code': return this.renderInlineCode(token);
-            case 'code-block': return this.renderCodeBlock(token);
+            case 'code-block': return this.renderCodeBlock(token, key);
             case 'mention': return this.renderMention(token);
             case 'agent': return this.renderAgent(token);
             case 'channel': return this.renderChannel(token);
@@ -79,10 +84,10 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
             case 'help': return this.renderHelp(token);
             case 'link': return this.renderLink(token);
             case 'raw-link': return this.renderRawLink(token);
-            case 'heading': return this.renderHeading(token);
+            case 'heading': return this.renderHeading(token, key);
             case 'horizontal-rule': return html`<hr />`;
-            case 'blockquote': return this.renderBlockquote(token);
-            case 'list': return this.renderList(token);
+            case 'blockquote': return this.renderBlockquote(token, key);
+            case 'list': return this.renderList(token, key);
             default:
                 console.warn('Token não reconhecido:', token);
                 return html``;
@@ -117,7 +122,7 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
         return html`${this.renderMarker(token.markerStart)}<code class="inline-code">${token.value}</code>${this.renderMarker(token.markerEnd)}`;
     }
 
-    private renderCodeBlock(token: { language: string; value: string; markerStart: string; markerEnd: string }) {
+    private renderCodeBlock(token: { language: string; value: string; markerStart: string; markerEnd: string }, key: string) {
         if (this.showMarkers) {
             return html`
                 ${this.renderMarker(token.markerStart)}
@@ -126,10 +131,24 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
             `;
         }
 
+        const lines = token.value.split(/\r?\n/);
+        const shouldCollapse = lines.length > 3;
+        const expanded = this.expandedCodeBlocks.includes(key);
+        const visibleValue = shouldCollapse && !expanded ? lines.slice(0, 3).join('\n') : token.value;
+
         return html`
             <div class="collab-md-codeblock-card">
             <div class="collab-md-codeblock-header">
                 <span class="collab-md-codeblock-lang">${token.language}</span>
+                <div class="collab-md-codeblock-actions">
+                ${shouldCollapse ? html`
+                    <button
+                    class="collab-md-codeblock-toggle"
+                    @click=${() => this.toggleCodeBlock(key)}
+                    >
+                    ${expanded ? this.msg.showLess : this.msg.showMore}
+                    </button>
+                ` : html``}
                 <button
                 class="collab-md-codeblock-copy"
                 title="Copiar código"
@@ -137,14 +156,21 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
                 >
                 ${this.msg.copy}
                 </button>
+                </div>
             </div>
 
             <collab-messages-text-code-102025
                 language="${token.language}"
-                .text="${token.value}">
+                .text="${visibleValue}">
             </collab-messages-text-code-102025>
             </div>
         `;
+    }
+
+    private toggleCodeBlock(key: string) {
+        this.expandedCodeBlocks = this.expandedCodeBlocks.includes(key)
+            ? this.expandedCodeBlocks.filter(item => item !== key)
+            : [...this.expandedCodeBlocks, key];
     }
 
     private renderAgent(token: { value: string }) {
@@ -300,8 +326,8 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
         `;
     }
 
-    private renderHeading(token: { level: number; children: RichToken[] }) {
-        const content = this.renderTokens(token.children);
+    private renderHeading(token: { level: number; children: RichToken[] }, key: string) {
+        const content = this.renderTokens(token.children, `${key}-heading`);
 
         switch (token.level) {
             case 1: return html`<h1>${content}</h1>`;
@@ -313,27 +339,27 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
         }
     }
 
-    private renderBlockquote(token: { children: RichToken[] }) {
+    private renderBlockquote(token: { children: RichToken[] }, key: string) {
         return html`
             <blockquote>
-            ${this.renderTokens(token.children)}
+            ${this.renderTokens(token.children, `${key}-quote`)}
             </blockquote>
         `;
     }
 
-    private renderList(token: { ordered: boolean; items: RichListItem[] }) {
+    private renderList(token: { ordered: boolean; items: RichListItem[] }, key: string) {
         return token.ordered
             ? html`
                 <ol>
                 ${token.items.map(
-                item => html`<li>${this.renderTokens(item.children)}</li>`
+                (item, index) => html`<li>${this.renderTokens(item.children, `${key}-li-${index}`)}</li>`
             )}
                 </ol>
             `
             : html`
                 <ul>
                 ${token.items.map(
-                item => html`<li>${this.renderTokens(item.children)}</li>`
+                (item, index) => html`<li>${this.renderTokens(item.children, `${key}-li-${index}`)}</li>`
             )}
                 </ul>
             `;

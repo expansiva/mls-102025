@@ -125,6 +125,24 @@ collab-messages-chat-102025 {
             border-color: @warning-color;
             color: @warning-color;
         }
+
+        &.attention {
+            animation: toolbarAttentionPulse 1.6s ease-in-out infinite;
+        }
+    }
+
+    @keyframes toolbarAttentionPulse {
+        0% {
+            box-shadow: 0 0 0 0 fade(@warning-color, 45%);
+        }
+
+        70% {
+            box-shadow: 0 0 0 7px fade(@warning-color, 0%);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 fade(@warning-color, 0%);
+        }
     }
 
     .toolbar-counter {
@@ -277,6 +295,62 @@ collab-messages-chat-102025 {
                 cursor: default;
                 opacity: .55;
             }
+
+            svg {
+                width: 14px;
+                height: 14px;
+                fill: currentColor;
+            }
+        }
+    }
+
+    .toolbar-help-scenario {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        height: 100%;
+        padding: 1rem;
+        color: @text-primary-color;
+
+        .toolbar-help-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: @bg-primary-color-focus;
+            color: @active-color;
+
+            svg {
+                width: 24px;
+                height: 24px;
+                fill: currentColor;
+            }
+        }
+
+        h3 {
+            margin: 0;
+            font-size: @font-size-16;
+        }
+
+        p {
+            margin: 0;
+            line-height: 1.45;
+            color: @text-secondary-color;
+        }
+
+        button {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            border: 1px solid @grey-color-dark;
+            border-radius: 6px;
+            padding: .5rem .75rem;
+            cursor: pointer;
+            color: @text-primary-color;
+            background: @bg-primary-color;
 
             svg {
                 width: 14px;

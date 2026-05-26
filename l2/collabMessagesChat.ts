@@ -114,6 +114,19 @@ const message_pt = {
     toolbarReadReceipts: 'Confirmações de leitura',
     toolbarAttachments: 'Anexos',
     toolbarAgent: 'Agente de resumo',
+    toolbarHelpTitle: 'Sobre o recurso',
+    toolbarHelpOpen: 'Abrir ajuda',
+    toolbarHelpBack: 'Voltar',
+    toolbarHelpPinsTitle: 'Mensagens fixadas',
+    toolbarHelpPinsText: 'Use para manter mensagens importantes acessiveis no topo da conversa. Quando houver itens, o botao navega entre eles.',
+    toolbarHelpSavedTitle: 'Favoritos',
+    toolbarHelpSavedText: 'Use para guardar mensagens importantes para voce. Os favoritos sao pessoais e aparecem apenas para o seu usuario.',
+    toolbarHelpReadReceiptsTitle: 'Confirmacoes de leitura',
+    toolbarHelpReadReceiptsText: 'Use para acompanhar mensagens que precisam de confirmacao. Quando houver pendencia para voce, o botao chama atencao no toolbar.',
+    toolbarHelpAttachmentsTitle: 'Anexos',
+    toolbarHelpAttachmentsText: 'Use para navegar rapidamente pelas mensagens com arquivos, imagens, videos ou documentos anexados.',
+    toolbarHelpAgentTitle: 'Agente de resumo',
+    toolbarHelpAgentText: 'Este espaco esta preparado para recursos de agente que ajudam a reduzir ruido e destacar pontos importantes da conversa.',
     replaceOldestPin: 'Já existem 3 mensagens fixadas. Substituir a mais antiga?',
     readOnlyThread: 'Você tem acesso somente leitura nesta sala.',
     forwardMessageTitle: 'Encaminhar mensagem',
@@ -151,6 +164,19 @@ const message_en = {
     toolbarReadReceipts: 'Read confirmations',
     toolbarAttachments: 'Attachments',
     toolbarAgent: 'Summary agent',
+    toolbarHelpTitle: 'About this feature',
+    toolbarHelpOpen: 'Open help',
+    toolbarHelpBack: 'Back',
+    toolbarHelpPinsTitle: 'Pinned messages',
+    toolbarHelpPinsText: 'Use this to keep important messages easy to reach at the top of the conversation. When there are items, the button navigates through them.',
+    toolbarHelpSavedTitle: 'Saved messages',
+    toolbarHelpSavedText: 'Use this to save important messages for yourself. Saved messages are personal and visible only to your user.',
+    toolbarHelpReadReceiptsTitle: 'Read confirmations',
+    toolbarHelpReadReceiptsText: 'Use this to track messages that need confirmation. When you have a pending confirmation, the toolbar button draws attention.',
+    toolbarHelpAttachmentsTitle: 'Attachments',
+    toolbarHelpAttachmentsText: 'Use this to quickly navigate messages with files, images, videos, or documents attached.',
+    toolbarHelpAgentTitle: 'Summary agent',
+    toolbarHelpAgentText: 'This area is prepared for agent features that help reduce noise and highlight important conversation points.',
     replaceOldestPin: 'There are already 3 pinned messages. Replace the oldest one?',
     readOnlyThread: 'You have read-only access in this room.',
     forwardMessageTitle: 'Forward message',
@@ -215,6 +241,8 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private forwardDestinationThreadId: string = '';
     @state() private forwardError: string = '';
     @state() private isForwardingMessage: boolean = false;
+    @state() private highlightedMessageId: string = '';
+    @state() private toolbarHelpKind?: ToolbarItemKind;
 
     private isSystemChangeScroll: boolean = false;
     private savedScrollTop = 0;
@@ -263,6 +291,7 @@ export class CollabMessagesChat extends StateLitElement {
                 || changedProperties.get('activeScenerie') === 'addParticipant'
                 || changedProperties.get('activeScenerie') === 'threadDetails'
                 || changedProperties.get('activeScenerie') === 'forwardMessage'
+                || changedProperties.get('activeScenerie') === 'toolbarHelp'
             )
             && this.activeScenerie === 'details') {
             this.restoreScrollPosition();
@@ -354,6 +383,11 @@ export class CollabMessagesChat extends StateLitElement {
                     <div class="header">
                         <span @click=${this.onTitleClick}>${collab_chevron_left} ${this.msg.forwardMessageTitle}</span>
                     </div>`;
+            case 'toolbarHelp':
+                return html`
+                    <div class="header">
+                        <span @click=${this.onTitleClick}>${collab_chevron_left} ${this.msg.toolbarHelpTitle}</span>
+                    </div>`;
             default:
                 return null;
         }
@@ -373,6 +407,8 @@ export class CollabMessagesChat extends StateLitElement {
                 return this.renderThreadAdd();
             case 'forwardMessage':
                 return this.renderForwardMessage();
+            case 'toolbarHelp':
+                return this.renderToolbarHelp();
             default:
                 return null;
         }
@@ -434,6 +470,7 @@ export class CollabMessagesChat extends StateLitElement {
                                     .actualThread=${this.actualThread}
                                     .usersAvaliables=${this.usersAvaliables}
                                     .currentUser=${this.getCurrentUser()}
+                                    .toolbarHighlighted=${this.isMessageHighlightedByToolbar(message)}
                                     .userId=${this.userId}
                                     .onTaskClick=${this.onTaskClick.bind(this)}
                                     @reply-preview-click=${this.onReplyPreviewClick}
@@ -517,6 +554,42 @@ export class CollabMessagesChat extends StateLitElement {
         `;
     }
 
+    private renderToolbarHelp() {
+        const kind = this.toolbarHelpKind || 'pins';
+        const help = this.getToolbarHelpContent(kind);
+        return html`
+            <div class="toolbar-help-scenario">
+                <div class="toolbar-help-icon">${help.icon}</div>
+                <h3>${help.title}</h3>
+                <p>${help.text}</p>
+                <button @click=${this.closeToolbarHelp}>
+                    ${collab_chevron_left}
+                    ${this.msg.toolbarHelpBack}
+                </button>
+            </div>
+        `;
+    }
+
+    private getToolbarHelpContent(kind: ToolbarItemKind): { title: string, text: string, icon: unknown } {
+        switch (kind) {
+            case 'pins':
+                return { title: this.msg.toolbarHelpPinsTitle, text: this.msg.toolbarHelpPinsText, icon: collab_pin };
+            case 'saved':
+                return { title: this.msg.toolbarHelpSavedTitle, text: this.msg.toolbarHelpSavedText, icon: collab_star };
+            case 'readReceipts':
+                return { title: this.msg.toolbarHelpReadReceiptsTitle, text: this.msg.toolbarHelpReadReceiptsText, icon: collab_circle_exclamation };
+            case 'attachments':
+                return { title: this.msg.toolbarHelpAttachmentsTitle, text: this.msg.toolbarHelpAttachmentsText, icon: collab_paperclip };
+            case 'agent':
+                return { title: this.msg.toolbarHelpAgentTitle, text: this.msg.toolbarHelpAgentText, icon: collab_robot };
+        }
+    }
+
+    private closeToolbarHelp = () => {
+        this.toolbarHelpKind = undefined;
+        this.activeScenerie = 'details';
+    }
+
     private renderTaskNotificationNavIcon(direction: 'up' | 'down' | '') {
         const rotate = direction === 'down' ? 'rotate(180 12 12)' : '';
         return html`
@@ -553,6 +626,8 @@ export class CollabMessagesChat extends StateLitElement {
         const favoriteMessageIds = this.getFavoriteMessageIdsForThread();
         const readConfirmationMessageIds = this.getReadConfirmationMessageIdsForThread();
         const attachments = this.getAttachmentMessages();
+        const agentMessages = this.getAgentMessages();
+        const hasPendingReadConfirmation = this.hasPendingReadConfirmationsForThread();
         const items = [
             {
                 kind: 'pins' as ToolbarItemKind,
@@ -560,6 +635,7 @@ export class CollabMessagesChat extends StateLitElement {
                 total: pinnedMessages.length,
                 active: this.toolbarView.pins !== undefined,
                 important: false,
+                attention: false,
                 onClick: () => this.navigateToolbarItem('pins')
             },
             {
@@ -568,6 +644,7 @@ export class CollabMessagesChat extends StateLitElement {
                 total: favoriteMessageIds.length,
                 active: this.toolbarView.saved !== undefined,
                 important: false,
+                attention: false,
                 onClick: () => this.navigateToolbarItem('saved')
             },
             {
@@ -575,7 +652,8 @@ export class CollabMessagesChat extends StateLitElement {
                 icon: collab_circle_exclamation,
                 total: readConfirmationMessageIds.length,
                 active: this.toolbarView.readReceipts !== undefined,
-                important: this.hasPendingReadConfirmationsForThread(),
+                important: hasPendingReadConfirmation,
+                attention: hasPendingReadConfirmation,
                 onClick: () => this.navigateToolbarItem('readReceipts')
             },
             {
@@ -584,14 +662,16 @@ export class CollabMessagesChat extends StateLitElement {
                 total: attachments.length,
                 active: this.toolbarView.attachments !== undefined,
                 important: false,
+                attention: false,
                 onClick: () => this.navigateToolbarItem('attachments')
             },
             {
                 kind: 'agent' as ToolbarItemKind,
                 icon: collab_robot,
-                total: 0,
-                active: false,
+                total: agentMessages.length,
+                active: this.toolbarView.agent !== undefined,
                 important: false,
+                attention: false,
                 onClick: () => this.navigateToolbarItem('agent')
             }
         ];
@@ -600,7 +680,7 @@ export class CollabMessagesChat extends StateLitElement {
             <div class="thread-toolbar" role="toolbar">
                 ${items.map(item => html`
                     <button
-                        class="thread-toolbar-btn ${item.active ? 'active' : ''} ${item.important ? 'important' : ''}"
+                        class="thread-toolbar-btn ${item.active ? 'active' : ''} ${item.important ? 'important' : ''} ${item.attention ? 'attention' : ''}"
                         .title=${this.getToolbarTitle(item.kind)}
                         aria-label=${this.getToolbarTitle(item.kind)}
                         @click=${item.onClick}
@@ -624,7 +704,7 @@ export class CollabMessagesChat extends StateLitElement {
     private navigateToolbarItem(kind: ToolbarItemKind) {
         if (kind === 'pins') {
             const pinnedMessages = this.actualThread?.thread.pinnedMessages || [];
-            if (pinnedMessages.length === 0) return;
+            if (pinnedMessages.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, pinnedMessages.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
             this.ignoreToolbarScrollClearUntil = Date.now() + 800;
@@ -633,7 +713,7 @@ export class CollabMessagesChat extends StateLitElement {
         }
         if (kind === 'saved') {
             const favoriteMessageIds = this.getFavoriteMessageIdsForThread();
-            if (favoriteMessageIds.length === 0) return;
+            if (favoriteMessageIds.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, favoriteMessageIds.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
             this.ignoreToolbarScrollClearUntil = Date.now() + 800;
@@ -642,7 +722,7 @@ export class CollabMessagesChat extends StateLitElement {
         }
         if (kind === 'readReceipts') {
             const readConfirmationMessageIds = this.getReadConfirmationMessageIdsForThread();
-            if (readConfirmationMessageIds.length === 0) return;
+            if (readConfirmationMessageIds.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, readConfirmationMessageIds.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
             this.ignoreToolbarScrollClearUntil = Date.now() + 800;
@@ -651,11 +731,20 @@ export class CollabMessagesChat extends StateLitElement {
         }
         if (kind === 'attachments') {
             const attachments = this.getAttachmentMessages();
-            if (attachments.length === 0) return;
+            if (attachments.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, attachments.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
             this.ignoreToolbarScrollClearUntil = Date.now() + 800;
             this.scrollToMessageId(`${attachments[nextIndex].threadId}/${attachments[nextIndex].orderAt || attachments[nextIndex].createAt}`);
+            return;
+        }
+        if (kind === 'agent') {
+            const agentMessages = this.getAgentMessages();
+            if (agentMessages.length === 0) return this.openToolbarHelp(kind);
+            const nextIndex = this.getNextToolbarIndex(kind, agentMessages.length);
+            this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
+            this.ignoreToolbarScrollClearUntil = Date.now() + 800;
+            this.scrollToMessageId(`${agentMessages[nextIndex].threadId}/${agentMessages[nextIndex].orderAt || agentMessages[nextIndex].createAt}`);
         }
     }
 
@@ -670,8 +759,9 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private clearToolbarSelection = () => {
-        if (Object.keys(this.toolbarView).length === 0) return;
+        if (Object.keys(this.toolbarView).length === 0 && !this.highlightedMessageId) return;
         this.toolbarView = {};
+        this.highlightedMessageId = '';
     }
 
     private getNextToolbarIndex(kind: ToolbarItemKind, total: number): number {
@@ -685,6 +775,20 @@ export class CollabMessagesChat extends StateLitElement {
             const hasActiveAttachments = !!message.attachments?.some(attachment => attachment.status === 'active');
             return hasActiveAttachments || !!message.url || (!!message.type && message.type !== 'text' && !message.attachments?.length);
         });
+    }
+
+    private getAgentMessages(): IMessage[] {
+        return this.actualMessages.filter(message =>
+            !!message.footers?.length ||
+            !!message.taskResults?.length ||
+            !!message.taskResultsTranslated
+        );
+    }
+
+    private openToolbarHelp(kind: ToolbarItemKind) {
+        this.toolbarHelpKind = kind;
+        this.saveScrollPosition();
+        this.activeScenerie = 'toolbarHelp';
     }
 
     private getFavoriteMessageIdsForThread(): string[] {
@@ -761,6 +865,7 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private scrollToMessageId(messageId: string) {
+        this.highlightedMessageId = messageId;
         const orderAt = messageId.split('/').pop();
         if (!orderAt) return;
         const messageEl = this.messageContainer?.querySelector(
@@ -768,6 +873,10 @@ export class CollabMessagesChat extends StateLitElement {
         );
         if (!messageEl) return;
         messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    private isMessageHighlightedByToolbar(message: IMessage): boolean {
+        return this.highlightedMessageId === `${message.threadId}/${message.orderAt || message.createAt}`;
     }
 
     private async onTopicClick(e: CustomEvent) {
@@ -1326,7 +1435,11 @@ export class CollabMessagesChat extends StateLitElement {
         this.savedScrollTop = container.scrollTop;
         const threshold = 5;
         this.wasMessagesAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
-        if (this.wasMessagesAtBottom && this.unreadCountInSelectedThread > 0) {
+        if (
+            this.wasMessagesAtBottom &&
+            this.actualThread &&
+            (this.unreadCountInSelectedThread > 0 || hasThreadNotificationPending(this.actualThread.thread.threadId))
+        ) {
             await this.clearUnreadMarkerForActualThread();
         }
         const scrollAnchor = this.getScrollAnchor(container);
@@ -1918,6 +2031,10 @@ export class CollabMessagesChat extends StateLitElement {
             this.cancelForwardMessage();
             return;
         }
+        if (this.activeScenerie === 'toolbarHelp') {
+            this.closeToolbarHelp();
+            return;
+        }
     }
 
     private onThreadDetailsClick() {
@@ -2053,6 +2170,7 @@ export class CollabMessagesChat extends StateLitElement {
                 );
             }
             await this.scrollMessagesToBottom();
+            await this.clearUnreadMarkerForActualThread();
 
         } catch (err: any) {
             message.isFailed = true;
@@ -2119,6 +2237,7 @@ export class CollabMessagesChat extends StateLitElement {
         await this.updateMessage2(false, true, result.response.message as IMessage, result.response.message, undefined);
         this.clearToolbarSelection();
         await this.scrollMessagesToBottom();
+        await this.clearUnreadMarkerForActualThread();
     }
 
     private async addMessageIA(prompt: string, agentName: string, replyTo: string | undefined) {
@@ -3132,4 +3251,4 @@ interface IFilteredThreads {
 }
 type IMessageGrouped = { [key: string]: IMessage[] }
 type IThread = { [key: string]: IThreadInfo[] }
-type IScenery = 'list' | 'details' | 'loading' | 'task' | 'threadDetails' | 'threadAdd' | 'forwardMessage'
+type IScenery = 'list' | 'details' | 'loading' | 'task' | 'threadDetails' | 'threadAdd' | 'forwardMessage' | 'toolbarHelp'
