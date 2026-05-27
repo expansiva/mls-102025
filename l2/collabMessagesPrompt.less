@@ -7,10 +7,9 @@ collab-messages-prompt-102025 {
     font-size: @font-size-16;
     font-weight: @font-weight-normal;
     line-height: 1.5;
-    background-color: var(--grey-color-light);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
+    background-color: var(--cm-chat-bg, #eef5f0);
+    box-shadow: 0 -1px 0 rgba(0, 0, 0, .04);
+    border-top: 1px solid rgba(0, 0, 0, .04);
 
     .prompt-toolbar {
         display: flex;
@@ -26,16 +25,16 @@ collab-messages-prompt-102025 {
             height: 24px;
             padding: 0 6px;
             border: 1px solid transparent;
-            border-radius: 4px;
+            border-radius: var(--cm-radius-sm, 8px);
             background: transparent;
-            color: @text-primary-color;
+            color: var(--cm-text-muted, #5b635f);
             font-size: 12px;
             line-height: 1;
             cursor: pointer;
 
             &:hover {
-                background: @grey-color-light;
-                border-color: @grey-color-dark;
+                background: rgba(255, 255, 255, .74);
+                border-color: var(--cm-border, #e2e7e3);
             }
 
             svg {
@@ -48,7 +47,8 @@ collab-messages-prompt-102025 {
     .wrapper {
         display: flex;
         align-items: center;
-        padding: 8px 4px;
+        gap: 8px;
+        padding: 10px 10px 12px;
 
         .attachment-input {
             display: none;
@@ -56,10 +56,10 @@ collab-messages-prompt-102025 {
 
         .attachment-button {
             margin-left: 0;
-            margin-right: 4px;
+            margin-right: 0;
             padding: 8px;
             background-color: transparent;
-            color: @text-primary-color;
+            color: var(--cm-text-muted, #5b635f);
 
             svg {
                 width: 18px;
@@ -70,29 +70,39 @@ collab-messages-prompt-102025 {
         .textarea-container {
             position: relative;
             width: 100%;
+            min-width: 0;
             
             textarea {
-                padding: 4px 4px;
-                border: 1px solid #d1d1d1;
+                padding: 10px 14px;
+                border: 1px solid transparent;
                 background-color: #fff;
-                color: #000;
-                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-                font-size: 14px;
+                color: var(--cm-text, #111827);
+                font-family: @font-family-primary;
+                font-size: 15px;
                 line-height: 1.4;
                 letter-spacing: normal;
                 word-spacing: normal;
-                transition: border-color .3s ease;
+                transition: border-color .3s ease, box-shadow .3s ease;
                 width: 100%;
-                border-radius: 8px;
+                border-radius: var(--cm-radius-pill, 9999px);
                 outline: none;
                 overflow-y: auto;
                 resize: none;
                 max-height: 200px;
-                min-height: 40px;
+                min-height: 44px;
                 box-sizing: border-box;
                 white-space: pre-wrap;
                 word-wrap: break-word;
                 -webkit-text-size-adjust: 100%;
+
+                &::placeholder {
+                    color: var(--cm-text-muted, #5b635f);
+                }
+
+                &:focus {
+                    border-color: rgba(0, 143, 76, .18);
+                    box-shadow: 0 0 0 3px rgba(0, 143, 76, .08);
+                }
             }
             
             // ─────────────────────────────────────────────
@@ -112,7 +122,7 @@ collab-messages-prompt-102025 {
                     }
                     
                     &::placeholder {
-                        color: @grey-color-darker;
+                        color: var(--cm-text-muted, #5b635f);
                     }
                 }
                 
@@ -127,13 +137,13 @@ collab-messages-prompt-102025 {
                     overflow-x: hidden;
                     z-index: 1;
                     background-color: #fff;
-                    color: #000000;
-                    padding: 4px 4px;
+                    color: var(--cm-text, #111827);
+                    padding: 10px 14px;
                     border: 1px solid transparent;
-                    border-radius: 8px;
+                    border-radius: var(--cm-radius-pill, 9999px);
                     box-sizing: border-box;
-                    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-                    font-size: 14px;
+                    font-family: @font-family-primary;
+                    font-size: 15px;
                     line-height: 1.4;
                     letter-spacing: normal;
                     word-spacing: normal;
@@ -228,32 +238,57 @@ collab-messages-prompt-102025 {
         }
 
         button {
-            margin-left: 8px;
-            padding: 10px 12px;
+            margin-left: 0;
+            padding: 0;
             border: none;
             border-radius: 9999px;
-            background-color: #ddd;
+            background-color: var(--cm-green, #008f4c);
             color: #fff;
             font-size: 16px;
             cursor: pointer;
-            transition: background-color .3s ease;
+            transition: background-color .3s ease, transform .15s ease;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            svg {
+                width: 18px;
+                height: 18px;
+                fill: currentColor;
+            }
+
+            &:hover {
+                background-color: var(--cm-green-dark, #007a3d);
+                transform: translateY(-1px);
+            }
         }
 
         button:disabled {
             background-color: #e0e0e0;
             cursor: not-allowed;
+            transform: none;
         }
 
         .attachment-button {
             margin-left: 0;
-            margin-right: 4px;
+            margin-right: 0;
             padding: 8px;
             background-color: transparent;
-            color: @text-primary-color;
+            color: var(--cm-text-muted, #5b635f);
+            box-shadow: none;
 
             svg {
                 width: 18px;
                 height: 18px;
+            }
+
+            &:hover {
+                background-color: rgba(255, 255, 255, .72);
+                color: var(--cm-green-dark, #007a3d);
+                transform: none;
             }
         }
     }
@@ -279,10 +314,10 @@ collab-messages-prompt-102025 {
         gap: 6px;
         max-width: 220px;
         padding: 4px 6px;
-        border: 1px solid @grey-color-dark;
-        border-radius: 6px;
+        border: 1px solid var(--cm-border, #e2e7e3);
+        border-radius: var(--cm-radius-sm, 8px);
         background: #fff;
-        color: @text-primary-color;
+        color: var(--cm-text, #111827);
         font-size: @font-size-12;
 
         span {
@@ -313,11 +348,11 @@ collab-messages-prompt-102025 {
         left: 5%;
         right: 0;
         background-color: #fff;
-        border: 1px solid #ccc;
+        border: 1px solid var(--cm-border, #e2e7e3);
         z-index: 10;
         display: block;
         width: 200px;
-        border-radius: 10px;
+        border-radius: var(--cm-radius-md, 12px);
         padding: 0;
         margin: 0;
         list-style: none;
@@ -350,7 +385,7 @@ collab-messages-prompt-102025 {
     }
 
     .mention-suggestions li.active {
-        background-color: #eee;
+        background-color: var(--cm-panel-muted, #f3f7f4);
     }
 
     .mention {
@@ -401,15 +436,15 @@ collab-messages-prompt-102025 {
         align-items: center;
         gap: 8px;
         padding: 8px;
-        background: @grey-color-light;
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
-        border-bottom: 1px solid @grey-color;
+        background: rgba(255, 255, 255, .74);
+        border-top-left-radius: var(--cm-radius-md, 12px);
+        border-top-right-radius: var(--cm-radius-md, 12px);
+        border-bottom: 1px solid var(--cm-border, #e2e7e3);
 
         .reply-bar {
             width: 3px;
             height: 100%;
-            background: @active-color;
+            background: var(--cm-green, #008f4c);
             border-radius: 2px;
         }
 
@@ -420,12 +455,12 @@ collab-messages-prompt-102025 {
             .reply-user {
                 font-size: @font-size-12;
                 font-weight: @font-weight-bold;
-                color: @active-color;
+                color: var(--cm-green-dark, #007a3d);
             }
 
             .reply-text {
                 font-size: @font-size-12;
-                color: @text-primary-color;
+                color: var(--cm-text, #111827);
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;

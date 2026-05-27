@@ -5,19 +5,23 @@ collab-messages-filter-102025 {
     .container {
         display: flex;
         align-items: center;
-        background: @bg-secondary-color-lighter;
-        border-radius: 2rem;
-        padding: 0.25rem 0.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        background: var(--cm-panel-muted, #f3f7f4);
+        border: 1px solid transparent;
+        border-radius: var(--cm-radius-pill, 9999px);
+        padding: 0.45rem 0.75rem;
+        box-shadow: none;
         transition: all @transition-normal ease;
-        width: 2.5rem;
+        width: 2.75rem;
+        min-height: 38px;
+        box-sizing: border-box;
         overflow: hidden;
         cursor: pointer;
 
         &.expanded {
             width: 100%;
             cursor: text;
-            background: @bg-primary-color;
+            background: var(--cm-panel-muted, #f3f7f4);
+            border-color: var(--cm-border, #e2e7e3);
         }
     }
 
@@ -29,7 +33,7 @@ collab-messages-filter-102025 {
         align-items: center;
         justify-content: center;
         font-size: @font-size-16;
-        color: @text-primary-color-lighter;
+        color: var(--cm-text-muted, #5b635f);
         transition: color @transition-normal ease;
 
         >span {
@@ -38,12 +42,12 @@ collab-messages-filter-102025 {
         }
 
         &:hover {
-            color: @text-primary-color;
+            color: var(--cm-green-dark, #007a3d);
         }
 
         &:focus {
             outline: none;
-            color: @text-primary-color-focus;
+            color: var(--cm-green-dark, #007a3d);
         }
     }
 
@@ -58,19 +62,18 @@ collab-messages-filter-102025 {
         border: none;
         outline: none;
         font-family: @font-family-primary;
-        font-size: @font-size-16;
+        font-size: 15px;
         background: transparent;
-        color: @text-primary-color;
+        color: var(--cm-text, #111827);
         margin-left: @space-8;
         width: 100%;
         opacity: 0;
         transition: opacity @transition-normal ease;
 
         &::placeholder {
-            color: @text-primary-color-lighter;
+            color: var(--cm-text-muted, #5b635f);
         }
     }
 
 }
-
 

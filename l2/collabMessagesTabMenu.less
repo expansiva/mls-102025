@@ -7,9 +7,10 @@ collab-messages-tab-menu-102025 {
     .tab-menu {
         display: flex;
         align-items: center;
-        height: 40px;
-        background: @bg-primary-color-darker;
-        border-bottom: 1px solid @grey-color;
+        height: 52px;
+        background: var(--cm-green-dark, #007a3d);
+        border-bottom: 1px solid rgba(255, 255, 255, .18);
+        box-shadow: var(--cm-shadow-sm, 0 1px 3px rgba(0, 0, 0, .14));
     }
 
     .menu-item {
@@ -17,27 +18,30 @@ collab-messages-tab-menu-102025 {
         align-items: center;
         justify-content: center;
         gap: @space-8;
-        min-width: 40px;
-        height: 40px;
+        min-width: 44px;
+        height: 52px;
         padding: 0 @space-8;
         border: none;
         background: transparent;
         cursor: pointer;
-        color: @text-primary-color-lighter;
-        transition: color @transition-slow;
+        color: rgba(255, 255, 255, .82);
+        transition: background-color @transition-slow, color @transition-slow;
 
         svg {
-            width: 14px;
-            height: 14px;
+            width: 18px;
+            height: 18px;
             fill: currentColor;
         }
 
         &:hover {
-            color: @text-primary-color;
+            color: #ffffff;
+            background: rgba(255, 255, 255, .08);
         }
 
         &.active {
             padding: 0 @space-16;
+            color: #ffffff;
+            background: rgba(255, 255, 255, .12);
         }
 
         .item-label {
@@ -51,7 +55,7 @@ collab-messages-tab-menu-102025 {
     .separator {
         width: 1px;
         height: 20px;
-        background: @grey-color;
+        background: rgba(255, 255, 255, .22);
         flex-shrink: 0;
     }
 
@@ -59,5 +63,4 @@ collab-messages-tab-menu-102025 {
         flex: 1;
     }
 }
-
 
