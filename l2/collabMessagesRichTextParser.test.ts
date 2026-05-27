@@ -14,6 +14,7 @@ export const tests: ICANTest[] = [
     { functionName: 'testParseMarkdownLink', params: [{}] },
     { functionName: 'testParseRawLink', params: [{}] },
     { functionName: 'testParseCodeFence', params: [{}] },
+    { functionName: 'testParseCodeFenceWithInlineContent', params: [{}] },
     { functionName: 'testParseBlockquote', params: [{}] },
     { functionName: 'testParseHeading', params: [{}] },
     { functionName: 'testHashChannelIsNotHeading', params: [{}] },
@@ -99,6 +100,13 @@ export function testParseCodeFence() {
     assert(token.type === 'code-block', 'Expected code block token');
     assert(token.language === 'ts', 'Expected code language');
     assert(token.value === 'const value = 1;\n', 'Expected code value');
+}
+
+export function testParseCodeFenceWithInlineContent() {
+    const token = firstToken('```html <main><div>teste1</div> <div>teste2</div></main>\n```');
+    assert(token.type === 'code-block', 'Expected code block token');
+    assert(token.language === 'html', 'Expected code language without inline content');
+    assert(token.value === '<main><div>teste1</div> <div>teste2</div></main>\n', 'Expected inline content as code value');
 }
 
 export function testParseBlockquote() {

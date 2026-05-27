@@ -125,11 +125,15 @@ export function parseRichText(input: string): RichToken[] {
         /* ───── CODE BLOCK ───── */
         const codeFence = matchCodeFenceStart(line);
         if (codeFence) {
-            const language = codeFence[1].trim();
+            const info = codeFence[1].trim();
+            const infoMatch = info.match(/^(\S+)(?:\s+(.*))?$/);
+            const language = infoMatch?.[1] ?? '';
             const codeLines: string[] = [];
             const rawLines = [line];
             let closed = false;
             i++;
+
+            if (infoMatch?.[2]) codeLines.push(infoMatch[2]);
 
             while (i < lines.length) {
                 rawLines.push(lines[i]);
