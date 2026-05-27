@@ -35,7 +35,7 @@ collab-messages-chat-102025 {
         padding: 0 .8rem;
         height: 58px;
         min-height: 58px;
-        color: #ffffff;
+        color: var(--cm-text-on-green, #ffffff);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -203,9 +203,9 @@ collab-messages-chat-102025 {
 
     .read-only-thread {
         padding: .65rem .8rem;
-        border-top: 1px solid @grey-color-dark;
-        background: @grey-color-light;
-        color: @text-secondary-color;
+        border-top: 1px solid var(--cm-border, #e2e7e3);
+        background: var(--cm-panel-muted, #f3f7f4);
+        color: var(--cm-text-muted, #5b635f);
         font-size: @font-size-12;
         text-align: center;
     }
@@ -216,7 +216,7 @@ collab-messages-chat-102025 {
         gap: .75rem;
         height: 100%;
         padding: 1rem;
-        color: @text-primary-color;
+        color: var(--cm-text, #111827);
         overflow: hidden;
 
         label {
@@ -227,10 +227,10 @@ collab-messages-chat-102025 {
         input[type="search"] {
             width: 100%;
             padding: .55rem .75rem;
-            border: 1px solid @grey-color-dark;
+            border: 1px solid var(--cm-border, #e2e7e3);
             border-radius: 6px;
-            background: @bg-primary-color;
-            color: @text-primary-color;
+            background: var(--cm-input-bg, #ffffff);
+            color: var(--cm-text, #111827);
             outline: none;
         }
 
@@ -246,13 +246,13 @@ collab-messages-chat-102025 {
         list-style: none;
         margin: 0;
         padding: 0;
-        border: 1px solid @grey-color-dark;
+        border: 1px solid var(--cm-border, #e2e7e3);
         border-radius: 6px;
-        background: @bg-primary-color;
+        background: var(--cm-panel-bg, #ffffff);
     }
 
     .forward-destination-list li {
-        border-bottom: 1px solid @grey-color;
+        border-bottom: 1px solid var(--cm-border, #e2e7e3);
 
         &:last-child {
             border-bottom: none;
@@ -266,14 +266,14 @@ collab-messages-chat-102025 {
         gap: .65rem;
         border: none;
         background: transparent;
-        color: @text-primary-color;
+        color: var(--cm-text, #111827);
         padding: .65rem;
         text-align: left;
         cursor: pointer;
 
         &:hover,
         &.selected {
-            background: @bg-primary-color-focus;
+            background: var(--cm-panel-muted, #f3f7f4);
         }
     }
 
@@ -281,7 +281,7 @@ collab-messages-chat-102025 {
         width: 34px;
         height: 34px;
         border-radius: 12px;
-        border: 1px solid @grey-color-light;
+        border: 1px solid var(--cm-border, #e2e7e3);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -305,7 +305,7 @@ collab-messages-chat-102025 {
 
     .forward-empty {
         padding: .8rem;
-        color: @text-secondary-color;
+        color: var(--cm-text-muted, #5b635f);
         font-size: @font-size-12;
     }
 
@@ -318,16 +318,16 @@ collab-messages-chat-102025 {
             display: inline-flex;
             align-items: center;
             gap: .35rem;
-            border: 1px solid @grey-color-dark;
+            border: 1px solid var(--cm-border, #e2e7e3);
             border-radius: 6px;
             padding: .5rem .75rem;
             cursor: pointer;
-            color: @text-primary-color;
-            background: @bg-primary-color;
+            color: var(--cm-text, #111827);
+            background: var(--cm-panel-bg, #ffffff);
 
             &.primary {
                 background: @info-color;
-                color: #ffffff;
+                color: var(--cm-text-on-green, #ffffff);
                 border-color: @info-color;
             }
 
@@ -350,7 +350,7 @@ collab-messages-chat-102025 {
         gap: .75rem;
         height: 100%;
         padding: 1rem;
-        color: @text-primary-color;
+        color: var(--cm-text, #111827);
 
         .toolbar-help-icon {
             width: 44px;
@@ -359,8 +359,8 @@ collab-messages-chat-102025 {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: @bg-primary-color-focus;
-            color: @active-color;
+            background: var(--cm-panel-muted, #f3f7f4);
+            color: var(--cm-green, #008f4c);
 
             svg {
                 width: 24px;
@@ -377,7 +377,7 @@ collab-messages-chat-102025 {
         p {
             margin: 0;
             line-height: 1.45;
-            color: @text-secondary-color;
+            color: var(--cm-text-muted, #5b635f);
         }
 
         button {
@@ -385,12 +385,12 @@ collab-messages-chat-102025 {
             display: inline-flex;
             align-items: center;
             gap: .35rem;
-            border: 1px solid @grey-color-dark;
+            border: 1px solid var(--cm-border, #e2e7e3);
             border-radius: 6px;
             padding: .5rem .75rem;
             cursor: pointer;
-            color: @text-primary-color;
-            background: @bg-primary-color;
+            color: var(--cm-text, #111827);
+            background: var(--cm-panel-bg, #ffffff);
 
             svg {
                 width: 14px;
@@ -417,7 +417,7 @@ collab-messages-chat-102025 {
             height: 40px;
             transition: height 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
             padding: 0.5rem;
-            color: #ffffff;
+            color: var(--cm-text-on-green, #ffffff);
             cursor: pointer;
             width: 100%;
 
@@ -440,7 +440,7 @@ collab-messages-chat-102025 {
             border: 1px solid rgba(255, 255, 255, .35);
             border-radius: var(--cm-radius-pill, 9999px);
             outline: none;
-            background: rgba(255, 255, 255, .95);
+            background: var(--cm-input-bg, #ffffff);
             color: var(--cm-text, #111827);
             transition: border-color 0.2s, box-shadow 0.2s, background-color .2s;
             box-shadow: 0 0 0 2px transparent;
@@ -450,9 +450,9 @@ collab-messages-chat-102025 {
             }
 
             &:focus {
-                background: #ffffff;
-                border-color: rgba(255, 255, 255, .85);
-                box-shadow: 0 0 0 3px rgba(255, 255, 255, .22);
+                background: var(--cm-input-bg, #ffffff);
+                border-color: var(--cm-border, #e2e7e3);
+                box-shadow: 0 0 0 3px rgba(0, 143, 76, .12);
             }
         }
     }
@@ -476,7 +476,7 @@ collab-messages-chat-102025 {
 
         .unread-count {
             background-color: var(--cm-green, #008f4c);
-            color: #fff;
+            color: var(--cm-text-on-green, #ffffff);
             font-size: 0.75rem;
             font-weight: bold;
             padding: 0.2rem 0.48rem;
@@ -501,7 +501,7 @@ collab-messages-chat-102025 {
 
         .thread-group.has-notification .last-group-message,
         .thread-item.has-notification .last-message {
-            color: @text-primary-color;
+            color: var(--cm-text, #111827);
         }
 
         .tasks-pendings-count {
@@ -734,7 +734,7 @@ collab-messages-chat-102025 {
         display: flex;
         justify-content: center;
         align-self: center;
-        background: rgba(255, 255, 255, .92);
+        background: var(--cm-date-bg, rgba(255, 255, 255, .92));
         color: var(--cm-text-muted, #5b635f);
         text-transform: uppercase;
         font-size: 11px;
@@ -791,7 +791,7 @@ collab-messages-chat-102025 {
             color: var(--cm-text-muted, #5b635f);
             margin: 6px 0 10px;
             padding: 5px 12px;
-            background: rgba(255, 255, 255, .9);
+            background: var(--cm-date-bg, rgba(255, 255, 255, .9));
             border-radius: var(--cm-radius-pill, 9999px);
             box-shadow: var(--cm-shadow-sm, 0 1px 3px rgba(0, 0, 0, .14));
         }

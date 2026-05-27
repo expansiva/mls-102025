@@ -125,7 +125,7 @@ collab-messages-chat-message-102025 {
                     }
 
                     small {
-                        color: #000000;
+                        color: var(--cm-text, #111827);
                         font-style: italic;
                         font-size: @font-size-12;
                     }
@@ -144,7 +144,7 @@ collab-messages-chat-message-102025 {
                         min-width: 0;
 
                         .inline-code {
-                            background-color: rgba(29, 28, 29, 0.07);
+                            background-color: var(--cm-soft-overlay, rgba(29, 28, 29, 0.07));
                             color: #c2185b;
                             border-radius: 3px;
                             padding: 0 .12em;
@@ -164,10 +164,10 @@ collab-messages-chat-message-102025 {
                     gap: .45rem;
                     margin-top: .25rem;
                     padding: .45rem .55rem;
-                    border: 1px solid rgba(0, 0, 0, .08);
+                    border: 1px solid var(--cm-border-soft, rgba(0, 0, 0, .08));
                     border-radius: 6px;
-                    background: rgba(255, 255, 255, .76);
-                    color: #5f6368;
+                    background: var(--cm-soft-overlay, rgba(255, 255, 255, .76));
+                    color: var(--cm-text-muted, #5b635f);
                     font-size: @font-size-12;
 
                     svg {
@@ -185,12 +185,12 @@ collab-messages-chat-message-102025 {
                     }
 
                     span {
-                        color: #202124;
+                        color: var(--cm-text, #111827);
                         font-weight: 600;
                     }
 
                     small {
-                        color: #5f6368;
+                        color: var(--cm-text-muted, #5b635f);
                     }
 
                     &.moderated svg {
@@ -209,7 +209,9 @@ collab-messages-chat-message-102025 {
                         min-height: 82px;
                         max-width: 100%;
                         resize: vertical;
-                        border: 1px solid rgba(0, 0, 0, .18);
+                        border: 1px solid var(--cm-border, rgba(0, 0, 0, .18));
+                        background: var(--cm-input-bg, #ffffff);
+                        color: var(--cm-text, #111827);
                         border-radius: 6px;
                         padding: .45rem;
                         font: inherit;
@@ -222,9 +224,10 @@ collab-messages-chat-message-102025 {
                     gap: .4rem;
 
                     button {
-                        border: 1px solid rgba(0, 0, 0, .16);
+                        border: 1px solid var(--cm-border, rgba(0, 0, 0, .16));
                         border-radius: 4px;
-                        background: rgba(255, 255, 255, .78);
+                        background: var(--cm-soft-overlay, rgba(255, 255, 255, .78));
+                        color: var(--cm-text, #111827);
                         padding: .25rem .5rem;
                         cursor: pointer;
                     }
@@ -236,10 +239,10 @@ collab-messages-chat-message-102025 {
                     gap: .4rem;
                     margin-top: .45rem;
                     padding: .45rem;
-                    border: 1px solid rgba(0, 0, 0, .08);
+                    border: 1px solid var(--cm-border-soft, rgba(0, 0, 0, .08));
                     border-radius: 6px;
-                    background: rgba(255, 255, 255, .72);
-                    color: #202124;
+                    background: var(--cm-soft-overlay, rgba(255, 255, 255, .72));
+                    color: var(--cm-text, #111827);
                     font-size: @font-size-12;
                 }
 
@@ -253,7 +256,7 @@ collab-messages-chat-message-102025 {
                     gap: .15rem;
 
                     small {
-                        color: #5f6368;
+                        color: var(--cm-text-muted, #5b635f);
                     }
                 }
 
@@ -268,9 +271,9 @@ collab-messages-chat-message-102025 {
                 }
 
                 .message-attachment {
-                    border: 1px solid rgba(0, 0, 0, .08);
+                    border: 1px solid var(--cm-border-soft, rgba(0, 0, 0, .08));
                     border-radius: var(--cm-radius-sm, 8px);
-                    background: rgba(255, 255, 255, .78);
+                    background: var(--cm-attachment-bg, rgba(255, 255, 255, .78));
                     color: var(--cm-text, #111827);
                     overflow: hidden;
 
@@ -288,14 +291,14 @@ collab-messages-chat-message-102025 {
                     &.image {
                         width: 100%;
                         max-width: 100%;
-                        background: #fff;
+                        background: var(--cm-input-bg, #ffffff);
 
                         a {
                             display: flex;
                             align-items: center;
                             justify-content: center;
                             width: 100%;
-                            background: #fff;
+                            background: var(--cm-input-bg, #ffffff);
                         }
 
                         img {
@@ -305,7 +308,7 @@ collab-messages-chat-message-102025 {
                             max-width: 100%;
                             max-height: 360px;
                             object-fit: contain;
-                            background: #fff;
+                            background: var(--cm-input-bg, #ffffff);
                         }
 
                         .attachment-meta {
@@ -343,12 +346,12 @@ collab-messages-chat-message-102025 {
                     }
 
                     small {
-                        color: #5f6368;
+                        color: var(--cm-text-muted, #5b635f);
                         white-space: nowrap;
                     }
 
                     &.deleted {
-                        color: #5f6368;
+                        color: var(--cm-text-muted, #5b635f);
                     }
 
                     .attachment-delete {
@@ -360,11 +363,11 @@ collab-messages-chat-message-102025 {
                         border: none;
                         border-radius: 4px;
                         background: transparent;
-                        color: @text-primary-color;
+                        color: var(--cm-text, #111827);
                         cursor: pointer;
 
                         &:hover {
-                            background: rgba(0, 0, 0, .06);
+                            background: var(--cm-soft-overlay, rgba(0, 0, 0, .06));
                         }
                     }
                 }
@@ -372,7 +375,7 @@ collab-messages-chat-message-102025 {
                 .message-result {
 
                     .message-result-text {
-                        border-top: 1px solid rgba(0, 0, 0, .1);
+                        border-top: 1px solid var(--cm-border-soft, rgba(0, 0, 0, .1));
                         margin-top: .5rem;
                         white-space: pre-line;
                         color: var(--cm-text, #111827);
@@ -402,8 +405,8 @@ collab-messages-chat-message-102025 {
                 .message-read-confirmations {
                     margin-top: .5rem;
                     padding: .35rem .45rem;
-                    background: rgba(255, 255, 255, .72);
-                    border: 1px solid rgba(0, 0, 0, .08);
+                    background: var(--cm-soft-overlay, rgba(255, 255, 255, .72));
+                    border: 1px solid var(--cm-border-soft, rgba(0, 0, 0, .08));
                     border-radius: var(--cm-radius-sm, 8px);
                     color: var(--cm-text, #111827);
                     font-size: @font-size-12;
@@ -428,26 +431,26 @@ collab-messages-chat-message-102025 {
                 }
 
                 .read-confirmation-line.pending {
-                    color: #5f6368;
+                    color: var(--cm-text-muted, #5b635f);
                 }
 
                 .read-confirmation-line.canceled {
-                    border-top: 1px solid rgba(0, 0, 0, .08);
+                    border-top: 1px solid var(--cm-border-soft, rgba(0, 0, 0, .08));
                     margin-top: .15rem;
                     padding-top: .25rem;
-                    color: #5f6368;
+                    color: var(--cm-text-muted, #5b635f);
                 }
 
                 .read-confirmation-user {
                     color: @active-color;
                     font-weight: 600;
-                    background: rgba(255, 255, 255, .75);
+                    background: var(--cm-soft-overlay, rgba(255, 255, 255, .75));
                     border-radius: 4px;
                     padding: 0 .2rem;
                 }
 
                 .read-confirmation-time {
-                    color: #5f6368;
+                    color: var(--cm-text-muted, #5b635f);
                     white-space: nowrap;
                 }
 
@@ -462,9 +465,9 @@ collab-messages-chat-message-102025 {
                     margin: 0;
                     font-size: 11px;
                     font-style: italic;
-                    color: #717070;
+                    color: var(--cm-text-muted, #5b635f);
                     padding-inline-start: 6px;
-                    border-left: 2px solid #717070;
+                    border-left: 2px solid var(--cm-text-muted, #5b635f);
                 }
 
                 .message-footer {
@@ -520,7 +523,7 @@ collab-messages-chat-message-102025 {
             gap: 2px;
             padding: 2px 8px;
             border-radius: 12px;
-            background: #fff;
+            background: var(--cm-panel-bg, #ffffff);
             border: 1px solid var(--cm-border, #e2e7e3);
             cursor: pointer;
             font-size: 12px;
@@ -528,7 +531,7 @@ collab-messages-chat-message-102025 {
             transition: background 0.15s ease;
 
             &:hover {
-                background: @grey-color-lighter;
+                background: var(--cm-panel-muted, #f3f7f4);
             }
 
             .reaction-emoji {
@@ -537,7 +540,7 @@ collab-messages-chat-message-102025 {
             }
 
             .reaction-count {
-                color: @grey-color-darker;
+                color: var(--cm-text-muted, #5b635f);
                 font-size: 12px;
                 margin-left: 2px;
             }
@@ -553,7 +556,7 @@ collab-messages-chat-message-102025 {
         position: absolute;
             min-width: 230px;
         max-width: 240px;
-        background: var(--bg-primary-color, #fff);
+        background: var(--cm-panel-bg, #ffffff);
         border-radius: 8px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         z-index: 40;
@@ -585,12 +588,12 @@ collab-messages-chat-message-102025 {
             padding: 10px 12px 8px;
             font-size: 13px;
             font-weight: 600;
-            color: @text-primary-color;
+            color: var(--cm-text, #111827);
         }
 
         .reaction-list-divider {
             height: 1px;
-            background: @grey-color;
+            background: var(--cm-border, #e2e7e3);
             margin: 0 12px;
         }
 
@@ -606,14 +609,14 @@ collab-messages-chat-message-102025 {
             justify-content: space-between;
             padding: 8px 12px;
             font-size: 14px;
-            color: @text-primary-color;
+            color: var(--cm-text, #111827);
             transition: background 0.15s ease;
 
             &.current-user {
                 cursor: pointer;
 
                 &:hover {
-                    background: @grey-color-lighter;
+                    background: var(--cm-panel-muted, #f3f7f4);
                 }
 
                 .reaction-list-name {
@@ -649,7 +652,7 @@ collab-messages-chat-message-102025 {
             }
 
             .reaction-list-small {
-                color: @grey-color-darker;
+                color: var(--cm-text-muted, #5b635f);
             }
 
             .reaction-list-emoji {
@@ -709,7 +712,7 @@ collab-messages-chat-message-102025 {
         gap: 6px;
         padding: 6px 8px;
         border-radius: 16px;
-        background: var(--bg-primary-color-darker-hover);
+        background: var(--cm-panel-muted, #f3f7f4);
         box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
         z-index: 10;
 
@@ -834,7 +837,7 @@ collab-messages-chat-message-102025 {
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
 
-        color: @text-primary-color;
+        color: var(--cm-text, #111827);
         cursor: pointer;
 
         transition:
@@ -892,7 +895,7 @@ collab-messages-chat-message-102025 {
         display: inline-flex;
         align-items: center;
         gap: .4rem;
-        color: @text-primary-color;
+        color: var(--cm-text, #111827);
 
         svg {
             width: 16px;
@@ -947,7 +950,7 @@ collab-messages-chat-message-102025 {
         flex-direction: column;
         gap: 2px;
         min-width: 0;
-        color: #000;
+        color: var(--cm-text, #111827);
         opacity: .7;
     }
 

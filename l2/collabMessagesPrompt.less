@@ -8,8 +8,8 @@ collab-messages-prompt-102025 {
     font-weight: @font-weight-normal;
     line-height: 1.5;
     background-color: var(--cm-chat-bg, #eef5f0);
-    box-shadow: 0 -1px 0 rgba(0, 0, 0, .04);
-    border-top: 1px solid rgba(0, 0, 0, .04);
+    box-shadow: 0 -1px 0 var(--cm-border-soft, rgba(0, 0, 0, .04));
+    border-top: 1px solid var(--cm-border-soft, rgba(0, 0, 0, .04));
 
     .prompt-toolbar {
         display: flex;
@@ -33,7 +33,7 @@ collab-messages-prompt-102025 {
             cursor: pointer;
 
             &:hover {
-                background: rgba(255, 255, 255, .74);
+                background: var(--cm-soft-overlay, rgba(255, 255, 255, .74));
                 border-color: var(--cm-border, #e2e7e3);
             }
 
@@ -75,7 +75,7 @@ collab-messages-prompt-102025 {
             textarea {
                 padding: 10px 14px;
                 border: 1px solid transparent;
-                background-color: #fff;
+                background-color: var(--cm-input-bg, #ffffff);
                 color: var(--cm-text, #111827);
                 font-family: @font-family-primary;
                 font-size: 15px;
@@ -112,7 +112,7 @@ collab-messages-prompt-102025 {
                 textarea {
                     background: transparent;
                     color: transparent;
-                    caret-color: #000000;
+                    caret-color: var(--cm-text, #111827);
                     position: relative;
                     z-index: 2;
                     
@@ -136,7 +136,7 @@ collab-messages-prompt-102025 {
                     overflow-y: auto;
                     overflow-x: hidden;
                     z-index: 1;
-                    background-color: #fff;
+                    background-color: var(--cm-input-bg, #ffffff);
                     color: var(--cm-text, #111827);
                     padding: 10px 14px;
                     border: 1px solid transparent;
@@ -162,7 +162,7 @@ collab-messages-prompt-102025 {
                     }
 
                     .marker {
-                        color: @grey-color-darker;
+                        color: var(--cm-text-muted, #5b635f);
                         font-weight: inherit;
                         font-style: normal;
                         text-decoration: none;
@@ -170,7 +170,7 @@ collab-messages-prompt-102025 {
                     }
                     
                     .inline-code {
-                        background-color: rgba(29, 28, 29, 0.07);
+                        background-color: var(--cm-soft-overlay, rgba(29, 28, 29, 0.07));
                         color: #c2185b;
                         border-radius: 2px;
                     }
@@ -213,25 +213,25 @@ collab-messages-prompt-102025 {
 
                     .blockquote-marker-preview,
                     .list-marker-preview {
-                        color: @grey-color-darker;
+                        color: var(--cm-text-muted, #5b635f);
                     }
                     
                     // Bold -
                     strong {
                         font-weight: bold;
-                        color: #000000;
+                        color: var(--cm-text, #111827);
                     }
                     
                     em {
                         font-style: italic;
                         color: #c2185b;
-                        background-color: rgba(29, 28, 29, 0.05);
+                        background-color: var(--cm-soft-overlay, rgba(29, 28, 29, 0.05));
                         border-radius: 2px;
                     }
                     
                     del {
                         text-decoration: line-through;
-                        color: #000000;
+                        color: var(--cm-text, #111827);
                     }
                 }
             }
@@ -243,7 +243,7 @@ collab-messages-prompt-102025 {
             border: none;
             border-radius: 9999px;
             background-color: var(--cm-green, #008f4c);
-            color: #fff;
+            color: var(--cm-text-on-green, #ffffff);
             font-size: 16px;
             cursor: pointer;
             transition: background-color .3s ease, transform .15s ease;
@@ -286,7 +286,7 @@ collab-messages-prompt-102025 {
             }
 
             &:hover {
-                background-color: rgba(255, 255, 255, .72);
+                background-color: var(--cm-soft-overlay, rgba(255, 255, 255, .72));
                 color: var(--cm-green-dark, #007a3d);
                 transform: none;
             }
@@ -316,7 +316,7 @@ collab-messages-prompt-102025 {
         padding: 4px 6px;
         border: 1px solid var(--cm-border, #e2e7e3);
         border-radius: var(--cm-radius-sm, 8px);
-        background: #fff;
+        background: var(--cm-attachment-bg, #ffffff);
         color: var(--cm-text, #111827);
         font-size: @font-size-12;
 
@@ -327,7 +327,7 @@ collab-messages-prompt-102025 {
         }
 
         small {
-            color: @grey-color-darker;
+            color: var(--cm-text-muted, #5b635f);
             white-space: nowrap;
         }
 
@@ -337,8 +337,8 @@ collab-messages-prompt-102025 {
             padding: 0;
             border: none;
             border-radius: 50%;
-            background: @grey-color-light;
-            color: @text-primary-color;
+            background: var(--cm-panel-muted, #f3f7f4);
+            color: var(--cm-text, #111827);
             cursor: pointer;
         }
     }
@@ -347,7 +347,7 @@ collab-messages-prompt-102025 {
         position: absolute;
         left: 5%;
         right: 0;
-        background-color: #fff;
+        background-color: var(--cm-input-bg, #ffffff);
         border: 1px solid var(--cm-border, #e2e7e3);
         z-index: 10;
         display: block;
@@ -362,7 +362,7 @@ collab-messages-prompt-102025 {
     }
 
     .mention-suggestions li {
-        color: #000000;
+        color: var(--cm-text, #111827);
 
         collab-messages-avatar-102025 {
             width: 30px;
@@ -404,7 +404,7 @@ collab-messages-prompt-102025 {
     }
 
     .emoji-code {
-        color: #888;
+        color: var(--cm-text-muted, #5b635f);
         font-size: 12px;
     }
 
@@ -415,7 +415,7 @@ collab-messages-prompt-102025 {
 
     .user-suggestion {
         font-weight: 500;
-        color: #333;
+        color: var(--cm-text, #111827);
     }
 
     .formatted-text {
@@ -436,7 +436,7 @@ collab-messages-prompt-102025 {
         align-items: center;
         gap: 8px;
         padding: 8px;
-        background: rgba(255, 255, 255, .74);
+        background: var(--cm-soft-overlay, rgba(255, 255, 255, .74));
         border-top-left-radius: var(--cm-radius-md, 12px);
         border-top-right-radius: var(--cm-radius-md, 12px);
         border-bottom: 1px solid var(--cm-border, #e2e7e3);
@@ -473,7 +473,7 @@ collab-messages-prompt-102025 {
             cursor: pointer;
             font-size: 14px;
             opacity: .6;
-            color: @text-primary-color;
+            color: var(--cm-text, #111827);
 
             &:hover {
                 opacity: 1;
