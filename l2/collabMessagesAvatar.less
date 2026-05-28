@@ -2,16 +2,21 @@
 
 collab-messages-avatar-102025 {
 
-    display: block;
+    display: inline-block;
     position: relative;
+    width: var(--avatar-width, 30px);
+    height: var(--avatar-height, 30px);
+    flex: 0 0 var(--avatar-width, 30px);
 
     .avatar {
-        position: absolute;
+        position: relative;
         display: flex;
         flex-direction: column;
         gap: .4rem;
         align-items: center;
         justify-content: center;
+        width: var(--avatar-width, 30px);
+        height: var(--avatar-height, 30px);
 
         img {
             width: var(--avatar-width, 30px);
@@ -52,4 +57,3 @@ collab-messages-avatar-102025 {
     }
 
 }
-

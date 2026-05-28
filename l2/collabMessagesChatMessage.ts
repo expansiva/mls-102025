@@ -163,6 +163,13 @@ type FollowupReaction =
     'followup_cancelado' |
     'followup_revisado';
 
+type ReactionListItem = {
+    userId: string;
+    icon: string | TemplateResult;
+    label: string;
+    reactionName?: string;
+};
+
 @customElement('collab-messages-chat-message-102025')
 export class CollabMessagesChatMessage102025 extends StateLitElement {
 
@@ -180,6 +187,8 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @property() messageMenuTarget?: HTMLElement;
     @property() openedReactionListMessageId?: string;
     @property() reactionListTarget?: HTMLElement;
+    @property() openedFollowupActionsMessageId?: string;
+    @property() followupActionTarget?: HTMLElement;
 
     @state() userPreferenceChat?: IChatPreferences;
     @state() private messageMenuPlacement: 'top' | 'bottom' = 'bottom';
@@ -208,6 +217,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         this.updateMessageMenuPlacement();
         // this.positionReactionListPopup();
         this.updateReactionListPlacement();
+        this.positionFollowupActionMenu();
 
     }
 
@@ -251,7 +261,6 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             ${!isSame ? html`<div class="message-title">@${userName}</div>` : ``}
                             ${message.replyTo && !isMessageContentHidden ? this.renderReplyPreview(message.replyTo) : nothing}
                             ${this.isEditingMessage ? this.renderEditMessageForm(message) : this.renderMessageByLanguage(message)}
-                            ${this.renderEditHistory(message)}
                             ${!isMessageContentHidden ? this.renderAttachments(message) : nothing}
                             ${message.isLoading ? html`<span class="loader"></span>` : ''}
                             ${message.isFailed ? html`<div class="failed">
@@ -285,12 +294,14 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             ${!isMessageContentHidden ? this.renderReactions(message) : nothing}
                             ${!isMessageContentHidden ? this.renderReactionPicker(message) : nothing}
                             <div class="message-footer">
+                                ${this.renderHistoryToggle(message)}
                                 <span>${dateFormated?.timeShort}</span>
                                 ${message.editedAt ? html`<small>${this.msg.edited}</small>` : nothing}
                             </div>
+                            ${this.renderEditHistory(message)}
                         </div>
                         ${cls === 'system' ? this.renderSideAction(message) : nothing}
-                        ${cls === 'system' && !isSame ? html`<collab-messages-avatar-102025 avatar=${userAvatar} alt=${userName} ></collab-messages-avatar-102025>` : ''}
+                        ${cls === 'system' && !isSame && !this.isCurrentThreadDirectMessage() ? html`<collab-messages-avatar-102025 avatar=${userAvatar} alt=${userName} ></collab-messages-avatar-102025>` : ''}
                     </div>
                 </div>
             </div>
@@ -431,6 +442,18 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                     <div>${this.renderCollabMessagesRichPreview(message.content)}</div>
                 </div>
             </div>
+        `;
+    }
+
+    private renderHistoryToggle(message: msg.Message) {
+        if (!message.edits?.length || this.isMessageContentHidden(message)) return nothing;
+        return html`
+            <button
+                class="message-history-toggle"
+                @click=${(ev: Event) => this.onHistoryToggleClick(ev)}
+            >
+                ${this.showEditHistory ? 'menos' : 'mais...'}
+            </button>
         `;
     }
 
@@ -809,6 +832,13 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         );
     }
 
+    private getFollowupStatusItems(message: msg.Message, request: msg.MessageReadConfirmation) {
+        return request.targetUserIds.map(userId => ({
+            userId,
+            reaction: this.getFollowupReactionForUser(message, userId)
+        }));
+    }
+
     private hasExecutionFollowup(message: msg.Message): boolean {
         return !!this.getActiveExecutionFollowup(message);
     }
@@ -1006,47 +1036,30 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private renderFollowupSummary(message: IMessage) {
         const request = this.getActiveExecutionFollowup(message);
         if (!request) return nothing;
-        const statusItems = request.targetUserIds.map(userId => ({
-            userId,
-            reaction: this.getFollowupReactionForUser(message, userId)
-        }));
+        const statusItems = this.getFollowupStatusItems(message, request);
         const reviewed = this.getFollowupReactionForUser(message, request.requestedBy) === 'followup_revisado';
+        const total = statusItems.length + (reviewed ? 1 : 0);
+        if (total === 0) return nothing;
         return html`
             <div class="message-reactions followup-summary">
-                ${statusItems.map(({ userId, reaction }) => html`
-                    <span
-                        class="followup-summary-item ${reaction ? 'set' : 'pending'}"
-                        title="@${this.getUserName(userId)}: ${this.getFollowupLabel(reaction)}"
-                    >
-                        ${this.renderFollowupIcon(reaction)}
-                    </span>
-                `)}
-                ${reviewed ? html`
-                    <span
-                        class="followup-summary-item reviewed"
-                        title="@${this.getUserName(request.requestedBy)}: ${this.msg.followupRevisado}"
-                    >
-                        ${this.renderFollowupIcon('followup_revisado')}
-                    </span>
-                ` : nothing}
+                <button 
+                    class="reactions-summary followup-reactions-summary"
+                    @click=${(ev: Event) => this.openReactionList(message, ev)}
+                >
+                    <span class="reaction-emoji followup-icon">${this.renderFollowupIcon(statusItems.find(item => item.reaction)?.reaction)}</span>
+                    <span class="reaction-count">${total}</span>
+                </button>
+                ${this.renderReactionListPopup(message)}
             </div>
         `;
     }
 
     private renderReactionListPopup(message: IMessage) {
         if (this.openedReactionListMessageId !== message.createAt) return nothing;
-        if (!message.reactions) return nothing;
-
-        const allReactions: Array<{ userId: string; emoji: string; reactionName: string }> = [];
-
-        Object.entries(message.reactions).forEach(([name, users]) => {
-            const emoji = this.reactionEmojis[name];
-            if (emoji) {
-                users.forEach(userId => {
-                    allReactions.push({ userId, emoji, reactionName: name });
-                });
-            }
-        });
+        const allReactions = this.hasExecutionFollowup(message)
+            ? this.getFollowupReactionListItems(message)
+            : this.getEmojiReactionListItems(message);
+        if (allReactions.length === 0) return nothing;
 
         allReactions.sort((a, b) => {
             if (a.userId === this.userId) return -1;
@@ -1064,17 +1077,17 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             </div>
             <div class="reaction-list-divider"></div>
             <div class="reaction-list-content">
-                ${allReactions.map(({ userId, emoji, reactionName }) => {
+                ${allReactions.map(({ userId, icon, label, reactionName }) => {
 
             const user = this.findUser(userId);
             const userName = user?.name || userId;
             const userAvatar = user?.avatar_url || '';
-            const isCurrentUser = userId === this.userId;
+            const isCurrentUser = userId === this.userId && !!reactionName;
 
             return html`
                         <div 
                             class="reaction-list-item ${isCurrentUser ? 'current-user' : ''}"
-                            @click=${() => isCurrentUser ? this.removeReactionFromList(message, reactionName) : null}
+                            @click=${() => isCurrentUser && reactionName ? this.removeReactionFromList(message, reactionName) : null}
                         >
                             <div class="reaction-list-user">
                                 <collab-messages-avatar-102025 
@@ -1085,11 +1098,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                                     <span class="reaction-list-name">
                                         ${isCurrentUser ? this.msg.you : userName}
                                     </span>
+                                    <small class="reaction-list-small">${label}</small>
                                     ${isCurrentUser ? html`<small class="reaction-list-small">${this.msg.clickToRemove}</small>` : nothing}
                                 </div>
 
                             </div>
-                            <span class="reaction-list-emoji">${emoji}</span>
+                            <span class="reaction-list-emoji">${icon}</span>
                         </div>
                     `;
         })}
@@ -1103,6 +1117,41 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             ...this.usersAvaliables,
             ...(this.actualThread?.users || [])
         ].find(user => user.userId === userId);
+    }
+
+    private getEmojiReactionListItems(message: IMessage): ReactionListItem[] {
+        if (!message.reactions) return [];
+        const allReactions: ReactionListItem[] = [];
+
+        Object.entries(message.reactions).forEach(([name, users]) => {
+            const emoji = this.reactionEmojis[name];
+            if (!emoji) return;
+            users.forEach(userId => {
+                allReactions.push({ userId, icon: emoji, label: emoji, reactionName: name });
+            });
+        });
+
+        return allReactions;
+    }
+
+    private getFollowupReactionListItems(message: IMessage): ReactionListItem[] {
+        const request = this.getActiveExecutionFollowup(message);
+        if (!request) return [];
+        const items = this.getFollowupStatusItems(message, request).map(({ userId, reaction }) => ({
+            userId,
+            icon: this.renderFollowupIcon(reaction),
+            label: this.getFollowupLabel(reaction),
+            reactionName: reaction
+        }));
+        if (this.getFollowupReactionForUser(message, request.requestedBy) === 'followup_revisado') {
+            items.push({
+                userId: request.requestedBy,
+                icon: this.renderFollowupIcon('followup_revisado'),
+                label: this.msg.followupRevisado,
+                reactionName: 'followup_revisado'
+            });
+        }
+        return items;
     }
 
     private openReactionList(message: IMessage, ev: Event) {
@@ -1173,18 +1222,22 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (!this.canWriteThread() || !this.userId) return nothing;
         const request = this.getActiveExecutionFollowup(message);
         if (!request) return nothing;
-        const canReview = request.requestedBy === this.userId;
-        const canSetStatus = request.targetUserIds.includes(this.userId);
-        const actions: FollowupReaction[] = canReview
-            ? ['followup_revisado']
-            : canSetStatus
-                ? ['followup_lido', 'followup_vou_fazer', 'followup_concluido', 'followup_bloqueado', 'followup_cancelado']
-                : [];
+        const actions = this.getFollowupActions(message);
         if (actions.length === 0) return nothing;
         const current = this.getFollowupReactionForUser(message, this.userId);
         return html`
-            <div class="followup-action-bar" role="toolbar">
-                ${actions.map(reaction => html`
+            <div class="followup-action-wrapper">
+                <button
+                    class="followup-action-trigger ${current ? 'active' : ''}"
+                    title=${current ? this.getFollowupLabel(current) : this.msg.requestExecutionConfirmation}
+                    aria-label=${current ? this.getFollowupLabel(current) : this.msg.requestExecutionConfirmation}
+                    @click=${(ev: Event) => this.openFollowupActionMenu(message, ev)}
+                >
+                    ${this.renderFollowupIcon(current || actions[0])}
+                </button>
+                ${this.openedFollowupActionsMessageId === message.createAt ? html`
+                <div class="followup-action-menu" role="menu">
+                    ${actions.map(reaction => html`
                     <button
                         class="followup-action ${current === reaction ? 'active' : ''}"
                         title=${this.getFollowupLabel(reaction)}
@@ -1192,10 +1245,24 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                         @click=${(ev: Event) => this.onFollowupActionClick(ev, message, reaction)}
                     >
                         ${this.renderFollowupIcon(reaction)}
+                        <span>${this.getFollowupLabel(reaction)}</span>
                     </button>
-                `)}
+                    `)}
+                </div>
+                ` : nothing}
             </div>
         `;
+    }
+
+    private getFollowupActions(message: IMessage): FollowupReaction[] {
+        if (!this.userId) return [];
+        const request = this.getActiveExecutionFollowup(message);
+        if (!request) return [];
+        if (request.requestedBy === this.userId) return ['followup_revisado'];
+        if (request.targetUserIds.includes(this.userId)) {
+            return ['followup_lido', 'followup_vou_fazer', 'followup_concluido', 'followup_bloqueado', 'followup_cancelado'];
+        }
+        return [];
     }
 
     private renderReactionButtonAdd(message: IMessage) {
@@ -1244,6 +1311,24 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (!this.canWriteThread()) return;
         const updated = this.toggleReaction(message, reaction, this.userId);
         this.message = updated;
+        this.closeFollowupActionMenu();
+    }
+
+    private openFollowupActionMenu(message: IMessage, ev: Event) {
+        ev.stopPropagation();
+        if (this.openedFollowupActionsMessageId === message.createAt) {
+            this.closeFollowupActionMenu();
+            return;
+        }
+
+        this.closeAllPopups();
+        this.openedFollowupActionsMessageId = message.createAt;
+        this.followupActionTarget = ev.currentTarget as HTMLElement;
+    }
+
+    private closeFollowupActionMenu() {
+        this.openedFollowupActionsMessageId = undefined;
+        this.followupActionTarget = undefined;
     }
 
 
@@ -1360,28 +1445,38 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
         const btnRect = this.reactionPickerTarget.getBoundingClientRect();
         const pickerRect = picker.getBoundingClientRect();
-
-        const parent = picker.offsetParent as HTMLElement;
-        const parentRect = parent.getBoundingClientRect();
-
         const GAP = 8;
+        const VIEWPORT_GAP = 8;
+        const top = btnRect.top - pickerRect.height - GAP;
+        const fallbackTop = btnRect.bottom + GAP;
+        const left = btnRect.left + (btnRect.width / 2) - (pickerRect.width / 2);
 
-        const top =
-            btnRect.top -
-            parentRect.top -
-            pickerRect.height -
-            GAP;
-
-        picker.style.top = `${Math.max(top, 4)}px`;
+        picker.style.position = 'fixed';
+        picker.style.top = `${Math.max(top > VIEWPORT_GAP ? top : fallbackTop, VIEWPORT_GAP)}px`;
         picker.style.bottom = 'auto';
+        picker.style.left = `${Math.min(Math.max(left, VIEWPORT_GAP), window.innerWidth - pickerRect.width - VIEWPORT_GAP)}px`;
+        picker.style.right = 'auto';
+    }
 
-        if (parent.classList.contains('user')) {
-            picker.style.right = '0';
-            picker.style.left = 'auto';
-        } else {
-            picker.style.left = '0';
-            picker.style.right = 'auto';
-        }
+    private positionFollowupActionMenu() {
+        if (!this.followupActionTarget) return;
+        const menu = this.querySelector('.followup-action-menu') as HTMLElement | null;
+        if (!menu) return;
+
+        const targetRect = this.followupActionTarget.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        const GAP = 8;
+        const VIEWPORT_GAP = 8;
+        const spaceBelow = window.innerHeight - targetRect.bottom;
+        const top = spaceBelow >= menuRect.height + GAP
+            ? targetRect.bottom + GAP
+            : targetRect.top - menuRect.height - GAP;
+        const left = targetRect.left + (targetRect.width / 2) - (menuRect.width / 2);
+
+        menu.style.position = 'fixed';
+        menu.style.top = `${Math.min(Math.max(top, VIEWPORT_GAP), window.innerHeight - menuRect.height - VIEWPORT_GAP)}px`;
+        menu.style.left = `${Math.min(Math.max(left, VIEWPORT_GAP), window.innerWidth - menuRect.width - VIEWPORT_GAP)}px`;
+        menu.style.right = 'auto';
     }
 
 
@@ -1643,6 +1738,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         this.showEditHistory = !this.showEditHistory;
     }
 
+    private onHistoryToggleClick(ev: Event) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        this.showEditHistory = !this.showEditHistory;
+    }
+
     private onPinClick(message: IMessage) {
         if (!this.canWriteThread()) return;
         this.closeMessageMenu();
@@ -1760,6 +1861,8 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             item.messageMenuTarget = undefined;
             item.openedReactionListMessageId = undefined;
             item.reactionListTarget = undefined;
+            item.openedFollowupActionsMessageId = undefined;
+            item.followupActionTarget = undefined;
         });
 
     }

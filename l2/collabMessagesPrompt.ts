@@ -3,7 +3,7 @@
 import { html, nothing } from 'lit';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { customElement, property, state, query, } from 'lit/decorators.js';
-import { collab_arrow_up_long, collab_link, collab_paperclip } from '/_102025_/l2/collabMessagesIcons.js';
+import { collab_arrow_up_long, collab_link, collab_plus } from '/_102025_/l2/collabMessagesIcons.js';
 import { getThread, listUsers } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
 
@@ -237,7 +237,7 @@ export class CollabMessagesPrompt extends StateLitElement {
 
     private adjustTextAreaHeight() {
         const maxHeight = 200;
-        const minHeight = 40;
+        const minHeight = 42;
         if (this.textArea) {
             const prevHeight = this.textArea.offsetHeight;
 
@@ -350,7 +350,7 @@ export class CollabMessagesPrompt extends StateLitElement {
                         aria-label=${this.msg.attachFiles}
                         @click=${this.openAttachmentPicker}
                     >
-                        ${collab_paperclip}
+                        ${collab_plus}
                     </button>
                     <div class="textarea-container ${this.enableRichPreview ? 'rich-preview-enabled' : ''}">
                         ${this.enableRichPreview ? html`
