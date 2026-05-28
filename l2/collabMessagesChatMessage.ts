@@ -787,58 +787,58 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${readConfirmations.length ? html`<div class="message-read-confirmation">
                     ${readConfirmations.map(request => html`
                         <div class="read-confirmation-line">
+                            <span class="read-confirmation-time">${this.formatLocalDateTime(request.requestedAt)}</span>
                             ${this.renderUserLabel(request.requestedBy)}
                             <span>${this.msg.requestedReadConfirmation}</span>
-                            <span class="read-confirmation-time">${this.formatLocalDateTime(request.requestedAt)}</span>
                         </div>
                     `)}
                     ${statusByUser.map(({ userId, confirmedAt }) => html`
                         <div class="read-confirmation-line ${confirmedAt ? 'confirmed' : 'pending'}">
-                            ${this.renderUserLabel(userId)}
                             ${confirmedAt ? html`
-                                <span>${this.msg.confirmedRead}</span>
                                 <span class="read-confirmation-time">${this.formatLocalDateTime(confirmedAt)}</span>
-                            ` : html`<span>${this.msg.notConfirmedRead}</span>`}
+                                ${this.renderUserLabel(userId)}
+                                <span>${this.msg.confirmedRead}</span>
+                            ` : html`${this.renderUserLabel(userId)} <span>${this.msg.notConfirmedRead}</span>`}
                         </div>
                     `)}
                     ${readConfirmations.map(request => request.canceledAt ? html`
                         <div class="read-confirmation-line canceled">
+                            <span class="read-confirmation-time">${this.formatLocalDateTime(request.canceledAt)}</span>
                             ${this.renderUserLabel(request.canceledBy || request.requestedBy)}
                             <span>${this.msg.canceledReadConfirmation}</span>
-                            <span class="read-confirmation-time">${this.formatLocalDateTime(request.canceledAt)}</span>
                         </div>
                     ` : nothing)}
                 </div>` : nothing}
-                ${executionFollowups.map(request => this.renderExecutionFollowup(message, request))}
+                ${executionFollowups.map(request => this.renderExecutionFollowup(request))}
             </div>
         `;
     }
 
-    private renderExecutionFollowup(message: msg.Message, request: msg.MessageReadConfirmation) {
+    private renderExecutionFollowup(request: msg.MessageReadConfirmation) {
+        const events = [
+            {
+                at: request.requestedAt,
+                userId: request.requestedBy,
+                label: this.msg.requestedExecutionConfirmation,
+                reaction: undefined as FollowupReaction | undefined,
+            },
+            ...(request.followupHistory || []).map(item => ({
+                at: item.at,
+                userId: item.userId,
+                label: this.getFollowupLabel(this.isFollowupReaction(item.reaction) ? item.reaction : undefined),
+                reaction: this.isFollowupReaction(item.reaction) ? item.reaction : undefined,
+            })),
+        ].sort((a, b) => a.at.localeCompare(b.at));
         return html`
             <div class="message-read-confirmation execution-followup">
-                <div class="read-confirmation-line">
-                    ${this.renderUserLabel(request.requestedBy)}
-                    <span>${this.msg.requestedExecutionConfirmation}</span>
-                    <span class="read-confirmation-time">${this.formatLocalDateTime(request.requestedAt)}</span>
-                </div>
-                ${request.targetUserIds.map(userId => {
-            const reaction = this.getFollowupReactionForUser(message, userId);
-            return html`
-                        <div class="read-confirmation-line ${reaction ? 'confirmed' : 'pending'}">
-                            ${this.renderUserLabel(userId)}
-                            <span class="followup-status-icon">${this.renderFollowupIcon(reaction)}</span>
-                            <span>${this.getFollowupLabel(reaction)}</span>
-                        </div>
-                    `;
-        })}
-                ${this.getFollowupReactionForUser(message, request.requestedBy) === 'followup_revisado' ? html`
+                ${events.map(event => html`
                     <div class="read-confirmation-line confirmed">
-                        ${this.renderUserLabel(request.requestedBy)}
-                        <span class="followup-status-icon">${this.renderFollowupIcon('followup_revisado')}</span>
-                        <span>${this.msg.followupRevisado}</span>
+                        <span class="read-confirmation-time">${this.formatLocalDateTime(event.at)}</span>
+                        ${this.renderUserLabel(event.userId)}
+                        ${event.reaction ? html`<span class="followup-status-icon">${this.renderFollowupIcon(event.reaction)}</span>` : nothing}
+                        <span>${event.label}</span>
                     </div>
-                ` : nothing}
+                `)}
             </div>
         `;
     }

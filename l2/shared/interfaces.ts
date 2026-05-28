@@ -151,6 +151,13 @@ declare module '/_102036_/l2/shared/interfaces.js' {
     confirmedBy?: Record<string, string>;
     canceledAt?: string;
     canceledBy?: string;
+    followupHistory?: MessageFollowupHistoryEntry[];
+  }
+
+  export interface MessageFollowupHistoryEntry {
+    userId: string;
+    reaction: string;
+    at: string;
   }
 
   export interface Thread {
