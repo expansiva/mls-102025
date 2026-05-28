@@ -303,16 +303,16 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             </div> `: html``
                             }
                             ${!isMessageContentHidden ? this.renderMessageResultByLanguage(message) : nothing}
-                            ${!isMessageContentHidden ? this.renderReadConfirmations(message) : nothing}
+                            ${!isMessageContentHidden && this.showEditHistory ? this.renderReadConfirmations(message) : nothing}
                             ${!isMessageContentHidden ? this.renderMessageFooterResult(message) : nothing}
                             ${!isMessageContentHidden ? this.renderReactions(message) : nothing}
                             ${!isMessageContentHidden ? this.renderReactionPicker(message) : nothing}
+                            ${this.renderEditHistory(message)}
                             <div class="message-footer">
                                 ${this.renderHistoryToggle(message)}
                                 <span>${dateFormated?.timeShort}</span>
                                 ${message.editedAt ? html`<small>${this.msg.edited}</small>` : nothing}
                             </div>
-                            ${this.renderEditHistory(message)}
                         </div>
                         ${cls === 'system' ? this.renderSideAction(message) : nothing}
                         ${cls === 'system' && !isSame && !this.isCurrentThreadDirectMessage() ? html`<collab-messages-avatar-102025 avatar=${userAvatar} alt=${userName} ></collab-messages-avatar-102025>` : ''}
@@ -460,7 +460,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private renderHistoryToggle(message: msg.Message) {
-        if (!message.edits?.length || this.isMessageContentHidden(message)) return nothing;
+        if (!this.hasMessageHistory(message) || this.isMessageContentHidden(message)) return nothing;
         return html`
             <button
                 class="message-history-toggle"
@@ -469,6 +469,18 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${this.showEditHistory ? this.msg.hideHistory : this.msg.showHistory}
             </button>
         `;
+    }
+
+    private hasMessageHistory(message: msg.Message): boolean {
+        return !!message.edits?.length || this.hasReadConfirmationHistory(message);
+    }
+
+    private hasReadConfirmationHistory(message: msg.Message): boolean {
+        if (!message.readConfirmations?.length) return false;
+        return message.readConfirmations.some(item => {
+            const kind = this.getReadConfirmationKind(item);
+            return kind === 'read' || kind === 'execution';
+        });
     }
 
     private renderAttachments(message: msg.Message) {
