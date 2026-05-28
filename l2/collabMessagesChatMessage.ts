@@ -61,11 +61,13 @@ const message_pt = {
     deletedBy: 'deletada por',
     moderatedBy: 'moderada por',
     originalVisibleToModerators: 'conteúdo original visível para admins e moderadores',
-    requestedReadConfirmation: 'pediu confirmação de leitura em',
-    requestedExecutionConfirmation: 'pediu confirmação de execução em',
-    confirmedRead: 'confirmou leitura em',
-    canceledReadConfirmation: 'cancelou confirmação de leitura em',
+    requestedReadConfirmation: 'pediu confirmação de leitura',
+    requestedExecutionConfirmation: 'pediu confirmação de execução',
+    confirmedRead: 'confirmou leitura',
+    canceledReadConfirmation: 'cancelou confirmação de leitura',
     notConfirmedRead: 'não confirmado',
+    readConfirmationWaiting: 'aguardando leitura',
+    readConfirmationRead: 'lido',
     followupPending: 'pendente',
     followupLido: 'Lido',
     followupVouFazer: 'Vou fazer',
@@ -119,11 +121,13 @@ const message_en = {
     deletedBy: 'deleted by',
     moderatedBy: 'moderated by',
     originalVisibleToModerators: 'original content visible to admins and moderators',
-    requestedReadConfirmation: 'requested read confirmation at',
-    requestedExecutionConfirmation: 'requested execution confirmation at',
-    confirmedRead: 'confirmed reading at',
-    canceledReadConfirmation: 'canceled read confirmation at',
+    requestedReadConfirmation: 'requested read confirmation',
+    requestedExecutionConfirmation: 'requested execution confirmation',
+    confirmedRead: 'confirmed reading',
+    canceledReadConfirmation: 'canceled read confirmation',
     notConfirmedRead: 'not confirmed',
+    readConfirmationWaiting: 'waiting for read',
+    readConfirmationRead: 'read',
     followupPending: 'pending',
     followupLido: 'Read',
     followupVouFazer: 'Will do',
@@ -181,6 +185,7 @@ type ReactionSummaryItem = {
     icon: string | TemplateResult;
     count: number;
     isFollowup: boolean;
+    isReadConfirmation?: boolean;
 };
 
 @customElement('collab-messages-chat-message-102025')
@@ -273,7 +278,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const userAvatar = userToFind.find((user) => user.userId === message.senderId)?.avatar_url || '';
         const cls = message.senderId === this.userId ? 'user' : 'system';
         const titleTranslated = this.getTitleMessageTranslated(message);
-        const hasReactions = this.hasExecutionFollowup(message) || (message.reactions ? Object.keys(message.reactions).length > 0 : false);
+        const hasReactions = this.getReactionSummaryItems(message).length > 0;
         const isMessageContentHidden = this.isMessageContentHidden(message);
         return html`
             <div class="message ${cls} ${isSame ? 'same' : ''} ${hasReactions ? 'reaction-on' : ''}">
@@ -1059,7 +1064,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 @click=${(ev: Event) => this.openReactionList(message, ev)}
             >
                 ${summaryItems.map(item => html`
-                    <span class="reaction-emoji ${item.isFollowup ? 'followup-icon' : ''}">
+                    <span class="reaction-emoji ${item.isFollowup ? 'followup-icon' : ''} ${item.isReadConfirmation ? 'read-confirmation-icon' : ''}">
                         ${item.icon}
                     </span>
                 `)}
@@ -1170,12 +1175,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         return [
             ...this.getEmojiReactionListItems(message),
             ...this.getFollowupReactionListItems(message),
+            ...this.getReadConfirmationReactionListItems(message),
         ];
     }
 
     private getReactionSummaryItems(message: IMessage): ReactionSummaryItem[] {
-        if (!message.reactions) return [];
-        return Object.entries(message.reactions)
+        const reactionItems = Object.entries(message.reactions || {})
             .map(([name, users]) => {
                 const icon = this.getReactionIcon(name);
                 if (!icon || users.length === 0) return undefined;
@@ -1187,6 +1192,51 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 };
             })
             .filter((item): item is ReactionSummaryItem => !!item);
+        return [
+            ...reactionItems,
+            ...this.getReadConfirmationSummaryItems(message),
+        ];
+    }
+
+    private getReadConfirmationSummaryItems(message: IMessage): ReactionSummaryItem[] {
+        const statuses = this.getActiveReadConfirmationStatuses(message);
+        const pendingCount = statuses.filter(item => !item.confirmedAt).length;
+        const confirmedCount = statuses.filter(item => !!item.confirmedAt).length;
+        const items: ReactionSummaryItem[] = [];
+        if (pendingCount) {
+            items.push({
+                reactionName: 'read_pending',
+                icon: '?',
+                count: pendingCount,
+                isFollowup: false,
+                isReadConfirmation: true,
+            });
+        }
+        if (confirmedCount) {
+            items.push({
+                reactionName: 'read_confirmed',
+                icon: '!',
+                count: confirmedCount,
+                isFollowup: false,
+                isReadConfirmation: true,
+            });
+        }
+        return items;
+    }
+
+    private getReadConfirmationReactionListItems(message: IMessage): ReactionListItem[] {
+        return this.getActiveReadConfirmationStatuses(message).map(({ userId, confirmedAt }) => ({
+            userId,
+            icon: confirmedAt ? '!' : '?',
+            label: confirmedAt ? this.msg.readConfirmationRead : this.msg.readConfirmationWaiting,
+        }));
+    }
+
+    private getActiveReadConfirmationStatuses(message: IMessage) {
+        const activeReadConfirmations = (message.readConfirmations || [])
+            .filter(item => this.getReadConfirmationKind(item) === 'read' && !item.canceledAt);
+        if (!activeReadConfirmations.length) return [];
+        return this.getReadConfirmationStatusByUser(activeReadConfirmations);
     }
 
     private getReactionIcon(name: string): string | TemplateResult | undefined {
@@ -1331,6 +1381,17 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
         return html`
         <div class="reaction-picker">
+            ${this.hasPendingReadConfirmation(message) ? html`
+                <button
+                    class="reaction-picker-item read-confirmation-picker-item"
+                    title=${this.msg.confirmRead}
+                    aria-label=${this.msg.confirmRead}
+                    @click=${(ev: Event) => this.onReadConfirmationPickerClick(ev, message)}
+                >
+                    <span class="read-confirmation-picker-symbol">!</span>
+                    <span class="read-confirmation-picker-label">${this.msg.readConfirmationRead}</span>
+                </button>
+            ` : nothing}
             ${Object.entries(this.reactionEmojis).map(([name, emoji]) => html`
                 <button
                     class="reaction-picker-item"
@@ -1350,6 +1411,11 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const updated = this.toggleReaction(message, emoji, this.userId);
         this.message = updated;
         this.closeReactionPicker();
+    }
+
+    private onReadConfirmationPickerClick(ev: Event, message: IMessage) {
+        ev.stopPropagation();
+        this.onReadConfirmationClick(message, 'confirm');
     }
 
     private onFollowupActionClick(ev: Event, message: IMessage, reaction: FollowupReaction) {
@@ -1694,13 +1760,15 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ?disabled=${!canRequestReadConfirmation && !canCancelReadConfirmation}
                 @click=${() => this.onReadConfirmationClick(message, canCancelReadConfirmation ? 'cancel' : 'request')}
             >
-                ${canCancelReadConfirmation ? collab_xmark : collab_circle_exclamation}
+                ${canCancelReadConfirmation ? collab_xmark : html`<span class="message-menu-symbol">?</span>`}
                 ${canCancelReadConfirmation ? this.msg.cancelReadConfirmation : this.msg.requestReadConfirmation}
             </button>
-            <button ?disabled=${!canConfirmRead} @click=${() => this.onReadConfirmationClick(message, 'confirm')}>
-                ${collab_check}
-                ${this.msg.confirmRead}
-            </button>
+            ${canConfirmRead ? html`
+                <button @click=${() => this.onReadConfirmationClick(message, 'confirm')}>
+                    <span class="message-menu-symbol">!</span>
+                    ${this.msg.confirmRead}
+                </button>
+            ` : nothing}
             <button
                 ?disabled=${!canRequestExecutionConfirmation}
                 @click=${() => this.onReadConfirmationClick(message, 'requestExecution')}
