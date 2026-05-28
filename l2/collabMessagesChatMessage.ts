@@ -52,6 +52,7 @@ const message_pt = {
     unfavorite: 'Remover favorito',
     requestReadConfirmation: 'Confirmação de leitura',
     requestExecutionConfirmation: 'Confirmação de execução',
+    followupActions: 'Follow-up ações',
     cancelReadConfirmation: 'Cancelar confirmação de leitura',
     confirmRead: 'Recebi e li a mensagem',
     allConfirmedRead: 'Confirmado que todos receberam',
@@ -109,6 +110,7 @@ const message_en = {
     unfavorite: 'Remove favorite',
     requestReadConfirmation: 'Read confirmation',
     requestExecutionConfirmation: 'Execution confirmation',
+    followupActions: 'Follow-up actions',
     cancelReadConfirmation: 'Cancel read confirmation',
     confirmRead: 'I received and read the message',
     allConfirmedRead: 'Confirmed that everyone received it',
@@ -193,6 +195,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @property() reactionListTarget?: HTMLElement;
     @property() openedFollowupActionsMessageId?: string;
     @property() followupActionTarget?: HTMLElement;
+    @property({ attribute: false }) followupActionAnchor?: DOMRect;
 
     @state() userPreferenceChat?: IChatPreferences;
     @state() private messageMenuPlacement: 'top' | 'bottom' = 'bottom';
@@ -204,6 +207,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     public onTaskClick?: Function;
     private msg: MessageType = messages['en'];
     private readonly documentClickHandler = (ev: MouseEvent) => this.onDocumentClick(ev);
+    private readonly documentScrollHandler = () => this.closeLocalPopups();
 
     private readonly reactionEmojis: Record<string, string> = {
         thumbs_up: '👍',
@@ -217,10 +221,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     connectedCallback() {
         super.connectedCallback();
         document.addEventListener('click', this.documentClickHandler, true);
+        document.addEventListener('scroll', this.documentScrollHandler, true);
     }
 
     disconnectedCallback() {
         document.removeEventListener('click', this.documentClickHandler, true);
+        document.removeEventListener('scroll', this.documentScrollHandler, true);
         super.disconnectedCallback();
     }
 
@@ -1350,18 +1356,33 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         this.closeAllPopups();
         this.openedFollowupActionsMessageId = message.createAt;
         this.followupActionTarget = ev.currentTarget as HTMLElement;
+        this.followupActionAnchor = undefined;
     }
 
     private closeFollowupActionMenu() {
         this.openedFollowupActionsMessageId = undefined;
         this.followupActionTarget = undefined;
+        this.followupActionAnchor = undefined;
     }
 
     private onDocumentClick(ev: MouseEvent) {
         const target = ev.target;
         if (!(target instanceof Node)) return;
-        if (this.contains(target)) return;
+        if (this.contains(target) && this.isPopupInteractionTarget(target)) return;
         this.closeLocalPopups();
+    }
+
+    private isPopupInteractionTarget(target: Node): boolean {
+        const element = target instanceof Element ? target : target.parentElement;
+        return !!element?.closest([
+            '.message-menu',
+            '.message-action.submenu',
+            '.reaction-picker',
+            '.reaction.add',
+            '.message-reactions',
+            '.followup-action-menu',
+            '.followup-action-trigger',
+        ].join(','));
     }
 
     private closeLocalPopups() {
@@ -1373,6 +1394,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         this.reactionListTarget = undefined;
         this.openedFollowupActionsMessageId = undefined;
         this.followupActionTarget = undefined;
+        this.followupActionAnchor = undefined;
     }
 
 
@@ -1503,11 +1525,11 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private positionFollowupActionMenu() {
-        if (!this.followupActionTarget) return;
+        if (!this.followupActionTarget && !this.followupActionAnchor) return;
         const menu = this.querySelector('.followup-action-menu') as HTMLElement | null;
         if (!menu) return;
 
-        const targetRect = this.followupActionTarget.getBoundingClientRect();
+        const targetRect = this.followupActionAnchor || this.followupActionTarget!.getBoundingClientRect();
         const menuRect = menu.getBoundingClientRect();
         const GAP = 8;
         const VIEWPORT_GAP = 8;
@@ -1619,6 +1641,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const canCancelReadConfirmation = canUseMessageActions && this.canCancelReadConfirmation(message);
         const canRequestReadConfirmation = canUseMessageActions && this.getMentionedUserIds(message).length > 0 && !this.hasReadConfirmation(message);
         const canRequestExecutionConfirmation = canUseMessageActions && this.getMentionedUserIds(message).length > 0 && !this.hasExecutionFollowup(message);
+        const canOpenFollowupActions = canUseMessageActions && this.hasExecutionFollowup(message) && this.getFollowupActions(message).length > 0;
         const canConfirmRead = canUseMessageActions && this.hasPendingReadConfirmation(message);
         const allConfirmedRead = this.hasAllReadConfirmationsConfirmed(message);
         const canDeleteMessage = this.canDeleteMessage(message);
@@ -1670,6 +1693,15 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${collab_play}
                 ${this.msg.requestExecutionConfirmation}
             </button>
+            ${this.hasExecutionFollowup(message) ? html`
+                <button
+                    ?disabled=${!canOpenFollowupActions}
+                    @click=${(ev: Event) => this.onFollowupActionsMenuClick(ev, message)}
+                >
+                    ${collab_play}
+                    ${this.msg.followupActions}
+                </button>
+            ` : nothing}
             ${allConfirmedRead ? html`
                 <button disabled>
                     ${collab_check}
@@ -1824,6 +1856,23 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             bubbles: true,
             composed: true
         }));
+    }
+
+    private onFollowupActionsMenuClick(ev: Event, message: IMessage) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (!this.getFollowupActions(message).length) return;
+
+        const target = ev.currentTarget as HTMLElement;
+        this.openedMenuFor = undefined;
+        this.messageMenuTarget = undefined;
+        this.openedReactionMessageId = undefined;
+        this.reactionPickerTarget = undefined;
+        this.openedReactionListMessageId = undefined;
+        this.reactionListTarget = undefined;
+        this.openedFollowupActionsMessageId = message.createAt;
+        this.followupActionTarget = undefined;
+        this.followupActionAnchor = target.getBoundingClientRect();
     }
 
     private onMessageActionClick(message: IMessage, action: 'delete' | 'moderate' | 'createTask') {
