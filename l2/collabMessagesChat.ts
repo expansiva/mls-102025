@@ -33,6 +33,7 @@ import {
     updateMessage,
     getMessage,
     getMessagesByThreadId,
+    getAllMessagesByThreadId,
     deleteAllMessagesFromThread,
     deleteTask,
     listUsers,
@@ -58,6 +59,7 @@ import {
 import {
     msgGetMessagesAfter,
     msgGetMessagesBefore,
+    msgGetMessage,
     msgGetTaskUpdate,
     msgGetThreadUpdates,
     msgAddMessage,
@@ -127,6 +129,7 @@ const message_pt = {
     toolbarHelpAttachmentsText: 'Use para navegar rapidamente pelas mensagens com arquivos, imagens, videos ou documentos anexados.',
     toolbarHelpAgentTitle: 'Agente de resumo',
     toolbarHelpAgentText: 'Este espaco esta preparado para recursos de agente que ajudam a reduzir ruido e destacar pontos importantes da conversa.',
+    toolbarNavigationError: 'Não foi possível abrir a mensagem',
     replaceOldestPin: 'Já existem 3 mensagens fixadas. Substituir a mais antiga?',
     readOnlyThread: 'Você tem acesso somente leitura nesta sala.',
     forwardMessageTitle: 'Encaminhar mensagem',
@@ -177,6 +180,7 @@ const message_en = {
     toolbarHelpAttachmentsText: 'Use this to quickly navigate messages with files, images, videos, or documents attached.',
     toolbarHelpAgentTitle: 'Summary agent',
     toolbarHelpAgentText: 'This area is prepared for agent features that help reduce noise and highlight important conversation points.',
+    toolbarNavigationError: 'Could not open the message',
     replaceOldestPin: 'There are already 3 pinned messages. Replace the oldest one?',
     readOnlyThread: 'You have read-only access in this room.',
     forwardMessageTitle: 'Forward message',
@@ -243,13 +247,16 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private isForwardingMessage: boolean = false;
     @state() private highlightedMessageId: string = '';
     @state() private toolbarHelpKind?: ToolbarItemKind;
+    @state() private toolbarNavigationKind?: ToolbarItemKind;
+    @state() private toolbarNavigationFailedKind?: ToolbarItemKind;
+    @state() private toolbarNavigationError: string = '';
+    @state() private cachedToolbarMessages: IMessage[] = [];
 
     private isSystemChangeScroll: boolean = false;
     private savedScrollTop = 0;
     private hasMoreMessagesLocalDB = true;
     private hasMoreMessagesBefore: boolean = false;
     private messagesLimit = 50;
-    private messagesOffset = 0;
     private isLoadingMoreMessages = false;
     private isChangeTopics = false;
     private wasMessagesAtBottom: boolean = true;
@@ -638,6 +645,8 @@ export class CollabMessagesChat extends StateLitElement {
                 active: this.toolbarView.pins !== undefined,
                 important: false,
                 attention: false,
+                loading: this.toolbarNavigationKind === 'pins',
+                error: this.toolbarNavigationFailedKind === 'pins',
                 onClick: () => this.navigateToolbarItem('pins')
             },
             {
@@ -647,6 +656,8 @@ export class CollabMessagesChat extends StateLitElement {
                 active: this.toolbarView.saved !== undefined,
                 important: false,
                 attention: false,
+                loading: this.toolbarNavigationKind === 'saved',
+                error: this.toolbarNavigationFailedKind === 'saved',
                 onClick: () => this.navigateToolbarItem('saved')
             },
             {
@@ -656,6 +667,8 @@ export class CollabMessagesChat extends StateLitElement {
                 active: this.toolbarView.readReceipts !== undefined,
                 important: hasPendingReadConfirmation,
                 attention: hasPendingReadConfirmation,
+                loading: this.toolbarNavigationKind === 'readReceipts',
+                error: this.toolbarNavigationFailedKind === 'readReceipts',
                 onClick: () => this.navigateToolbarItem('readReceipts')
             },
             {
@@ -665,6 +678,8 @@ export class CollabMessagesChat extends StateLitElement {
                 active: this.toolbarView.attachments !== undefined,
                 important: false,
                 attention: false,
+                loading: this.toolbarNavigationKind === 'attachments',
+                error: this.toolbarNavigationFailedKind === 'attachments',
                 onClick: () => this.navigateToolbarItem('attachments')
             },
             {
@@ -674,6 +689,8 @@ export class CollabMessagesChat extends StateLitElement {
                 active: this.toolbarView.agent !== undefined,
                 important: false,
                 attention: false,
+                loading: this.toolbarNavigationKind === 'agent',
+                error: this.toolbarNavigationFailedKind === 'agent',
                 onClick: () => this.navigateToolbarItem('agent')
             }
         ];
@@ -682,14 +699,16 @@ export class CollabMessagesChat extends StateLitElement {
             <div class="thread-toolbar" role="toolbar">
                 ${items.map(item => html`
                     <button
-                        class="thread-toolbar-btn ${item.active ? 'active' : ''} ${item.important ? 'important' : ''} ${item.attention ? 'attention' : ''}"
-                        .title=${this.getToolbarTitle(item.kind)}
-                        aria-label=${this.getToolbarTitle(item.kind)}
+                        class="thread-toolbar-btn ${item.active ? 'active' : ''} ${item.important ? 'important' : ''} ${item.attention ? 'attention' : ''} ${item.loading ? 'loading' : ''} ${item.error ? 'error' : ''}"
+                        .title=${item.error ? this.toolbarNavigationError : this.getToolbarTitle(item.kind)}
+                        aria-label=${item.error ? this.toolbarNavigationError : this.getToolbarTitle(item.kind)}
+                        ?disabled=${item.loading}
                         @click=${item.onClick}
                     >
                         ${item.icon}
                         ${this.renderToolbarCounter(item.kind, item.total)}
-                        ${item.important ? html`<span class="toolbar-alert">*</span>` : nothing}
+                        ${item.loading ? html`<span class="toolbar-loading"></span>` : nothing}
+                        ${item.error ? html`<span class="toolbar-alert">!</span>` : item.important ? html`<span class="toolbar-alert">*</span>` : nothing}
                     </button>
                 `)}
             </div>
@@ -703,13 +722,14 @@ export class CollabMessagesChat extends StateLitElement {
         return html`<span class="toolbar-counter">(${label})</span>`;
     }
 
-    private navigateToolbarItem(kind: ToolbarItemKind) {
+    private async navigateToolbarItem(kind: ToolbarItemKind) {
+        if (this.toolbarNavigationKind) return;
         if (kind === 'pins') {
             const pinnedMessages = this.actualThread?.thread.pinnedMessages || [];
             if (pinnedMessages.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, pinnedMessages.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.scrollToMessageId(pinnedMessages[nextIndex].messageId);
+            await this.navigateToMessageId(pinnedMessages[nextIndex].messageId, kind);
             return;
         }
         if (kind === 'saved') {
@@ -717,7 +737,7 @@ export class CollabMessagesChat extends StateLitElement {
             if (favoriteMessageIds.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, favoriteMessageIds.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.scrollToMessageId(favoriteMessageIds[nextIndex]);
+            await this.navigateToMessageId(favoriteMessageIds[nextIndex], kind);
             return;
         }
         if (kind === 'readReceipts') {
@@ -725,7 +745,7 @@ export class CollabMessagesChat extends StateLitElement {
             if (readConfirmationMessageIds.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, readConfirmationMessageIds.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.scrollToMessageId(readConfirmationMessageIds[nextIndex]);
+            await this.navigateToMessageId(readConfirmationMessageIds[nextIndex], kind);
             return;
         }
         if (kind === 'attachments') {
@@ -733,7 +753,7 @@ export class CollabMessagesChat extends StateLitElement {
             if (attachments.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, attachments.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.scrollToMessageId(`${attachments[nextIndex].threadId}/${attachments[nextIndex].orderAt || attachments[nextIndex].createAt}`);
+            await this.navigateToMessageId(`${attachments[nextIndex].threadId}/${attachments[nextIndex].orderAt || attachments[nextIndex].createAt}`, kind);
             return;
         }
         if (kind === 'agent') {
@@ -741,7 +761,7 @@ export class CollabMessagesChat extends StateLitElement {
             if (agentMessages.length === 0) return this.openToolbarHelp(kind);
             const nextIndex = this.getNextToolbarIndex(kind, agentMessages.length);
             this.toolbarView = { ...this.toolbarView, [kind]: nextIndex };
-            this.scrollToMessageId(`${agentMessages[nextIndex].threadId}/${agentMessages[nextIndex].orderAt || agentMessages[nextIndex].createAt}`);
+            await this.navigateToMessageId(`${agentMessages[nextIndex].threadId}/${agentMessages[nextIndex].orderAt || agentMessages[nextIndex].createAt}`, kind);
         }
     }
 
@@ -770,17 +790,31 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private getAttachmentMessages(): IMessage[] {
-        return this.actualMessages.filter(message => {
+        return this.getMessagesKnownToToolbar().filter(message => {
             const hasActiveAttachments = !!message.attachments?.some(attachment => attachment.status === 'active');
             return hasActiveAttachments || !!message.url || (!!message.type && message.type !== 'text' && !message.attachments?.length);
         });
     }
 
     private getAgentMessages(): IMessage[] {
-        return this.actualMessages.filter(message =>
+        return this.getMessagesKnownToToolbar().filter(message =>
             !!message.footers?.length ||
             !!message.taskResults?.length ||
             !!message.taskResultsTranslated
+        );
+    }
+
+    private getMessagesKnownToToolbar(): IMessage[] {
+        const messagesById = new Map<string, IMessage>();
+        for (const message of [...this.cachedToolbarMessages, ...this.actualMessages]) {
+            const messageId = this.getMessageCacheKey(message);
+            messagesById.set(messageId, {
+                ...messagesById.get(messageId),
+                ...message
+            });
+        }
+        return [...messagesById.values()].sort((a, b) =>
+            (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt)
         );
     }
 
@@ -820,15 +854,15 @@ export class CollabMessagesChat extends StateLitElement {
             const loadedMessage = this.getLoadedMessageById(messageId);
             return loadedMessage ? this.isReadConfirmationPendingForCurrentUser(loadedMessage) : true;
         }) ||
-            this.actualMessages.some(message => this.isReadConfirmationPendingForCurrentUser(message));
+            this.getMessagesKnownToToolbar().some(message => this.isReadConfirmationPendingForCurrentUser(message));
     }
 
     private getLoadedMessageById(messageId: string): msg.Message | undefined {
-        return this.actualMessages.find(message => `${message.threadId}/${message.orderAt || message.createAt}` === messageId);
+        return this.getMessagesKnownToToolbar().find(message => this.isSameMessageId(message, messageId));
     }
 
     private getReadConfirmationMessageIdsFromLoadedMessages(): string[] {
-        return this.actualMessages
+        return this.getMessagesKnownToToolbar()
             .filter(message => this.isReadConfirmationRelevantForCurrentUser(message))
             .map(message => `${message.threadId}/${message.orderAt || message.createAt}`);
     }
@@ -885,18 +919,166 @@ export class CollabMessagesChat extends StateLitElement {
         ].find(user => user.userId === this.userId);
     }
 
-    private scrollToMessageId(messageId: string) {
+    private async navigateToMessageId(messageId: string, kind: ToolbarItemKind) {
+        const normalizedMessageId = this.normalizeToolbarMessageId(messageId);
+        if (!normalizedMessageId) return;
+
+        this.toolbarNavigationKind = kind;
+        this.toolbarNavigationFailedKind = undefined;
+        this.toolbarNavigationError = '';
+
+        try {
+            if (this.scrollToMessageId(normalizedMessageId)) return;
+
+            const localMessage = await this.getLocalMessageById(normalizedMessageId);
+            if (localMessage) {
+                await this.renderMessageWindowFromLocalCache(localMessage);
+            } else {
+                await this.renderMessageWindowFromServer(normalizedMessageId);
+            }
+
+            await this.updateComplete;
+            await this.waitingForRenderCodesWebComponents();
+            await this.nextFrame();
+            await this.nextFrame();
+
+            if (!this.scrollToMessageId(normalizedMessageId)) {
+                throw new Error(this.msg.toolbarNavigationError);
+            }
+        } catch (err: any) {
+            this.toolbarNavigationFailedKind = kind;
+            this.toolbarNavigationError = err?.message || this.msg.toolbarNavigationError;
+        } finally {
+            this.toolbarNavigationKind = undefined;
+        }
+    }
+
+    private normalizeToolbarMessageId(messageId: string): string | undefined {
+        const threadId = this.actualThread?.thread.threadId;
+        if (!threadId) return undefined;
+        return this.normalizeMessageId(threadId, messageId);
+    }
+
+    private async getLocalMessageById(messageId: string): Promise<IMessage | undefined> {
+        const messageFromKey = await getMessage(messageId);
+        if (messageFromKey) return messageFromKey as IMessage;
+
+        const { threadId, orderAt } = this.parseMessageId(messageId);
+        if (!threadId || !orderAt) return undefined;
+
+        const messages = await getAllMessagesByThreadId(threadId);
+        return messages.find(message =>
+            message.threadId === threadId &&
+            (message.orderAt === orderAt || message.createAt === orderAt)
+        ) as IMessage | undefined;
+    }
+
+    private async renderMessageWindowFromLocalCache(targetMessage: IMessage) {
+        const allMessages = await getAllMessagesByThreadId(targetMessage.threadId);
+        const messageWindow = this.buildMessageWindowFromTarget(allMessages, targetMessage);
+        this.applyToolbarMessageWindow(messageWindow);
+        await this.refreshCachedToolbarMessages();
+    }
+
+    private async renderMessageWindowFromServer(messageId: string) {
+        if (!this.userId || !this.actualThread) throw new Error(this.msg.toolbarNavigationError);
+
+        const { threadId } = this.parseMessageId(messageId);
+        if (!threadId || threadId !== this.actualThread.thread.threadId) throw new Error(this.msg.toolbarNavigationError);
+
+        const messageResult = await msgGetMessage({
+            threadId,
+            messageId,
+            userId: this.userId
+        });
+
+        if (!messageResult.success || !messageResult.response?.message) {
+            throw new Error(messageResult.error || this.msg.toolbarNavigationError);
+        }
+
+        const targetMessage = messageResult.response.message as msg.MessagePerformanceCache;
+        const afterResponse = await this.getMessagesAfter(
+            this.actualThread.thread,
+            targetMessage.orderAt || targetMessage.createAt
+        );
+        const messages = [targetMessage, ...(afterResponse?.data || [])]
+            .slice(0, this.messagesLimit)
+            .map(message => ({ ...message, footers: [] }));
+
+        await addMessages(messages);
+        this.hasMoreMessagesBefore = true;
+        this.applyToolbarMessageWindow(messages);
+        await this.refreshCachedToolbarMessages();
+    }
+
+    private buildMessageWindowFromTarget(
+        messages: msg.MessagePerformanceCache[],
+        targetMessage: msg.Message
+    ): IMessage[] {
+        const targetId = this.getMessageCacheKey(targetMessage);
+        const messagesById = new Map<string, msg.MessagePerformanceCache>();
+
+        for (const message of [...messages, targetMessage as msg.MessagePerformanceCache]) {
+            messagesById.set(this.getMessageCacheKey(message), {
+                ...messagesById.get(this.getMessageCacheKey(message)),
+                ...message
+            });
+        }
+
+        const sortedMessages = [...messagesById.values()].sort((a, b) =>
+            (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt)
+        );
+        const targetIndex = sortedMessages.findIndex(message =>
+            this.getMessageCacheKey(message) === targetId ||
+            this.isSameMessageId(message, targetId)
+        );
+        const startIndex = targetIndex >= 0 ? targetIndex : 0;
+        return sortedMessages.slice(startIndex, startIndex + this.messagesLimit) as IMessage[];
+    }
+
+    private applyToolbarMessageWindow(messages: IMessage[]) {
+        this.actualMessages = messages;
+        this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+        this.hasMoreMessagesLocalDB = true;
+        this.isSystemChangeScroll = true;
+    }
+
+    private parseMessageId(messageId: string): { threadId: string; orderAt: string } {
+        const parts = messageId.split('/').filter(Boolean);
+        return {
+            threadId: parts[0] || '',
+            orderAt: parts[parts.length - 1] || ''
+        };
+    }
+
+    private getMessageCacheKey(message: Pick<msg.Message, 'threadId' | 'createAt' | 'orderAt'>): string {
+        return `${message.threadId}/${message.orderAt || message.createAt}`;
+    }
+
+    private isSameMessageId(message: Pick<msg.Message, 'threadId' | 'createAt' | 'orderAt'>, messageId: string): boolean {
+        const { threadId, orderAt } = this.parseMessageId(messageId);
+        return message.threadId === threadId && (message.orderAt === orderAt || message.createAt === orderAt);
+    }
+
+    private scrollToMessageId(messageId: string): boolean {
         this.highlightedMessageId = messageId;
         this.isToolbarAutoScroll = true;
         this.ignoreToolbarScrollClearUntil = Date.now() + 2000;
         this.deferToolbarAutoScrollEnd();
         const orderAt = messageId.split('/').pop();
-        if (!orderAt) return;
-        const messageEl = this.messageContainer?.querySelector(
-            `collab-messages-chat-message-102025[messageid="${orderAt}"]`
-        );
-        if (!messageEl) return;
+        if (!orderAt) return false;
+        const message = this.getLoadedMessageById(messageId);
+        const domIds = [...new Set([orderAt, message?.createAt].filter((item): item is string => !!item))];
+        let messageEl: Element | null = null;
+        for (const domId of domIds) {
+            messageEl = this.messageContainer?.querySelector(
+                `collab-messages-chat-message-102025[messageid="${domId}"]`
+            ) || null;
+            if (messageEl) break;
+        }
+        if (!messageEl) return false;
         messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return true;
     }
 
     private deferToolbarAutoScrollEnd() {
@@ -907,7 +1089,7 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private isMessageHighlightedByToolbar(message: IMessage): boolean {
-        return this.highlightedMessageId === `${message.threadId}/${message.orderAt || message.createAt}`;
+        return this.isSameMessageId(message, this.highlightedMessageId);
     }
 
     private async onTopicClick(e: CustomEvent) {
@@ -1374,11 +1556,31 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private async getBeforeMessagesInServer(thread: msg.ThreadPerformanceCache) {
-        const firstItem = [...this.actualMessages].sort((a, b) => a.orderAt.localeCompare(b.orderAt))[0];
-        const response = await this.getMessagesBefore(thread, firstItem.orderAt);
+        const firstItem = [...this.actualMessages]
+            .sort((a, b) => (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt))[0];
+        if (!firstItem) return [];
+        const response = await this.getMessagesBefore(thread, firstItem.orderAt || firstItem.createAt);
         const newMessages = response?.data;
         this.hasMoreMessagesBefore = response?.hasMore || false;
         return newMessages;
+    }
+
+    private async getBeforeMessagesInLocalDb(threadId: string): Promise<IMessage[]> {
+        const firstItem = [...this.actualMessages]
+            .sort((a, b) => (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt))[0];
+        if (!firstItem) return [];
+
+        const firstOrderAt = firstItem.orderAt || firstItem.createAt;
+        const loadedMessageIds = new Set(this.actualMessages.map(message => this.getMessageCacheKey(message)));
+        const messages = await getAllMessagesByThreadId(threadId);
+
+        return messages
+            .filter(message =>
+                (message.orderAt || message.createAt) < firstOrderAt &&
+                !loadedMessageIds.has(this.getMessageCacheKey(message))
+            )
+            .sort((a, b) => (b.orderAt || b.createAt).localeCompare(a.orderAt || a.createAt))
+            .slice(0, this.messagesLimit) as IMessage[];
     }
 
     private onCopyChat(ev: ClipboardEvent) {
@@ -1499,15 +1701,9 @@ export class CollabMessagesChat extends StateLitElement {
         ) {
 
             this.isLoadingMoreMessages = true;
-            const newOffset = this.messagesOffset + this.messagesLimit;
-            const newMessages = await getMessagesByThreadId(
-                this.actualThread.thread.threadId,
-                this.messagesLimit,
-                newOffset
-            );
+            const newMessages = await this.getBeforeMessagesInLocalDb(this.actualThread.thread.threadId);
 
             if (newMessages.length > 0) {
-                this.messagesOffset = newOffset;
                 await this.updateMessagesAfterScrollMore(newMessages, container, scrollAnchor);
             } else {
                 const newMessages = await this.getBeforeMessagesInServer(this.actualThread.thread);
@@ -1812,10 +2008,13 @@ export class CollabMessagesChat extends StateLitElement {
         this.welcomeMessage = '';
         this.activeScenerie = 'loading';
         this.lastTopicFilter = '';
-        this.messagesOffset = 0;
         this.hasMoreMessagesLocalDB = true;
         this.hasMoreMessagesBefore = false;
         this.toolbarView = {};
+        this.toolbarNavigationKind = undefined;
+        this.toolbarNavigationFailedKind = undefined;
+        this.toolbarNavigationError = '';
+        this.cachedToolbarMessages = [];
         this.ignoreToolbarScrollClearUntil = 0;
         this.actualThread = threadInfo;
         const temp = await getThread(this.actualThread.thread.threadId)
@@ -1823,6 +2022,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.lastMessageReaded = (temp as any)?.lastMessageReadTime || (threadInfo.thread as any).lastMessageReadTime || '';
         const messagesInDb = await getMessagesByThreadId(this.actualThread.thread.threadId, this.messagesLimit, 0);
         this.actualMessages = messagesInDb;
+        await this.refreshCachedToolbarMessages();
         this.isSystemChangeScroll = true;
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         this.activeScenerie = 'details';
@@ -1937,6 +2137,21 @@ export class CollabMessagesChat extends StateLitElement {
         this.welcomeMessage = thread.welcomeMessage;
     }
 
+    private async refreshCachedToolbarMessages() {
+        const threadId = this.actualThread?.thread.threadId;
+        if (!threadId) {
+            this.cachedToolbarMessages = [];
+            return;
+        }
+
+        try {
+            this.cachedToolbarMessages = await getAllMessagesByThreadId(threadId) as IMessage[];
+        } catch (err) {
+            console.warn('Failed to refresh toolbar messages from cache:', err);
+            this.cachedToolbarMessages = [];
+        }
+    }
+
     private async checkNotificationsUnreadMessages() {
         const hasPendingMessages = await checkIfNotificationUnread();
         if (!hasPendingMessages) {
@@ -1983,6 +2198,7 @@ export class CollabMessagesChat extends StateLitElement {
         if (lastMessages && this.actualThread && !preserveUnreadMarker) this.actualThread.thread = await updateLastMessageReadTime(threadInfo.thread.threadId, lastMessages.createAt);
         this.actualMessages = this.mergeMessages(this.actualMessages, newMessages);
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+        await this.refreshCachedToolbarMessages();
         await this.updateLastMessage(threadInfo, preserveUnreadMarker);
         return threadInfo;
     }

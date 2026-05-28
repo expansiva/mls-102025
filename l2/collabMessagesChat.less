@@ -169,6 +169,16 @@ collab-messages-chat-102025 {
         &.attention {
             animation: toolbarAttentionPulse 1.6s ease-in-out infinite;
         }
+
+        &.loading {
+            cursor: progress;
+            opacity: .72;
+        }
+
+        &.error {
+            border-color: #d92d20;
+            color: #d92d20;
+        }
     }
 
     @keyframes toolbarAttentionPulse {
@@ -199,6 +209,25 @@ collab-messages-chat-102025 {
         font-weight: 700;
         font-size: @font-size-16;
         line-height: 1;
+    }
+
+    .thread-toolbar-btn.error .toolbar-alert {
+        color: #d92d20;
+    }
+
+    .toolbar-loading {
+        width: 8px;
+        height: 8px;
+        border: 1px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: toolbarLoadingSpin .7s linear infinite;
+    }
+
+    @keyframes toolbarLoadingSpin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     .read-only-thread {
