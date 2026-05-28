@@ -1728,7 +1728,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const canWrite = this.canWriteThread();
         const canUseMessageActions = canWrite && !message.moderation;
         const canCancelReadConfirmation = canUseMessageActions && this.canCancelReadConfirmation(message);
-        const canRequestReadConfirmation = canUseMessageActions && this.getMentionedUserIds(message).length > 0 && !this.hasReadConfirmation(message);
+        const canRequestReadConfirmation = canUseMessageActions && this.getMentionedUserIds(message, true).length > 0 && !this.hasReadConfirmation(message);
         const canRequestExecutionConfirmation = canUseMessageActions && this.getMentionedUserIds(message).length > 0 && !this.hasExecutionFollowup(message);
         const canOpenFollowupActions = canUseMessageActions && this.hasExecutionFollowup(message) && this.getFollowupActions(message).length > 0;
         const canConfirmRead = canUseMessageActions && this.hasPendingReadConfirmation(message);
@@ -1992,12 +1992,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         return !!this.currentUser?.favorites?.includes(messageId);
     }
 
-    private getMentionedUserIds(message: IMessage): string[] {
+    private getMentionedUserIds(message: IMessage, includeCurrentUser: boolean = false): string[] {
         if (!this.userId) return [];
         const usersInThread = new Set(this.actualThread?.thread.users.map(user => user.userId) || []);
         return [...message.content.matchAll(/\[@[^\]]+\]\(([^)]+)\)/g)]
             .map(match => match[1])
-            .filter(userId => userId !== this.userId && usersInThread.has(userId))
+            .filter(userId => (includeCurrentUser || userId !== this.userId) && usersInThread.has(userId))
             .filter((userId, index, items) => items.indexOf(userId) === index);
     }
 
