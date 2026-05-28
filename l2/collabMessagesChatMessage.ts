@@ -6,6 +6,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import {
     collab_translate,
     collab_circle_exclamation,
+    collab_circle_check,
 	    collab_smile,
 	    collab_chevron_down,
     collab_reply,
@@ -1213,7 +1214,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (pendingCount) {
             items.push({
                 reactionName: 'read_pending',
-                icon: '?',
+                icon: collab_eye,
                 count: pendingCount,
                 isFollowup: false,
                 isReadConfirmation: true,
@@ -1222,7 +1223,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (confirmedCount) {
             items.push({
                 reactionName: 'read_confirmed',
-                icon: '!',
+                icon: collab_circle_check,
                 count: confirmedCount,
                 isFollowup: false,
                 isReadConfirmation: true,
@@ -1234,7 +1235,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private getReadConfirmationReactionListItems(message: IMessage): ReactionListItem[] {
         return this.getActiveReadConfirmationStatuses(message).map(({ userId, confirmedAt }) => ({
             userId,
-            icon: confirmedAt ? '!' : '?',
+            icon: confirmedAt ? collab_circle_check : collab_eye,
             label: confirmedAt ? this.msg.readConfirmationRead : this.msg.readConfirmationWaiting,
         }));
     }
@@ -1395,7 +1396,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                     aria-label=${this.msg.confirmRead}
                     @click=${(ev: Event) => this.onReadConfirmationPickerClick(ev, message)}
                 >
-                    <span class="read-confirmation-picker-symbol">!</span>
+                    <span class="read-confirmation-picker-symbol">${collab_circle_check}</span>
                     <span class="read-confirmation-picker-label">${this.msg.readConfirmationRead}</span>
                 </button>
             ` : nothing}
@@ -1767,12 +1768,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ?disabled=${!canRequestReadConfirmation && !canCancelReadConfirmation}
                 @click=${() => this.onReadConfirmationClick(message, canCancelReadConfirmation ? 'cancel' : 'request')}
             >
-                ${canCancelReadConfirmation ? collab_xmark : html`<span class="message-menu-symbol">?</span>`}
+                ${canCancelReadConfirmation ? collab_xmark : html`<span class="message-menu-symbol">${collab_eye}</span>`}
                 ${canCancelReadConfirmation ? this.msg.cancelReadConfirmation : this.msg.requestReadConfirmation}
             </button>
             ${canConfirmRead ? html`
                 <button @click=${() => this.onReadConfirmationClick(message, 'confirm')}>
-                    <span class="message-menu-symbol">!</span>
+                    <span class="message-menu-symbol">${collab_circle_check}</span>
                     ${this.msg.confirmRead}
                 </button>
             ` : nothing}
