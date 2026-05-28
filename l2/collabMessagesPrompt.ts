@@ -50,6 +50,30 @@ const messages: { [key: string]: MessageType } = {
 }
 /// **collab_i18n_end**
 
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function serializeUserMentions(text: string, users: msg.User[]): string {
+    let finalText = text;
+    const sortedUsers = [...users].sort((a, b) => b.name.length - a.name.length);
+
+    sortedUsers.forEach(user => {
+        const escapedName = escapeRegExp(user.name);
+        const regex = new RegExp(`(^|\\s)@${escapedName}(?=$|\\s|[.,!?])`, 'g');
+        finalText = finalText.replace(regex, `$1[@${user.name}](${user.userId})`);
+    });
+
+    return finalText;
+}
+
+export function deserializeUserMentions(text: string, users: msg.User[] = []): string {
+    return text.replace(/\[@([^\]]+)\]\(([^)]+)\)/g, (_match, name, userId) => {
+        const user = users.find(item => item.userId === userId);
+        return `@${user?.name || name}`;
+    });
+}
+
 
 @customElement('collab-messages-prompt-102025')
 export class CollabMessagesPrompt extends StateLitElement {
@@ -86,6 +110,18 @@ export class CollabMessagesPrompt extends StateLitElement {
     @property() threadId?: string;
     @property() placeholder?: string;
     @property() scope?: string;
+    @property({
+        type: Boolean,
+        converter: (value: string | null) => value !== 'false'
+    }) allowAttachments: boolean = true;
+    @property({
+        type: Boolean,
+        converter: (value: string | null) => value !== 'false'
+    }) showSubmitButton: boolean = true;
+    @property({
+        type: Boolean,
+        converter: (value: string | null) => value !== 'false'
+    }) submitOnEnter: boolean = true;
 
     @property({
         type: Boolean,
@@ -123,6 +159,11 @@ export class CollabMessagesPrompt extends StateLitElement {
             && this.acceptAutoCompleteUser
         ) {
             this.getUsers();
+        }
+        if (changedProperties.has('text')) {
+            await this.updateComplete;
+            this.adjustTextAreaHeight();
+            this.handleScroll();
         }
     }
 
@@ -338,20 +379,22 @@ export class CollabMessagesPrompt extends StateLitElement {
                 ${this.renderToolbar()}
 
                 <div class="wrapper">
-                    <input
-                        class="attachment-input"
-                        type="file"
-                        multiple
-                        @change=${this.handleAttachmentInput}
-                    />
-                    <button
-                        class="attachment-button"
-                        title=${this.msg.attachFiles}
-                        aria-label=${this.msg.attachFiles}
-                        @click=${this.openAttachmentPicker}
-                    >
-                        ${collab_plus}
-                    </button>
+                    ${this.allowAttachments ? html`
+                        <input
+                            class="attachment-input"
+                            type="file"
+                            multiple
+                            @change=${this.handleAttachmentInput}
+                        />
+                        <button
+                            class="attachment-button"
+                            title=${this.msg.attachFiles}
+                            aria-label=${this.msg.attachFiles}
+                            @click=${this.openAttachmentPicker}
+                        >
+                            ${collab_plus}
+                        </button>
+                    ` : nothing}
                     <div class="textarea-container ${this.enableRichPreview ? 'rich-preview-enabled' : ''}">
                         ${this.enableRichPreview ? html`
                             <div class="prompt-overlay">${this.renderRichOverlay()}</div>
@@ -371,7 +414,7 @@ export class CollabMessagesPrompt extends StateLitElement {
                             placeholder="${ifDefined(this.placeholder)}">
                         </textarea>
                     </div>
-                    <button @click=${this.handleSend}>${collab_arrow_up_long}</button>
+                    ${this.showSubmitButton ? html`<button @click=${this.handleSend}>${collab_arrow_up_long}</button>` : nothing}
                     ${this.mentionActive && this.mentionSuggestions.length > 0 ? html`
                         <ul class="mention-suggestions">
                             ${this.mentionSuggestions.map((s, i) => html`
@@ -446,6 +489,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private renderSelectedAttachments() {
+        if (!this.allowAttachments) return nothing;
         if (this.selectedFiles.length === 0) return nothing;
         return html`
             <div class="attachment-preview-list">
@@ -477,6 +521,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         if (!e.target) return;
         const target = e.target as HTMLTextAreaElement;
         this.text = target.value;
+        this.emitTextChange();
         this.sendError = '';
         this.updateSelectionState();
         this.adjustTextAreaHeight();
@@ -533,6 +578,7 @@ export class CollabMessagesPrompt extends StateLitElement {
 
     private async applyEditResult(result: EditResult) {
         this.text = result.text;
+        this.emitTextChange();
         await this.updateComplete;
 
         if (!this.textArea) return;
@@ -583,11 +629,13 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private openAttachmentPicker() {
+        if (!this.allowAttachments) return;
         const input = this.querySelector('.attachment-input') as HTMLInputElement | null;
         input?.click();
     }
 
     private handleAttachmentInput(e: Event) {
+        if (!this.allowAttachments) return;
         const input = e.target as HTMLInputElement;
         const files = Array.from(input.files || []);
         this.selectedFiles = [...this.selectedFiles, ...files].slice(0, 6);
@@ -597,6 +645,14 @@ export class CollabMessagesPrompt extends StateLitElement {
 
     private removeSelectedAttachment(index: number) {
         this.selectedFiles = this.selectedFiles.filter((_, itemIndex) => itemIndex !== index);
+    }
+
+    private emitTextChange() {
+        this.dispatchEvent(new CustomEvent('text-change', {
+            detail: { text: this.text },
+            bubbles: true,
+            composed: true
+        }));
     }
 
     private formatFileSize(size: number): string {
@@ -700,7 +756,7 @@ export class CollabMessagesPrompt extends StateLitElement {
             return;
         }
 
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (this.submitOnEnter && e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             await this.handleSend();
         }
@@ -762,6 +818,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         }
 
         this.text = newText;
+        this.emitTextChange();
         this.mentionActive = false;
         this.mentionSuggestions = [];
         this.mentionQuery = '';
@@ -793,14 +850,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         let finalText = this.text.trim();
         let isSpecialMention = false;
         let agentName: string | undefined;
-        if (this.allUsersValids.length > 0) {
-            const sortedUsers = [...this.allUsersValids].sort((a, b) => b.name.length - a.name.length);
-            sortedUsers.forEach(user => {
-                const escapedName = user.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(^|\\s)@${escapedName}(?=$|\\s|[.,!?])`, 'g');
-                finalText = finalText.replace(regex, `$1[@${user.name}](${user.userId})`);
-            });
-        }
+        finalText = serializeUserMentions(finalText, this.allUsersValids);
 
         if (finalText.startsWith('@@')) {
 
@@ -828,6 +878,7 @@ export class CollabMessagesPrompt extends StateLitElement {
 
         this.replyingTo = undefined;
         this.text = '';
+        this.emitTextChange();
         this.selectedFiles = [];
         await this.updateComplete;
         this.adjustTextAreaHeight();

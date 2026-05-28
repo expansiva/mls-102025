@@ -31,6 +31,7 @@ import { loadChatPreferences, formatTimestamp } from '/_102025_/l2/collabMessage
 import { getMessage, updateMessage } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { msgGetAttachmentUrl, msgUpdateMessage } from '/_102025_/l2/shared/api.js';
 import { hasTaskNotificationPending } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { deserializeUserMentions, serializeUserMentions } from '/_102025_/l2/collabMessagesPrompt.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
@@ -435,10 +436,16 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private renderEditMessageForm(message: msg.Message) {
         return html`
             <div class="message-edit-form">
-                <textarea
-                    .value=${this.editContent}
-                    @input=${(ev: Event) => this.editContent = (ev.target as HTMLTextAreaElement).value}
-                ></textarea>
+                <collab-messages-prompt-102025
+                    acceptAutoCompleteUser="true"
+                    enableRichPreview="true"
+                    .threadId=${message.threadId}
+                    .allowAttachments=${false}
+                    .showSubmitButton=${false}
+                    .submitOnEnter=${false}
+                    .text=${this.editContent}
+                    @text-change=${(ev: CustomEvent) => this.editContent = ev.detail.text}
+                ></collab-messages-prompt-102025>
                 <div class="message-edit-actions">
                     <button @click=${() => this.onEditCancelClick()}>${this.msg.cancel}</button>
                     <button @click=${() => this.onEditSaveClick(message)}>${this.msg.save}</button>
@@ -1872,7 +1879,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private onEditClick(message: IMessage) {
         if (!this.canEditMessage(message)) return;
         this.closeMessageMenu();
-        this.editContent = message.content || '';
+        this.editContent = deserializeUserMentions(message.content || '', this.usersAvaliables);
         this.isEditingMessage = true;
     }
 
@@ -1882,7 +1889,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private onEditSaveClick(message: msg.Message) {
-        const content = this.editContent.trim();
+        const content = serializeUserMentions(this.editContent.trim(), this.usersAvaliables);
         if (!content || content === message.content) return;
         this.isEditingMessage = false;
         this.dispatchEvent(new CustomEvent('edit-message', {

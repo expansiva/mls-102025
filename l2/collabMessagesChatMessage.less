@@ -204,7 +204,23 @@ collab-messages-chat-message-102025 {
                     gap: .4rem;
                     margin-top: .35rem;
 
-                    textarea {
+                    > collab-messages-prompt-102025 {
+                        min-width: 260px;
+                        max-width: 100%;
+                        background: transparent;
+                        border-top: none;
+                        box-shadow: none;
+                    }
+
+                    > collab-messages-prompt-102025 .wrapper {
+                        padding: 0;
+                    }
+
+                    > collab-messages-prompt-102025 .prompt-toolbar {
+                        padding: 0 0 4px;
+                    }
+
+                    > collab-messages-prompt-102025 .textarea-container textarea {
                         min-width: 260px;
                         min-height: 82px;
                         max-width: 100%;
@@ -214,7 +230,14 @@ collab-messages-chat-message-102025 {
                         color: var(--cm-text, #111827);
                         border-radius: 6px;
                         padding: .45rem;
-                        font: inherit;
+                        font-family: inherit;
+                    }
+
+                    > collab-messages-prompt-102025 .textarea-container.rich-preview-enabled .prompt-overlay {
+                        min-height: 82px;
+                        border: 1px solid var(--cm-border, rgba(0, 0, 0, .18));
+                        border-radius: 6px;
+                        padding: .45rem;
                     }
                 }
 
