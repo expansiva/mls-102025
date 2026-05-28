@@ -22,7 +22,9 @@ import {
     collab_chevron_right,
     collab_clock_static,
     collab_xmark,
-    collab_check
+    collab_check,
+    collab_play,
+    collab_eye
 } from '/_102025_/l2/collabMessagesIcons.js';
 
 import { loadChatPreferences, formatTimestamp } from '/_102025_/l2/collabMessagesHelper.js';
@@ -49,6 +51,7 @@ const message_pt = {
     favorite: 'Favoritar',
     unfavorite: 'Remover favorito',
     requestReadConfirmation: 'Confirmação de leitura',
+    requestExecutionConfirmation: 'Confirmação de execução',
     cancelReadConfirmation: 'Cancelar confirmação de leitura',
     confirmRead: 'Recebi e li a mensagem',
     allConfirmedRead: 'Confirmado que todos receberam',
@@ -58,9 +61,17 @@ const message_pt = {
     moderatedBy: 'moderada por',
     originalVisibleToModerators: 'conteúdo original visível para admins e moderadores',
     requestedReadConfirmation: 'pediu confirmação de leitura em',
+    requestedExecutionConfirmation: 'pediu confirmação de execução em',
     confirmedRead: 'confirmou leitura em',
     canceledReadConfirmation: 'cancelou confirmação de leitura em',
     notConfirmedRead: 'não confirmado',
+    followupPending: 'pendente',
+    followupLido: 'Lido',
+    followupVouFazer: 'Vou fazer',
+    followupConcluido: 'Concluído',
+    followupBloqueado: 'Bloqueado',
+    followupCancelado: 'Cancelado',
+    followupRevisado: 'Revisado',
     delete: 'Apagar',
     moderate: 'Moderar',
     edit: 'Editar',
@@ -95,6 +106,7 @@ const message_en = {
     favorite: 'Favorite',
     unfavorite: 'Remove favorite',
     requestReadConfirmation: 'Read confirmation',
+    requestExecutionConfirmation: 'Execution confirmation',
     cancelReadConfirmation: 'Cancel read confirmation',
     confirmRead: 'I received and read the message',
     allConfirmedRead: 'Confirmed that everyone received it',
@@ -104,9 +116,17 @@ const message_en = {
     moderatedBy: 'moderated by',
     originalVisibleToModerators: 'original content visible to admins and moderators',
     requestedReadConfirmation: 'requested read confirmation at',
+    requestedExecutionConfirmation: 'requested execution confirmation at',
     confirmedRead: 'confirmed reading at',
     canceledReadConfirmation: 'canceled read confirmation at',
     notConfirmedRead: 'not confirmed',
+    followupPending: 'pending',
+    followupLido: 'Read',
+    followupVouFazer: 'Will do',
+    followupConcluido: 'Done',
+    followupBloqueado: 'Blocked',
+    followupCancelado: 'Canceled',
+    followupRevisado: 'Reviewed',
     delete: 'Delete',
     moderate: 'Moderate',
     edit: 'Edit',
@@ -134,6 +154,14 @@ const messages: { [key: string]: MessageType } = {
     'pt': message_pt
 }
 /// **collab_i18n_end**
+
+type FollowupReaction =
+    'followup_lido' |
+    'followup_vou_fazer' |
+    'followup_concluido' |
+    'followup_bloqueado' |
+    'followup_cancelado' |
+    'followup_revisado';
 
 @customElement('collab-messages-chat-message-102025')
 export class CollabMessagesChatMessage102025 extends StateLitElement {
@@ -208,13 +236,13 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const userAvatar = userToFind.find((user) => user.userId === message.senderId)?.avatar_url || '';
         const cls = message.senderId === this.userId ? 'user' : 'system';
         const titleTranslated = this.getTitleMessageTranslated(message);
-        const hasReactions = message.reactions ? Object.keys(message.reactions).length > 0 : false;
+        const hasReactions = this.hasExecutionFollowup(message) || (message.reactions ? Object.keys(message.reactions).length > 0 : false);
         const isMessageContentHidden = this.isMessageContentHidden(message);
         return html`
             <div class="message ${cls} ${isSame ? 'same' : ''} ${hasReactions ? 'reaction-on' : ''}">
                 <div class="message-group">
                     <div class="message-row">
-                        ${cls === 'user' ? this.renderReactionButtonAdd(message) : nothing}
+                        ${cls === 'user' ? this.renderSideAction(message) : nothing}
                     
                         <div class="message-card ${cls} ${isSame ? 'same' : ''} ${this.isPinned(message) ? 'pinned' : ''} ${this.toolbarHighlighted ? 'toolbar-highlighted' : ''}">
 
@@ -261,7 +289,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                                 ${message.editedAt ? html`<small>${this.msg.edited}</small>` : nothing}
                             </div>
                         </div>
-                        ${cls === 'system' ? this.renderReactionButtonAdd(message) : nothing}
+                        ${cls === 'system' ? this.renderSideAction(message) : nothing}
                         ${cls === 'system' && !isSame ? html`<collab-messages-avatar-102025 avatar=${userAvatar} alt=${userName} ></collab-messages-avatar-102025>` : ''}
                     </div>
                 </div>
@@ -688,11 +716,14 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderReadConfirmations(message: msg.Message) {
         if (!message.readConfirmations || message.readConfirmations.length === 0) return nothing;
-        const statusByUser = this.getReadConfirmationStatusByUser(message.readConfirmations);
+        const readConfirmations = message.readConfirmations.filter(item => this.getReadConfirmationKind(item) === 'read');
+        const executionFollowups = message.readConfirmations.filter(item => this.getReadConfirmationKind(item) === 'execution');
+        if (readConfirmations.length === 0 && executionFollowups.length === 0) return nothing;
+        const statusByUser = this.getReadConfirmationStatusByUser(readConfirmations);
         return html`
             <div class="message-read-confirmations">
-                <div class="message-read-confirmation">
-                    ${message.readConfirmations.map(request => html`
+                ${readConfirmations.length ? html`<div class="message-read-confirmation">
+                    ${readConfirmations.map(request => html`
                         <div class="read-confirmation-line">
                             ${this.renderUserLabel(request.requestedBy)}
                             <span>${this.msg.requestedReadConfirmation}</span>
@@ -708,14 +739,44 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             ` : html`<span>${this.msg.notConfirmedRead}</span>`}
                         </div>
                     `)}
-                    ${message.readConfirmations.map(request => request.canceledAt ? html`
+                    ${readConfirmations.map(request => request.canceledAt ? html`
                         <div class="read-confirmation-line canceled">
                             ${this.renderUserLabel(request.canceledBy || request.requestedBy)}
                             <span>${this.msg.canceledReadConfirmation}</span>
                             <span class="read-confirmation-time">${this.formatLocalDateTime(request.canceledAt)}</span>
                         </div>
                     ` : nothing)}
+                </div>` : nothing}
+                ${executionFollowups.map(request => this.renderExecutionFollowup(message, request))}
+            </div>
+        `;
+    }
+
+    private renderExecutionFollowup(message: msg.Message, request: msg.MessageReadConfirmation) {
+        return html`
+            <div class="message-read-confirmation execution-followup">
+                <div class="read-confirmation-line">
+                    ${this.renderUserLabel(request.requestedBy)}
+                    <span>${this.msg.requestedExecutionConfirmation}</span>
+                    <span class="read-confirmation-time">${this.formatLocalDateTime(request.requestedAt)}</span>
                 </div>
+                ${request.targetUserIds.map(userId => {
+            const reaction = this.getFollowupReactionForUser(message, userId);
+            return html`
+                        <div class="read-confirmation-line ${reaction ? 'confirmed' : 'pending'}">
+                            ${this.renderUserLabel(userId)}
+                            <span class="followup-status-icon">${this.renderFollowupIcon(reaction)}</span>
+                            <span>${this.getFollowupLabel(reaction)}</span>
+                        </div>
+                    `;
+        })}
+                ${this.getFollowupReactionForUser(message, request.requestedBy) === 'followup_revisado' ? html`
+                    <div class="read-confirmation-line confirmed">
+                        ${this.renderUserLabel(request.requestedBy)}
+                        <span class="followup-status-icon">${this.renderFollowupIcon('followup_revisado')}</span>
+                        <span>${this.msg.followupRevisado}</span>
+                    </div>
+                ` : nothing}
             </div>
         `;
     }
@@ -736,6 +797,63 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             }
         }
         return [...statusByUser.values()];
+    }
+
+    private getReadConfirmationKind(request: msg.MessageReadConfirmation): 'read' | 'execution' {
+        return request.kind || 'read';
+    }
+
+    private getActiveExecutionFollowup(message: msg.Message): msg.MessageReadConfirmation | undefined {
+        return message.readConfirmations?.find(request =>
+            !request.canceledAt && this.getReadConfirmationKind(request) === 'execution'
+        );
+    }
+
+    private hasExecutionFollowup(message: msg.Message): boolean {
+        return !!this.getActiveExecutionFollowup(message);
+    }
+
+    private isFollowupReaction(reaction: string): reaction is FollowupReaction {
+        return [
+            'followup_lido',
+            'followup_vou_fazer',
+            'followup_concluido',
+            'followup_bloqueado',
+            'followup_cancelado',
+            'followup_revisado',
+        ].includes(reaction);
+    }
+
+    private getFollowupReactionForUser(message: msg.Message, userId: string): FollowupReaction | undefined {
+        const reactions = message.reactions || {};
+        for (const [reaction, users] of Object.entries(reactions)) {
+            if (this.isFollowupReaction(reaction) && users.includes(userId)) return reaction;
+        }
+        return undefined;
+    }
+
+    private renderFollowupIcon(reaction?: FollowupReaction) {
+        switch (reaction) {
+            case 'followup_lido': return collab_eye;
+            case 'followup_vou_fazer': return collab_play;
+            case 'followup_concluido': return collab_check;
+            case 'followup_bloqueado': return collab_circle_exclamation;
+            case 'followup_cancelado': return collab_xmark;
+            case 'followup_revisado': return collab_check;
+            default: return collab_clock_static;
+        }
+    }
+
+    private getFollowupLabel(reaction?: FollowupReaction): string {
+        switch (reaction) {
+            case 'followup_lido': return this.msg.followupLido;
+            case 'followup_vou_fazer': return this.msg.followupVouFazer;
+            case 'followup_concluido': return this.msg.followupConcluido;
+            case 'followup_bloqueado': return this.msg.followupBloqueado;
+            case 'followup_cancelado': return this.msg.followupCancelado;
+            case 'followup_revisado': return this.msg.followupRevisado;
+            default: return this.msg.followupPending;
+        }
     }
 
     private renderUserLabel(userId: string) {
@@ -861,6 +979,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     //Reactions
 
     private renderReactions(message: IMessage) {
+        if (this.hasExecutionFollowup(message)) return this.renderFollowupSummary(message);
         if (!message.reactions) return nothing;
 
         const totalReactions = Object.values(message.reactions).reduce((acc, users) => acc + users.length, 0);
@@ -882,6 +1001,36 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             ${this.renderReactionListPopup(message)}
         </div>
     `;
+    }
+
+    private renderFollowupSummary(message: IMessage) {
+        const request = this.getActiveExecutionFollowup(message);
+        if (!request) return nothing;
+        const statusItems = request.targetUserIds.map(userId => ({
+            userId,
+            reaction: this.getFollowupReactionForUser(message, userId)
+        }));
+        const reviewed = this.getFollowupReactionForUser(message, request.requestedBy) === 'followup_revisado';
+        return html`
+            <div class="message-reactions followup-summary">
+                ${statusItems.map(({ userId, reaction }) => html`
+                    <span
+                        class="followup-summary-item ${reaction ? 'set' : 'pending'}"
+                        title="@${this.getUserName(userId)}: ${this.getFollowupLabel(reaction)}"
+                    >
+                        ${this.renderFollowupIcon(reaction)}
+                    </span>
+                `)}
+                ${reviewed ? html`
+                    <span
+                        class="followup-summary-item reviewed"
+                        title="@${this.getUserName(request.requestedBy)}: ${this.msg.followupRevisado}"
+                    >
+                        ${this.renderFollowupIcon('followup_revisado')}
+                    </span>
+                ` : nothing}
+            </div>
+        `;
     }
 
     private renderReactionListPopup(message: IMessage) {
@@ -1015,6 +1164,40 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         this.reactionListTarget = undefined;
     }
 
+    private renderSideAction(message: IMessage) {
+        if (this.hasExecutionFollowup(message)) return this.renderFollowupQuickActions(message);
+        return this.renderReactionButtonAdd(message);
+    }
+
+    private renderFollowupQuickActions(message: IMessage) {
+        if (!this.canWriteThread() || !this.userId) return nothing;
+        const request = this.getActiveExecutionFollowup(message);
+        if (!request) return nothing;
+        const canReview = request.requestedBy === this.userId;
+        const canSetStatus = request.targetUserIds.includes(this.userId);
+        const actions: FollowupReaction[] = canReview
+            ? ['followup_revisado']
+            : canSetStatus
+                ? ['followup_lido', 'followup_vou_fazer', 'followup_concluido', 'followup_bloqueado', 'followup_cancelado']
+                : [];
+        if (actions.length === 0) return nothing;
+        const current = this.getFollowupReactionForUser(message, this.userId);
+        return html`
+            <div class="followup-action-bar" role="toolbar">
+                ${actions.map(reaction => html`
+                    <button
+                        class="followup-action ${current === reaction ? 'active' : ''}"
+                        title=${this.getFollowupLabel(reaction)}
+                        aria-label=${this.getFollowupLabel(reaction)}
+                        @click=${(ev: Event) => this.onFollowupActionClick(ev, message, reaction)}
+                    >
+                        ${this.renderFollowupIcon(reaction)}
+                    </button>
+                `)}
+            </div>
+        `;
+    }
+
     private renderReactionButtonAdd(message: IMessage) {
         if (!this.canWriteThread()) return nothing;
         return html`
@@ -1029,6 +1212,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderReactionPicker(message: IMessage) {
         if (!this.canWriteThread()) return nothing;
+        if (this.hasExecutionFollowup(message)) return nothing;
         if (this.openedReactionMessageId !== message.createAt) return nothing;
 
         return html`
@@ -1054,10 +1238,19 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         this.closeReactionPicker();
     }
 
+    private onFollowupActionClick(ev: Event, message: IMessage, reaction: FollowupReaction) {
+        ev.stopPropagation();
+        if (!this.userId) return;
+        if (!this.canWriteThread()) return;
+        const updated = this.toggleReaction(message, reaction, this.userId);
+        this.message = updated;
+    }
+
 
     private openReactionPicker(message: IMessage, ev?: Event) {
         ev?.stopPropagation();
         if (!this.canWriteThread()) return;
+        if (this.hasExecutionFollowup(message)) return;
 
         if (this.openedReactionMessageId === message.createAt) {
             this.closeReactionPicker();
@@ -1084,6 +1277,13 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
 
         const current = message.reactions ?? {};
+        if (this.isFollowupReaction(reaction) && current[reaction]?.includes(userId)) {
+            this.updateReactionOnDb(message, reaction)
+            return {
+                ...message,
+                lastChanged: Date.now()
+            };
+        }
         const next: Record<string, string[]> = {};
 
         for (const [name, users] of Object.entries(current)) {
@@ -1279,6 +1479,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const canUseMessageActions = canWrite && !message.moderation;
         const canCancelReadConfirmation = canUseMessageActions && this.canCancelReadConfirmation(message);
         const canRequestReadConfirmation = canUseMessageActions && this.getMentionedUserIds(message).length > 0 && !this.hasReadConfirmation(message);
+        const canRequestExecutionConfirmation = canUseMessageActions && this.getMentionedUserIds(message).length > 0 && !this.hasExecutionFollowup(message);
         const canConfirmRead = canUseMessageActions && this.hasPendingReadConfirmation(message);
         const allConfirmedRead = this.hasAllReadConfirmationsConfirmed(message);
         const canDeleteMessage = this.canDeleteMessage(message);
@@ -1322,6 +1523,13 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             <button ?disabled=${!canConfirmRead} @click=${() => this.onReadConfirmationClick(message, 'confirm')}>
                 ${collab_check}
                 ${this.msg.confirmRead}
+            </button>
+            <button
+                ?disabled=${!canRequestExecutionConfirmation}
+                @click=${() => this.onReadConfirmationClick(message, 'requestExecution')}
+            >
+                ${collab_play}
+                ${this.msg.requestExecutionConfirmation}
             </button>
             ${allConfirmedRead ? html`
                 <button disabled>
@@ -1460,7 +1668,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         }));
     }
 
-    private onReadConfirmationClick(message: IMessage, action: 'request' | 'confirm' | 'cancel') {
+    private onReadConfirmationClick(message: IMessage, action: 'request' | 'confirm' | 'cancel' | 'requestExecution' | 'reviewExecution') {
         if (!this.canWriteThread()) return;
         this.closeMessageMenu();
         this.dispatchEvent(new CustomEvent('read-confirmation-message', {
@@ -1508,12 +1716,13 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private hasReadConfirmation(message: IMessage): boolean {
-        return !!message.readConfirmations?.length;
+        return !!message.readConfirmations?.some(request => this.getReadConfirmationKind(request) === 'read');
     }
 
     private hasPendingReadConfirmation(message: IMessage): boolean {
         if (!this.userId) return false;
         return !!message.readConfirmations?.some(request =>
+            this.getReadConfirmationKind(request) === 'read' &&
             !request.canceledAt &&
             request.targetUserIds.includes(this.userId!) && !request.confirmedBy?.[this.userId!]
         );
@@ -1522,6 +1731,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private hasAllReadConfirmationsConfirmed(message: IMessage): boolean {
         if (!this.userId) return false;
         return !!message.readConfirmations?.some(request =>
+            this.getReadConfirmationKind(request) === 'read' &&
             !request.canceledAt &&
             request.requestedBy === this.userId && request.targetUserIds.length > 0 &&
             request.targetUserIds.every(userId => !!request.confirmedBy?.[userId])
@@ -1531,6 +1741,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private canCancelReadConfirmation(message: IMessage): boolean {
         if (!this.userId) return false;
         return !!message.readConfirmations?.some(request =>
+            this.getReadConfirmationKind(request) === 'read' &&
             !request.canceledAt &&
             request.requestedBy === this.userId &&
             request.targetUserIds.some(userId => !request.confirmedBy?.[userId])

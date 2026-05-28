@@ -454,6 +454,27 @@ collab-messages-chat-message-102025 {
                     white-space: nowrap;
                 }
 
+                .execution-followup {
+                    border-top: 1px solid var(--cm-border-soft, rgba(0, 0, 0, .08));
+                    margin-top: .15rem;
+                    padding-top: .25rem;
+                }
+
+                .followup-status-icon {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 14px;
+                    height: 14px;
+
+                    svg {
+                        width: 12px;
+                        height: 12px;
+                        color: @active-color;
+                        fill: currentColor;
+                    }
+                }
+
                 .message-content.trace {
                     display: flex;
                     flex-direction: column;
@@ -753,6 +774,75 @@ collab-messages-chat-message-102025 {
 
     .message.system .message-reactions {
         left: 8px;
+    }
+
+    .followup-summary {
+        align-items: center;
+        gap: 3px;
+        padding: 2px 6px;
+        border-radius: 12px;
+        background: var(--cm-panel-bg, #ffffff);
+        border: 1px solid var(--cm-border, #e2e7e3);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+
+        .followup-summary-item {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            color: @active-color;
+
+            &.pending {
+                color: var(--cm-text-muted, #5b635f);
+            }
+
+            &.reviewed {
+                color: var(--cm-green, #008f4c);
+            }
+
+            svg {
+                width: 12px;
+                height: 12px;
+                fill: currentColor;
+            }
+        }
+    }
+
+    .followup-action-bar {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 5px;
+        border-radius: 16px;
+        background: var(--cm-panel-muted, #f3f7f4);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, .12);
+    }
+
+    .followup-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--cm-text-muted, #5b635f);
+        cursor: pointer;
+
+        svg {
+            width: 13px;
+            height: 13px;
+            fill: currentColor;
+        }
+
+        &:hover,
+        &.active {
+            color: @active-color;
+            background: var(--cm-soft-overlay, rgba(0, 0, 0, .06));
+        }
     }
 
 

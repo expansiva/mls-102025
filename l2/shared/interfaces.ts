@@ -89,7 +89,7 @@ declare module '/_102036_/l2/shared/interfaces.js' {
   export interface RequestUpdateMessage {
     pin?: boolean;
     favorite?: boolean;
-    readConfirmation?: 'request' | 'confirm' | 'cancel';
+    readConfirmation?: 'request' | 'confirm' | 'cancel' | 'requestExecution' | 'reviewExecution';
     messageAction?: 'delete' | 'moderate' | 'createTask';
     editContent?: string;
     taskTitle?: string;
@@ -144,6 +144,7 @@ declare module '/_102036_/l2/shared/interfaces.js' {
   }
 
   export interface MessageReadConfirmation {
+    kind?: 'read' | 'execution';
     requestedBy: string;
     requestedAt: string;
     targetUserIds: string[];

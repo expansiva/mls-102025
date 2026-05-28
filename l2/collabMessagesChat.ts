@@ -111,7 +111,7 @@ const message_pt = {
     lastMessagePrefix: 'Você',
     toolbarPins: 'Mensagens fixadas',
     toolbarSaved: 'Favoritos',
-    toolbarReadReceipts: 'Confirmações de leitura',
+    toolbarReadReceipts: 'Follow-up',
     toolbarAttachments: 'Anexos',
     toolbarAgent: 'Agente de resumo',
     toolbarHelpTitle: 'Sobre o recurso',
@@ -121,8 +121,8 @@ const message_pt = {
     toolbarHelpPinsText: 'Use para manter mensagens importantes acessiveis no topo da conversa. Quando houver itens, o botao navega entre eles.',
     toolbarHelpSavedTitle: 'Favoritos',
     toolbarHelpSavedText: 'Use para guardar mensagens importantes para voce. Os favoritos sao pessoais e aparecem apenas para o seu usuario.',
-    toolbarHelpReadReceiptsTitle: 'Confirmacoes de leitura',
-    toolbarHelpReadReceiptsText: 'Use para acompanhar mensagens que precisam de confirmacao. Quando houver pendencia para voce, o botao chama atencao no toolbar.',
+    toolbarHelpReadReceiptsTitle: 'Follow-up',
+    toolbarHelpReadReceiptsText: 'Use para acompanhar mensagens que precisam de confirmação ou execução. Quando houver pendência para você, o botão chama atenção no toolbar.',
     toolbarHelpAttachmentsTitle: 'Anexos',
     toolbarHelpAttachmentsText: 'Use para navegar rapidamente pelas mensagens com arquivos, imagens, videos ou documentos anexados.',
     toolbarHelpAgentTitle: 'Agente de resumo',
@@ -161,7 +161,7 @@ const message_en = {
     lastMessagePrefix: 'You',
     toolbarPins: 'Pinned messages',
     toolbarSaved: 'Saved messages',
-    toolbarReadReceipts: 'Read confirmations',
+    toolbarReadReceipts: 'Follow-up',
     toolbarAttachments: 'Attachments',
     toolbarAgent: 'Summary agent',
     toolbarHelpTitle: 'About this feature',
@@ -171,8 +171,8 @@ const message_en = {
     toolbarHelpPinsText: 'Use this to keep important messages easy to reach at the top of the conversation. When there are items, the button navigates through them.',
     toolbarHelpSavedTitle: 'Saved messages',
     toolbarHelpSavedText: 'Use this to save important messages for yourself. Saved messages are personal and visible only to your user.',
-    toolbarHelpReadReceiptsTitle: 'Read confirmations',
-    toolbarHelpReadReceiptsText: 'Use this to track messages that need confirmation. When you have a pending confirmation, the toolbar button draws attention.',
+    toolbarHelpReadReceiptsTitle: 'Follow-up',
+    toolbarHelpReadReceiptsText: 'Use this to track messages that need read or execution confirmation. When you have a pending item, the toolbar button draws attention.',
     toolbarHelpAttachmentsTitle: 'Attachments',
     toolbarHelpAttachmentsText: 'Use this to quickly navigate messages with files, images, videos, or documents attached.',
     toolbarHelpAgentTitle: 'Summary agent',
@@ -842,7 +842,12 @@ export class CollabMessagesChat extends StateLitElement {
         if (!this.userId) return false;
         return !!message.readConfirmations?.some(request =>
             !request.canceledAt &&
-            request.targetUserIds.includes(this.userId!) && !request.confirmedBy?.[this.userId!]
+            (
+                (this.getReadConfirmationKind(request) === 'read' &&
+                    request.targetUserIds.includes(this.userId!) && !request.confirmedBy?.[this.userId!]) ||
+                (this.getReadConfirmationKind(request) === 'execution' &&
+                    request.targetUserIds.includes(this.userId!) && !this.getFollowupReactionForUser(message, this.userId!))
+            )
         );
     }
 
@@ -851,8 +856,25 @@ export class CollabMessagesChat extends StateLitElement {
         return !!message.readConfirmations?.some(request =>
             !request.canceledAt &&
             request.requestedBy === this.userId &&
-            request.targetUserIds.some(userId => !request.confirmedBy?.[userId])
+            (
+                (this.getReadConfirmationKind(request) === 'read' &&
+                    request.targetUserIds.some(userId => !request.confirmedBy?.[userId])) ||
+                (this.getReadConfirmationKind(request) === 'execution' &&
+                    this.getFollowupReactionForUser(message, this.userId!) !== 'followup_revisado')
+            )
         );
+    }
+
+    private getReadConfirmationKind(request: msg.MessageReadConfirmation): 'read' | 'execution' {
+        return request.kind || 'read';
+    }
+
+    private getFollowupReactionForUser(message: msg.Message, userId: string): string | undefined {
+        const reactions = message.reactions || {};
+        for (const [reaction, users] of Object.entries(reactions)) {
+            if (reaction.startsWith('followup_') && users.includes(userId)) return reaction;
+        }
+        return undefined;
     }
 
     private getCurrentUser(): msg.User | undefined {
@@ -2587,7 +2609,7 @@ export class CollabMessagesChat extends StateLitElement {
             this.showReadOnlyThreadError();
             return;
         }
-        const data = ev.detail as { message: IMessage, action: 'request' | 'confirm' | 'cancel' };
+        const data = ev.detail as { message: IMessage, action: 'request' | 'confirm' | 'cancel' | 'requestExecution' | 'reviewExecution' };
         const message = data.message;
         const result = await msgUpdateMessage({
             userId: this.userId,
