@@ -79,6 +79,8 @@ const message_pt = {
     save: 'Salvar',
     cancel: 'Cancelar',
     viewHistory: 'Ver histórico',
+    showHistory: 'ver mais',
+    hideHistory: 'ver menos',
     editHistory: 'Histórico de edições',
     originalMessage: 'Mensagem original',
     editedBy: 'Editada por',
@@ -134,6 +136,8 @@ const message_en = {
     save: 'Save',
     cancel: 'Cancel',
     viewHistory: 'View history',
+    showHistory: 'show more',
+    hideHistory: 'show less',
     editHistory: 'Edit history',
     originalMessage: 'Original message',
     editedBy: 'Edited by',
@@ -199,6 +203,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     public onTaskClick?: Function;
     private msg: MessageType = messages['en'];
+    private readonly documentClickHandler = (ev: MouseEvent) => this.onDocumentClick(ev);
 
     private readonly reactionEmojis: Record<string, string> = {
         thumbs_up: '👍',
@@ -209,6 +214,15 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         angry: '😡'
     } as const;
 
+    connectedCallback() {
+        super.connectedCallback();
+        document.addEventListener('click', this.documentClickHandler, true);
+    }
+
+    disconnectedCallback() {
+        document.removeEventListener('click', this.documentClickHandler, true);
+        super.disconnectedCallback();
+    }
 
     updated() {
         this.positionReactionPicker();
@@ -452,7 +466,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 class="message-history-toggle"
                 @click=${(ev: Event) => this.onHistoryToggleClick(ev)}
             >
-                ${this.showEditHistory ? 'menos' : 'mais...'}
+                ${this.showEditHistory ? this.msg.hideHistory : this.msg.showHistory}
             </button>
         `;
     }
@@ -1327,6 +1341,24 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private closeFollowupActionMenu() {
+        this.openedFollowupActionsMessageId = undefined;
+        this.followupActionTarget = undefined;
+    }
+
+    private onDocumentClick(ev: MouseEvent) {
+        const target = ev.target;
+        if (!(target instanceof Node)) return;
+        if (this.contains(target)) return;
+        this.closeLocalPopups();
+    }
+
+    private closeLocalPopups() {
+        this.openedReactionMessageId = undefined;
+        this.reactionPickerTarget = undefined;
+        this.openedMenuFor = undefined;
+        this.messageMenuTarget = undefined;
+        this.openedReactionListMessageId = undefined;
+        this.reactionListTarget = undefined;
         this.openedFollowupActionsMessageId = undefined;
         this.followupActionTarget = undefined;
     }
