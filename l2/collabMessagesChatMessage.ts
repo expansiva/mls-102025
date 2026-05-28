@@ -176,6 +176,13 @@ type ReactionListItem = {
     reactionName?: string;
 };
 
+type ReactionSummaryItem = {
+    reactionName: string;
+    icon: string | TemplateResult;
+    count: number;
+    isFollowup: boolean;
+};
+
 @customElement('collab-messages-chat-message-102025')
 export class CollabMessagesChatMessage102025 extends StateLitElement {
 
@@ -1041,23 +1048,21 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     //Reactions
 
     private renderReactions(message: IMessage) {
-        if (this.hasExecutionFollowup(message)) return this.renderFollowupSummary(message);
-        if (!message.reactions) return nothing;
-
-        const totalReactions = Object.values(message.reactions).reduce((acc, users) => acc + users.length, 0);
+        const summaryItems = this.getReactionSummaryItems(message);
+        const totalReactions = summaryItems.reduce((acc, item) => acc + item.count, 0);
         if (totalReactions === 0) return nothing;
 
         return html`
-        <div class="message-reactions">
+        <div class="message-reactions ${this.hasExecutionFollowup(message) ? 'followup-summary' : ''}">
             <button 
                 class="reactions-summary"
                 @click=${(ev: Event) => this.openReactionList(message, ev)}
             >
-                ${Object.entries(message.reactions).map(([name, users]) => {
-            const emoji = this.reactionEmojis[name];
-            if (!emoji || users.length === 0) return nothing;
-            return html`<span class="reaction-emoji">${emoji}</span>`;
-        })}
+                ${summaryItems.map(item => html`
+                    <span class="reaction-emoji ${item.isFollowup ? 'followup-icon' : ''}">
+                        ${item.icon}
+                    </span>
+                `)}
                 <span class="reaction-count">${totalReactions}</span>
             </button>
             ${this.renderReactionListPopup(message)}
@@ -1065,32 +1070,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     `;
     }
 
-    private renderFollowupSummary(message: IMessage) {
-        const request = this.getActiveExecutionFollowup(message);
-        if (!request) return nothing;
-        const statusItems = this.getFollowupStatusItems(message, request);
-        const reviewed = this.getFollowupReactionForUser(message, request.requestedBy) === 'followup_revisado';
-        const total = statusItems.length + (reviewed ? 1 : 0);
-        if (total === 0) return nothing;
-        return html`
-            <div class="message-reactions followup-summary">
-                <button 
-                    class="reactions-summary followup-reactions-summary"
-                    @click=${(ev: Event) => this.openReactionList(message, ev)}
-                >
-                    <span class="reaction-emoji followup-icon">${this.renderFollowupIcon(statusItems.find(item => item.reaction)?.reaction)}</span>
-                    <span class="reaction-count">${total}</span>
-                </button>
-                ${this.renderReactionListPopup(message)}
-            </div>
-        `;
-    }
-
     private renderReactionListPopup(message: IMessage) {
         if (this.openedReactionListMessageId !== message.createAt) return nothing;
-        const allReactions = this.hasExecutionFollowup(message)
-            ? this.getFollowupReactionListItems(message)
-            : this.getEmojiReactionListItems(message);
+        const allReactions = this.getReactionListItems(message);
         if (allReactions.length === 0) return nothing;
 
         allReactions.sort((a, b) => {
@@ -1156,10 +1138,11 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const allReactions: ReactionListItem[] = [];
 
         Object.entries(message.reactions).forEach(([name, users]) => {
-            const emoji = this.reactionEmojis[name];
-            if (!emoji) return;
+            const icon = this.getReactionIcon(name);
+            const label = this.getReactionLabel(name);
+            if (!icon || !label || this.isFollowupReaction(name)) return;
             users.forEach(userId => {
-                allReactions.push({ userId, icon: emoji, label: emoji, reactionName: name });
+                allReactions.push({ userId, icon, label, reactionName: name });
             });
         });
 
@@ -1167,23 +1150,55 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private getFollowupReactionListItems(message: IMessage): ReactionListItem[] {
-        const request = this.getActiveExecutionFollowup(message);
-        if (!request) return [];
-        const items = this.getFollowupStatusItems(message, request).map(({ userId, reaction }) => ({
-            userId,
-            icon: this.renderFollowupIcon(reaction),
-            label: this.getFollowupLabel(reaction),
-            reactionName: reaction
-        }));
-        if (this.getFollowupReactionForUser(message, request.requestedBy) === 'followup_revisado') {
-            items.push({
-                userId: request.requestedBy,
-                icon: this.renderFollowupIcon('followup_revisado'),
-                label: this.msg.followupRevisado,
-                reactionName: 'followup_revisado'
+        if (!message.reactions) return [];
+        const allReactions: ReactionListItem[] = [];
+
+        Object.entries(message.reactions).forEach(([name, users]) => {
+            if (!this.isFollowupReaction(name)) return;
+            const icon = this.getReactionIcon(name);
+            const label = this.getReactionLabel(name);
+            if (!icon || !label) return;
+            users.forEach(userId => {
+                allReactions.push({ userId, icon, label, reactionName: name });
             });
-        }
-        return items;
+        });
+
+        return allReactions;
+    }
+
+    private getReactionListItems(message: IMessage): ReactionListItem[] {
+        return [
+            ...this.getEmojiReactionListItems(message),
+            ...this.getFollowupReactionListItems(message),
+        ];
+    }
+
+    private getReactionSummaryItems(message: IMessage): ReactionSummaryItem[] {
+        if (!message.reactions) return [];
+        return Object.entries(message.reactions)
+            .map(([name, users]) => {
+                const icon = this.getReactionIcon(name);
+                if (!icon || users.length === 0) return undefined;
+                return {
+                    reactionName: name,
+                    icon,
+                    count: users.length,
+                    isFollowup: this.isFollowupReaction(name),
+                };
+            })
+            .filter((item): item is ReactionSummaryItem => !!item);
+    }
+
+    private getReactionIcon(name: string): string | TemplateResult | undefined {
+        if (this.reactionEmojis[name]) return this.reactionEmojis[name];
+        if (this.isFollowupReaction(name)) return this.renderFollowupIcon(name);
+        return undefined;
+    }
+
+    private getReactionLabel(name: string): string | undefined {
+        if (this.reactionEmojis[name]) return this.reactionEmojis[name];
+        if (this.isFollowupReaction(name)) return this.getFollowupLabel(name);
+        return undefined;
     }
 
     private openReactionList(message: IMessage, ev: Event) {
@@ -1864,6 +1879,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (!this.getFollowupActions(message).length) return;
 
         const target = ev.currentTarget as HTMLElement;
+        const followupTrigger = this.querySelector('.followup-action-trigger') as HTMLElement | null;
         this.openedMenuFor = undefined;
         this.messageMenuTarget = undefined;
         this.openedReactionMessageId = undefined;
@@ -1871,8 +1887,8 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         this.openedReactionListMessageId = undefined;
         this.reactionListTarget = undefined;
         this.openedFollowupActionsMessageId = message.createAt;
-        this.followupActionTarget = undefined;
-        this.followupActionAnchor = target.getBoundingClientRect();
+        this.followupActionTarget = followupTrigger || undefined;
+        this.followupActionAnchor = followupTrigger ? undefined : target.getBoundingClientRect();
     }
 
     private onMessageActionClick(message: IMessage, action: 'delete' | 'moderate' | 'createTask') {
