@@ -608,8 +608,18 @@ collab-messages-chat-message-102025 {
             }
 
             .reaction-emoji {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
                 font-size: 13px;
                 line-height: 1;
+
+                svg {
+                    width: 12px;
+                    height: 12px;
+                    display: block;
+                    fill: currentColor;
+                }
             }
 
             .reaction-count {
