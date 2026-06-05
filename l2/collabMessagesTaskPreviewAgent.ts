@@ -22,12 +22,16 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
 
     private lastKey: number = -1;
 
+    // Dedicated monaco instance for the Payload tab. It must NOT share the
+    // singleton used by the Raw/Flexible previews (window.editorTaskView),
+    // otherwise they overwrite each other's content (the Raw step-0 view would
+    // show a payload, and the payload would show the last set value).
     private get sharedEditor(): IHTMLEditorElement {
-        return (window as any).elEditorTaskView;
+        return (window as any).elEditorAgentPayload;
     }
 
     private get sharedMonaco(): monaco.editor.IStandaloneCodeEditor {
-        return (window as any).editorTaskView;
+        return (window as any).editorAgentPayload;
     }
 
     firstUpdated() {
@@ -359,7 +363,7 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
         this.mode = 'payload';
     }
 
-    // ── Monaco editor (shared singleton, reused from Raw/Flexible) ────
+    // ── Monaco editor (dedicated instance for the Payload tab) ────
 
     private ensureEditorCreated(): void {
         if (this.sharedMonaco) return;
@@ -374,8 +378,8 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
         ed1.setModel(model);
         editorEl.mlsEditor = ed1;
 
-        (window as any).elEditorTaskView = editorEl;
-        (window as any).editorTaskView = ed1;
+        (window as any).elEditorAgentPayload = editorEl;
+        (window as any).editorAgentPayload = ed1;
     }
 
     private mountEditor(): void {
@@ -385,7 +389,7 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
     }
 
     private createModel(): monaco.editor.ITextModel {
-        const uri = monaco.Uri.parse('file://server/taskViewModel.ts');
+        const uri = monaco.Uri.parse('file://server/agentPayloadModel.ts');
         return monaco.editor.getModel(uri)
             ?? monaco.editor.createModel('', 'javascript', uri);
     }
