@@ -49,7 +49,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     }
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
-        if (changedProperties.has('isClarificationPending') && this.isClarificationPending) {
+        if ((changedProperties.has('task') || changedProperties.has('message')) && this.hasPendingClarification() && !this.forceViewRaw) {
             this.setClarification();
         }
     }
@@ -75,18 +75,14 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
         if (!this.task) return html`No task.`;
 
-        this.isClarificationPending = false;
-        if (this.task) {
-            const nextStepPending = getNextPendentStep(this.task);
-            if (nextStepPending?.type === 'clarification') this.isClarificationPending = true;
-        }
+        const isClarificationPending = this.hasPendingClarification();
 
-        if (this.isClarificationPending && !this.forceViewRaw) return this.renderDirectClarification();
+        if (isClarificationPending && !this.forceViewRaw) return this.renderDirectClarification();
 
-        return this.renderTab();
+        return this.renderTab(isClarificationPending);
     }
 
-    renderTab() {
+    renderTab(isClarificationPending: boolean = this.hasPendingClarification()) {
 
         let aux: any = '';
         const hasTaskRoom = this.canUseTaskRoom();
@@ -97,7 +93,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
             <div class="tab ${activeTab === 'todo' ? 'active' : ''}" @click=${() => this.setTab('todo')} >Todo</div>`;
         }
         return html`
-            ${this.isClarificationPending ? html`<button class="viewraw" @click=${() => this.clickForceViewRaw(false)}>Clarification</button>` : ''}
+            ${isClarificationPending ? html`<button class="viewraw" @click=${() => this.clickForceViewRaw(false)}>Clarification</button>` : ''}
             <div class="tab-shell">
                 <div class="tabs">
                     ${aux}
@@ -170,6 +166,12 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         </div>`
     }
 
+    private hasPendingClarification(): boolean {
+        if (!this.task) return false;
+        const nextStepPending = getNextPendentStep(this.task);
+        return nextStepPending?.type === 'clarification';
+    }
+
     renderClarification(payload: mls.msg.AIClarificationStep) {
 
         if (!this.task) return html`Invalid task`;
@@ -197,7 +199,8 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
         try {
             clarification = await getClarificationElement({ message: this.message, task: this.task, isTest: false });
-        } catch {
+        } catch (error) {
+            if ((mls as any).isTraceAgent) console.error('[collabMessagesTaskInfo](setClarification)', error);
             return;
         }
 

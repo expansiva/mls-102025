@@ -44,7 +44,7 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
     }
 
     updated(changedProperties: Map<string, any>) {
-        if ((changedProperties.has('mode') || changedProperties.has('step')) && this.mode === 'payload') {
+        if ((changedProperties.has('mode') || changedProperties.has('step') || changedProperties.has('task')) && this.mode === 'payload') {
             this.mountEditor();
             this.updateEditorContent();
         }
@@ -254,6 +254,7 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
             </div>
         `;
         }
+        requestAnimationFrame(() => this.updateEditorContent());
         return html`<div id="elEditor" style="width:100%; height:100%"></div>`;
     }
 

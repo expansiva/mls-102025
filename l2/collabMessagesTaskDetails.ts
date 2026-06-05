@@ -40,15 +40,17 @@ export class CollabMessagesTaskDetails extends StateLitElement {
         }
     }
 
+    async updated(changedProperties: Map<PropertyKey, unknown>) {
+        if ((changedProperties.has('task') || changedProperties.has('message')) && this.hasPendingClarification()) {
+            this.setClarification();
+        }
+    }
+
     render() {
 
         if (!this.task) return html`No task.`;
 
-        let isClarificationPending: boolean = false;
-        if (this.task) {
-            const nextStepPending = getNextPendentStep(this.task);
-            if (nextStepPending?.type === 'clarification') isClarificationPending = true;
-        }
+        const isClarificationPending = this.hasPendingClarification();
 
         return html`
 
@@ -113,6 +115,12 @@ export class CollabMessagesTaskDetails extends StateLitElement {
         const payload = getNextClarificationStep(this.task);
         if (!payload) return html``;
         return html`<div class="direct-clarification">${this.renderClarification(payload)}</div>`
+    }
+
+    private hasPendingClarification(): boolean {
+        if (!this.task) return false;
+        const nextStepPending = getNextPendentStep(this.task);
+        return nextStepPending?.type === 'clarification';
     }
 
     private renderlLongMemory() {
@@ -342,7 +350,13 @@ export class CollabMessagesTaskDetails extends StateLitElement {
 
     private async setClarification(): Promise<void> {
         if (!this.directClarificationContent || !this.task || !this.message ) return;
-        const clarification = await getClarificationElement({ message: this.message, task: this.task, isTest: false });
+        let clarification: HTMLElement | null = null;
+        try {
+            clarification = await getClarificationElement({ message: this.message, task: this.task, isTest: false });
+        } catch (error) {
+            if ((mls as any).isTraceAgent) console.error('[collabMessagesTaskDetails](setClarification)', error);
+            return;
+        }
         if (!clarification) return;
         this.directClarificationContent.innerHTML = '';
         this.directClarificationContent.appendChild(clarification);
