@@ -3,7 +3,7 @@
 import { html } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property, state, query } from 'lit/decorators.js';
 import { CollabLitElement } from '/_102027_/l2/collabLitElement.js';
 import { loadAgent, restartStep } from '/_102027_/l2/aiAgentOrchestration.js';
 
@@ -18,15 +18,36 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
     @state() private prompts: mls.msg.IAMessageInputType[] = [];
     @state() private mode: string = 'info';
 
+    @query('#elEditor') elEditor: IHTMLEditorElement | undefined;
+
     private lastKey: number = -1;
+
+    private get sharedEditor(): IHTMLEditorElement {
+        return (window as any).elEditorTaskView;
+    }
+
+    private get sharedMonaco(): monaco.editor.IStandaloneCodeEditor {
+        return (window as any).editorTaskView;
+    }
 
     firstUpdated() {
         this.init();
+        if (this.mode === 'payload') {
+            this.mountEditor();
+            this.updateEditorContent();
+        }
     }
 
     update(changedProperties: any) {
         super.update(changedProperties);
         this.init();
+    }
+
+    updated(changedProperties: Map<string, any>) {
+        if ((changedProperties.has('mode') || changedProperties.has('step')) && this.mode === 'payload') {
+            this.mountEditor();
+            this.updateEditorContent();
+        }
     }
 
     render() {
@@ -45,9 +66,13 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
                         </button>
                         <button
                             class="tab-button ${this.mode === 'input' ? 'active' : ''}" @click=${() => this.selectTabInput()} >
-                            Inputs                            
+                            Inputs
                         </button>
-                        
+                        <button
+                            class="tab-button ${this.mode === 'payload' ? 'active' : ''}" @click=${() => this.selectTabPayload()} >
+                            Payload
+                        </button>
+
                     </div>
                 </div>
                 <div class="tab-content">
@@ -63,6 +88,7 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
 
         switch (this.mode) {
             case 'input': return this.renderInputs();
+            case 'payload': return this.renderPayload();
             case 'info': return this.renderInfo();
             case 'result': return this.renderResults();
             default: return this.renderInputs();
@@ -162,7 +188,12 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
 
     renderInputs() {
 
-        if (!this.prompts || this.prompts.length === 0)
+        const hasPrompts = this.prompts && this.prompts.length > 0;
+        const tools = this.step?.interaction?.tools;
+        const hasTools = Array.isArray(tools) && tools.length > 0;
+        const toolChoice = this.step?.interaction?.toolChoice;
+
+        if (!hasPrompts && !hasTools)
             return html`
             <div class="containerinputs">
                 <h3>No input found!</h3>
@@ -171,9 +202,59 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
 
         return html`
         <div class="containerinputs containerdraganddrop">
-            ${repeat(this.prompts, ((key: mls.msg.IAMessageInputType) => key.type + Date.now()) as any, ((p: mls.msg.IAMessageInputType, idx: number) => { return this.renderPrompt(p, idx) }) as any)}
+            ${hasPrompts
+                ? repeat(this.prompts, ((key: mls.msg.IAMessageInputType) => key.type + Date.now()) as any, ((p: mls.msg.IAMessageInputType, idx: number) => { return this.renderPrompt(p, idx) }) as any)
+                : ''}
+            ${hasTools ? this.renderTools(tools as any[], toolChoice) : ''}
         </div>
         `
+    }
+
+    renderTools(tools: any[], toolChoice: any) {
+        return html`
+            ${toolChoice ? this.renderJsonCard('toolChoice', this.toolName(toolChoice) || 'toolChoice', toolChoice) : ''}
+            ${tools.map((tool) => this.renderJsonCard('tool', this.toolName(tool) || 'tool', tool))}
+        `;
+    }
+
+    private toolName(tool: any): string {
+        return tool?.function?.name ?? tool?.name ?? '';
+    }
+
+    private renderJsonCard(typeMode: string, title: string, value: unknown) {
+        const content = JSON.stringify(value, null, 2);
+        return html`
+            <details class="prompt ${typeMode}">
+                <summary>
+                    <div class="pheader">
+                        <div class="type" style="display:flex; align-items: center;gap:.5rem">
+                            <span class="typeMode">${typeMode}</span>
+                            <span class="title">${title}</span>
+                        </div>
+                        <div style="display:flex; gap:.5rem">
+                            <div class="chevron">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" style="width:10px"><path d="M310.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L242.7 256 73.4 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </summary>
+                <div>
+                    <pre class="content">${content}</pre>
+                </div>
+            </details>
+        `;
+    }
+
+    renderPayload() {
+        const payload = this.step?.interaction?.payload;
+        if (!payload || (Array.isArray(payload) && payload.length === 0)) {
+            return html`
+            <div class="containerinputs">
+                <h3>No payload found!</h3>
+            </div>
+        `;
+        }
+        return html`<div id="elEditor" style="width:100%; height:100%"></div>`;
     }
 
     renderPrompt(prompt: mls.msg.IAMessageInputType, idx: number) {
@@ -273,6 +354,72 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
         this.mode = 'result';
     }
 
+    private selectTabPayload() {
+        this.mode = 'payload';
+    }
+
+    // ── Monaco editor (shared singleton, reused from Raw/Flexible) ────
+
+    private ensureEditorCreated(): void {
+        if (this.sharedMonaco) return;
+
+        const editorEl = document.createElement('mls-editor-100529') as IHTMLEditorElement;
+        editorEl.style.cssText = 'width:100%; height:100%';
+
+        const model = this.createModel();
+        const ed1 = monaco.editor.create(editorEl, this.editorConf as monaco.editor.IEditorOptions);
+        monaco.languages.typescript.javascriptDefaults.setCompilerOptions({ noImplicitAny: true });
+        ed1.updateOptions({ readOnly: true });
+        ed1.setModel(model);
+        editorEl.mlsEditor = ed1;
+
+        (window as any).elEditorTaskView = editorEl;
+        (window as any).editorTaskView = ed1;
+    }
+
+    private mountEditor(): void {
+        if (!this.elEditor) return;
+        this.ensureEditorCreated();
+        this.elEditor.appendChild(this.sharedEditor as any);
+    }
+
+    private createModel(): monaco.editor.ITextModel {
+        const uri = monaco.Uri.parse('file://server/taskViewModel.ts');
+        return monaco.editor.getModel(uri)
+            ?? monaco.editor.createModel('', 'javascript', uri);
+    }
+
+    private updateEditorContent(): void {
+        const ed1 = this.sharedMonaco;
+        if (!ed1 || !this.step) return;
+        const value = JSON.stringify(this.step.interaction?.payload ?? null, null, 2);
+        ed1.getModel()?.setValue(value);
+    }
+
+    private readonly editorConf: monaco.editor.IEditorOptions = {
+        contextmenu: true,
+        autoIndent: 'full',
+        wordWrap: 'on',
+        wrappingIndent: 'indent',
+        tabCompletion: 'on',
+        renderControlCharacters: false,
+        showUnused: true,
+        glyphMargin: true,
+        minimap: { enabled: false },
+        useTabStops: true,
+        scrollBeyondLastColumn: 2,
+        scrollBeyondLastLine: false,
+        formatOnType: true,
+        fixedOverflowWidgets: true,
+        codeLens: true,
+        showFoldingControls: 'mouseover',
+        suggestSelection: 'first',
+        stickyScroll: { enabled: false, maxLineCount: 3 },
+        stickyTabStops: true,
+        fontSize: 14,
+        automaticLayout: true,
+    };
+
     private canRestartStep(): boolean {
         return !!this.step && this.step.status === 'failed' && !!this.step.planning;
     }
@@ -311,4 +458,8 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
 
     }
 
+}
+
+interface IHTMLEditorElement extends HTMLElement {
+    mlsEditor: monaco.editor.IStandaloneCodeEditor;
 }
