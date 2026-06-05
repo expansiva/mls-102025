@@ -5,11 +5,11 @@ import { StateLitElement } from '/_102027_/l2/stateLitElement.js';
 import { getRootAgent } from '/_102027_/l2/aiAgentHelper.js';
 import { IAgent, IAgentAsync } from '/_102027_/l2/aiAgentBase.js';
 import { loadAgent } from '/_102027_/l2/aiAgentOrchestration.js';
-import { collabImport } from '/_102027_/l2/collabImport.js';
+import '/_102025_/l2/aiAgentDefaultFeedback.js';
  
 
 @customElement('collab-messages-task-log-preview-102025')  
-export class PluginTaskLogPreview100554 extends StateLitElement {
+export class PluginTaskLogPreview102025 extends StateLitElement {
 
   @state() currentStepId: number = 0;
 
@@ -67,9 +67,7 @@ export class PluginTaskLogPreview100554 extends StateLitElement {
     const agentName = firstAgent.agentName;
     const agent: IAgent | IAgentAsync | undefined = await loadAgent(agentName);
     if (!agent || !agent.getFeedBack) {
-      await collabImport({ folder: '', project: 100554, shortName: 'aiAgentDefaultFeedback', extension: '.ts' })
-
-      this.template = html`<ai-agent-default-feedback-100554 .task=${this.task} .message=${this.message} .father=${this}></ai-agent-default-feedback-100554>`
+      this.template = html`<ai-agent-default-feedback-102025 .task=${this.task} .message=${this.message} .father=${this}></ai-agent-default-feedback-102025>`
 
       return;
     }

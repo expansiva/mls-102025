@@ -1,0 +1,183 @@
+/// <mls fileReference="_102025_/l2/widgetQuestionsForClarification.less" enhancement="_102027_/l2/enhancementStyle" />
+
+widget-questions-for-clarification-102025 {
+
+  background: @bg-primary-color;
+  color: @text-primary-color;
+  font-size: @font-size-16;
+  border-radius: @space-16;
+  box-shadow: 0 2px 12px 0 fade(@grey-color-darker, 18%);
+  padding: @space-32;
+  max-width: 880px;
+  margin: @space-40 auto;
+  display: block;
+
+  .title {
+    font-size: @font-size-24;
+    font-weight: 500;
+    color: @text-primary-color-darker;
+    letter-spacing: 0.5px;
+    margin-bottom: 1.6em;
+    margin-top: .2em;
+    line-height: 1.2;
+  }
+
+  .clarification-form {
+    display: flex;
+    flex-direction: column;
+    gap: @space-24;
+  }
+
+  .clarification-question {
+    display: flex;
+    flex-direction: column;
+    gap: @space-8;
+
+    // MoSCoW layout
+    &[data-type="MoSCoW"] {
+      flex-direction: row;
+      align-items: center;
+      gap: @space-16;
+
+      select {
+        min-width: 110px;
+        max-width: 140px;
+        padding: @space-8 @space-8;
+        font-size: @font-size-16;
+        border-radius: @space-8;
+        border: 1.2px solid @grey-color;
+        background: @bg-primary-color-lighter;
+        color: @text-primary-color;
+        margin-right: @space-16;
+        font-weight: 500;
+
+        &:focus {
+          border: 1.2px solid @active-color;
+          background: @bg-primary-color-lighter;
+        }
+      }
+
+      .moscow-label {
+        font-size: @font-size-16;
+        color: @text-primary-color;
+        font-weight: 400;
+        line-height: 1.4;
+        margin: 0;
+      }
+    }
+
+    label,
+    .moscow-label {
+      font-size: @font-size-16;
+      color: @text-primary-color-lighter;
+      font-weight: 400;
+      margin: 0 0 0.2em 0;
+      line-height: 1.5;
+    }
+
+    textarea,
+    select {
+      color: @text-primary-color;
+      background: @bg-primary-color;
+      font-family: @font-family-primary;
+    }
+
+    textarea,
+    select:not([data-moscow]) {
+      font-size: @font-size-16;
+      padding: @space-8 @space-16;
+      border-radius: @space-8;
+      border: 1.2px solid @grey-color;
+      background: @bg-secondary-color-lighter;
+      transition: border @transition-slow;
+      margin-top: 0.25em;
+
+      &:focus {
+        border: 1.2px solid @active-color;
+        background: @bg-primary-color-lighter;
+      }
+    }
+
+    textarea {
+      min-height: 48px;
+      resize: vertical;
+    }
+
+    input[type="checkbox"] {
+      accent-color: @active-color;
+      transform: scale(1.1);
+      margin: 0 @space-8 0 0;
+      vertical-align: middle;
+    }
+  }
+
+  .clarification-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: @space-16;
+    margin-top: @space-32;
+
+    .action-btn {
+      min-width: 120px;
+      font-size: @font-size-16;
+      font-weight: 500;
+      border-radius: @space-8;
+      padding: @space-8 @space-16;
+      border: none;
+      cursor: pointer;
+      transition: background @transition-slow, color @transition-slow;
+      outline: none;
+
+      &.cancel {
+        background: @bg-secondary-color;
+        color: @text-primary-color;
+
+        &:hover {
+          background: @bg-secondary-color-hover;
+        }
+      }
+
+      &.continue {
+        background: @active-color;
+        color: #fff;
+
+        &:hover {
+          background: @active-color-hover;
+        }
+      }
+    }
+
+    .action-btn:disabled {
+      background: @bg-secondary-color-disabled;
+      color: @text-primary-color-disabled;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+  }
+
+  .clarification-legends {
+    font-size: @font-size-12;
+    color: @text-primary-color-lighter;
+    margin-top: 1.8em;
+    opacity: 0.7;
+  }
+
+  @media (max-width: @breakpoint-small) {
+    padding: @space-16;
+
+    .clarification-actions {
+      flex-direction: column;
+      gap: @space-8;
+
+      .action-btn {
+        width: 100%;
+      }
+    }
+
+    .title {
+      font-size: @font-size-20;
+    }
+  }
+}
+
+
