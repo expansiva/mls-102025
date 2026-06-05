@@ -99,6 +99,9 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
         }
     }
 
+    // Running row counter for zebra striping (reset each render in renderTree).
+    private rowIndex = 0;
+
     private getChildren(step: mls.msg.AIPayload) {
         return [
             ...(step.nextSteps ?? []),
@@ -124,7 +127,7 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
         return html`
         <div class="step" style="padding-left:${depth + 15}px; ${depth !== 0 ? 'border-left:1px solid #cecece' : ''}" >
 
-            <div class="row">
+            <div class="row ${this.rowIndex++ % 2 === 0 ? 'even' : 'odd'}">
                 <span class="icon">${this.getIconStep(step.status)}</span>
 
                 <span class="title">
@@ -248,6 +251,7 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
     }
 
     private renderTree() {
+        this.rowIndex = 0;
         const steps = this.task?.iaCompressed?.nextSteps ?? [];
         return html`
         <section class="tree">

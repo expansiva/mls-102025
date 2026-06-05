@@ -78,6 +78,18 @@ ai-agent-default-feedback-102025 {
             display: flex;
             align-items: center;
             gap: 8px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            // neutral translucent tint works on both dark and light themes
+            transition: background-color .15s ease;
+
+            &.odd {
+                background-color: rgba(128, 128, 128, 0.10);
+            }
+
+            &:hover {
+                background-color: rgba(128, 128, 128, 0.20);
+            }
         }
 
         .title {
