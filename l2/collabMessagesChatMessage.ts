@@ -70,6 +70,8 @@ const message_pt = {
     notConfirmedRead: 'não confirmado',
     readConfirmationWaiting: 'aguardando leitura',
     readConfirmationRead: 'lido',
+    seeMore: 'ver mais...',
+    seeLess: 'ver menos',
     followupPending: 'pendente',
     followupLido: 'Lido',
     followupVouFazer: 'Vou fazer',
@@ -130,6 +132,8 @@ const message_en = {
     notConfirmedRead: 'not confirmed',
     readConfirmationWaiting: 'waiting for read',
     readConfirmationRead: 'read',
+    seeMore: 'see more...',
+    seeLess: 'see less',
     followupPending: 'pending',
     followupLido: 'Read',
     followupVouFazer: 'Will do',
@@ -217,6 +221,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @state() private isEditingMessage = false;
     @state() private editContent = '';
     @state() private showEditHistory = false;
+    @state() private showFullContent = false;
 
     public onTaskClick?: Function;
     private msg: MessageType = messages['en'];
@@ -967,15 +972,17 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private renderCollabMessagesRichPreview(text: string) {
-        if (text.trim().startsWith('@@')) text = text.slice(0, 300) + (text.length > 300 ? '...' : '');
+        const isLong = text.trim().startsWith('@@') && text.length > 300;
+        const displayText = isLong && !this.showFullContent ? text.slice(0, 300) + '...' : text;
         return html`
-        <collab-messages-rich-preview-text-102025 
+        <collab-messages-rich-preview-text-102025
             @mention-click=${this.onMentionClick}
             @channel-hover=${this.onChannelHover}
-            .allUsers=${this.usersAvaliables} 
+            .allUsers=${this.usersAvaliables}
             .allThreads=${this.allThreads}
-            text="${text}"
-        ></collab-messages-rich-preview-text-102025>`
+            text="${displayText}"
+        ></collab-messages-rich-preview-text-102025>
+        ${isLong ? html`<button class="message-see-more" @click=${(ev: Event) => { ev.stopPropagation(); this.showFullContent = !this.showFullContent; }}>${this.showFullContent ? this.msg.seeLess : this.msg.seeMore}</button>` : nothing}`
     }
 
     private async onMentionClick(ev: CustomEvent) {

@@ -120,7 +120,8 @@ export class CollabMessagesTaskDetails extends StateLitElement {
     private hasPendingClarification(): boolean {
         if (!this.task) return false;
         const nextStepPending = getNextPendentStep(this.task);
-        return nextStepPending?.type === 'clarification';
+        if (nextStepPending?.type === 'clarification') return true;
+        return !!getNextClarificationStep(this.task);
     }
 
     private renderlLongMemory() {

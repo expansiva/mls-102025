@@ -184,9 +184,10 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
 
         return html`
         <div class="actions">
+            ${showContinue ? html`<span class="paused-label">Paused</span>` : nothing}
             ${showPause || showContinue ? html`<span class="icon" @click=${() => { this.pauseOrContinueTask(showPause ? 'paused' : 'continue') }} >${showPause ? collab_pause : collab_play} </span>` : nothing}
-            
-            
+
+
         </div>
     `;
     }
