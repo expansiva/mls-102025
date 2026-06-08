@@ -352,9 +352,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (message.moderation) {
             const notice = this.renderModerationNotice(message);
             if (this.isMessageContentHidden(message)) return notice;
-            return html`${notice}${this.renderMessageContentByLanguage(message)}`;
+            return html`${notice}${this.renderMessageContentByLanguage(message)}${this.renderSeeMoreButton(message.content)}`;
         }
-        return this.renderMessageContentByLanguage(message);
+        return html`${this.renderMessageContentByLanguage(message)}${this.renderSeeMoreButton(message.content)}`;
     }
 
     private renderMessageContentByLanguage(message: msg.Message) {
@@ -972,8 +972,8 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private renderCollabMessagesRichPreview(text: string) {
-        const isLong = text.trim().startsWith('@@') && text.length > 300;
-        const displayText = isLong && !this.showFullContent ? text.slice(0, 300) + '...' : text;
+        const needsTruncation = text.trim().startsWith('@@') && text.length >= 100;
+        const displayText = needsTruncation && !this.showFullContent ? text.slice(0, 100) + '...' : text;
         return html`
         <collab-messages-rich-preview-text-102025
             @mention-click=${this.onMentionClick}
@@ -981,8 +981,15 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             .allUsers=${this.usersAvaliables}
             .allThreads=${this.allThreads}
             text="${displayText}"
-        ></collab-messages-rich-preview-text-102025>
-        ${isLong ? html`<button class="message-see-more" @click=${(ev: Event) => { ev.stopPropagation(); this.showFullContent = !this.showFullContent; }}>${this.showFullContent ? this.msg.seeLess : this.msg.seeMore}</button>` : nothing}`
+        ></collab-messages-rich-preview-text-102025>`
+    }
+
+    private renderSeeMoreButton(text: string) {
+        if (!text.trim().startsWith('@@') || text.length < 100) return nothing;
+        return html`<button
+            class="message-see-more"
+            @click=${(ev: Event) => { ev.stopPropagation(); this.showFullContent = !this.showFullContent; }}
+        >${this.showFullContent ? this.msg.seeLess : this.msg.seeMore}</button>`;
     }
 
     private async onMentionClick(ev: CustomEvent) {

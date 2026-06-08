@@ -60,19 +60,24 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
 
     private ensureEditorCreated(): void {
         if (this.sharedMonaco) return;
+        if (typeof monaco === 'undefined') return;
 
-        const editorEl = document.createElement('mls-editor-100529') as IHTMLEditorElement;
-        editorEl.style.cssText = 'width:100%; height: calc(100% - 102px)';
+        try {
+            const editorEl = document.createElement('mls-editor-100529') as IHTMLEditorElement;
+            editorEl.style.cssText = 'width:100%; height: calc(100% - 102px)';
 
-        const model = this.createModel();
-        const ed1 = monaco.editor.create(editorEl, this.editorConf as monaco.editor.IEditorOptions);
-        monaco.languages.typescript.javascriptDefaults.setCompilerOptions({ noImplicitAny: true });
-        ed1.updateOptions({ readOnly: true });
-        ed1.setModel(model);
-        editorEl.mlsEditor = ed1;
+            const model = this.createModel();
+            const ed1 = monaco.editor.create(editorEl, this.editorConf as monaco.editor.IEditorOptions);
+            monaco.languages.typescript.javascriptDefaults.setCompilerOptions({ noImplicitAny: true });
+            ed1.updateOptions({ readOnly: true });
+            ed1.setModel(model);
+            editorEl.mlsEditor = ed1;
 
-        (window as any).elEditorTaskView = editorEl;
-        (window as any).editorTaskView = ed1;
+            (window as any).elEditorTaskView = editorEl;
+            (window as any).editorTaskView = ed1;
+        } catch (e) {
+            console.warn('collabMessagesTaskPreviewRaw: monaco editor not ready', e);
+        }
     }
 
     /**
@@ -82,6 +87,7 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
     private mountEditor(): void {
         if (!this.elEditor) return;
         this.ensureEditorCreated();
+        if (!this.sharedEditor) return;
         this.elEditor.appendChild(this.sharedEditor as any);
         this.observeEditorHost();
         this.layoutEditor();
