@@ -105,13 +105,16 @@ collab-messages-chat-message-102025 {
                 .message-see-more {
                     border: none;
                     background: transparent;
-                    color: var(--cm-green-dark, #007a3d);
+                    // use the bubble text color so it stays readable on every
+                    // bubble/theme (green-on-green was invisible in dark mode)
+                    color: var(--cm-text, #111827);
                     font: inherit;
                     font-size: 11px;
                     font-weight: 700;
-                    padding: 0 2px;
+                    text-decoration: underline;
+                    padding: 3px 2px;
                     cursor: pointer;
-                    line-height: 1;
+                    line-height: 1.4;
                     white-space: nowrap;
                     display: block;
                     margin-top: 2px;
