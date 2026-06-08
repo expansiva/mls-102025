@@ -760,6 +760,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderMessageResultByLanguage(message: msg.Message) {
 
+        // TODO-FINAL-028: render the failure reason for failed tasks (not only 'done'),
+        // so the user sees why the task failed without opening the step trace/payload.
+        if (message.taskResults && message.taskResults.length > 0 && message.taskStatus === 'failed') {
+            return html`<div class="message-content task-failed">${message.taskResults[0]}</div>`;
+        }
+
         if (!message.taskResults || message.taskResults.length === 0 || message.taskStatus !== 'done') return html``;
         const mode = this.userPreferenceChat?.translationMode || 'icon';
         if (!this.userPreferenceChat || mode === 'none') {

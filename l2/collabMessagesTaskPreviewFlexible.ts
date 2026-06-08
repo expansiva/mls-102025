@@ -32,13 +32,16 @@ export class CollabMessagesTaskPreviewFlexible extends CollabLitElement {
     }
 
     updated(changedProps: Map<string, any>) {
-        if (changedProps.has('mode') && this.mode === 'flexible') {
-            this.mountEditor();
-            this.updateEditorContent();
-        }
-
-        if (changedProps.has('step') && this.mode === 'flexible') {
-            this.updateEditorContent();
+        if (this.mode === 'flexible') {
+            // Re-mount the shared editor whenever it isn't inside our host
+            // (re-render recreated #elEditor, or another instance grabbed it).
+            const detached = !!this.elEditor && (!this.sharedEditor || this.sharedEditor.parentElement !== this.elEditor);
+            if (detached || changedProps.has('mode')) {
+                this.mountEditor();
+                this.updateEditorContent();
+            } else if (changedProps.has('step')) {
+                this.updateEditorContent();
+            }
         }
 
         if (changedProps.has('msize')) {

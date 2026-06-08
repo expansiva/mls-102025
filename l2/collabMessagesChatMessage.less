@@ -157,6 +157,12 @@ collab-messages-chat-message-102025 {
                     gap: .4rem;
                     word-break: break-word;
 
+                    /* TODO-FINAL-028: failed-task reason styling */
+                    &.task-failed {
+                        color: var(--cm-danger, #b91c1c);
+                        white-space: pre-wrap;
+                    }
+
                     collab-messages-rich-preview-text-102025 {
                         flex: 1;
                         min-width: 0;

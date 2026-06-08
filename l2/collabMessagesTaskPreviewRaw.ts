@@ -41,13 +41,17 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
     }
 
     updated(changedProps: Map<string, any>) {
-        if (changedProps.has('mode') && this.mode === 'flexible') {
-            this.mountEditor();
-            this.updateEditorContent();
-        }
-
-        if (changedProps.has('step') && this.mode === 'flexible') {
-            this.updateEditorContent();
+        if (this.mode === 'flexible') {
+            // The shared editor is a single DOM node moved between previews; a
+            // re-render can recreate #elEditor empty, or another instance can
+            // steal the editor. Re-mount whenever it isn't inside our host.
+            const detached = !!this.elEditor && (!this.sharedEditor || this.sharedEditor.parentElement !== this.elEditor);
+            if (detached || changedProps.has('mode')) {
+                this.mountEditor();
+                this.updateEditorContent();
+            } else if (changedProps.has('step')) {
+                this.updateEditorContent();
+            }
         }
 
         if (changedProps.has('msize')) {
