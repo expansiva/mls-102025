@@ -6,6 +6,7 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { CollabLitElement } from '/_102027_/l2/collabLitElement.js';
 import { loadAgent, restartStep } from '/_102027_/l2/aiAgentOrchestration.js';
+import { getAllSteps } from '/_102027_/l2/aiAgentHelper.js';
 
 @customElement('collab-messages-task-preview-agent-102025')
 export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
@@ -426,7 +427,18 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
     };
 
     private canRestartStep(): boolean {
-        return !!this.step && this.step.status === 'failed' && !!this.step.planning;
+        if (!this.step || this.step.status !== 'failed') return false;
+        if (this.step.planning) return true;
+        // parallel_dynamic children have no planning but are restartable (re-run with their args).
+        return this.isParallelChild();
+    }
+
+    private isParallelChild(): boolean {
+        if (!this.task || !this.step) return false;
+        const stepId = this.step.stepId;
+        return getAllSteps(this.task.iaCompressed?.nextSteps).some(s =>
+            !!(s as mls.msg.AIAgentStep).progress && (s.nextSteps || []).some(ns => ns.stepId === stepId)
+        );
     }
 
     private async restartStep(el: HTMLElement, stepId: number) {
