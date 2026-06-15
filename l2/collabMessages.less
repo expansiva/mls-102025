@@ -30,7 +30,8 @@ collab-messages-102025 {
     display: block;
     position: relative;
     overflow: hidden !important;
-    width: 375px;
+    width: var(--collab-messages-width, 375px);
+    max-width: 100%;
     color-scheme: light dark;
     font-family: @font-family-primary;
     color: var(--cm-text);
