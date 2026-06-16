@@ -114,6 +114,7 @@ export class CollabMessagesTextCode extends StateLitElement {
     if (!this.codeBlock) return;
     this.codeBlock.innerHTML = '';
     this.codeBlock.removeAttribute('data-highlighted');
+    this.codeBlock.classList.add('hljs');
     this.codeBlock.classList.add('language-' + this.language);
     const that = this;
     this.waitForLoadIfNeeded(() => {
