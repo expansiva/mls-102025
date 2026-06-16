@@ -1305,15 +1305,19 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
         const targetRect = this.reactionListTarget.getBoundingClientRect();
         const popupRect = popup.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const spaceBelow = viewportHeight - targetRect.bottom;
-        const spaceAbove = targetRect.top;
-        const shouldOpenTop = spaceBelow < popupRect.height && spaceAbove > spaceBelow;
+        const scrollContainer = this.closest('.chat-container') as HTMLElement | null;
+        const containerRect = scrollContainer?.getBoundingClientRect();
+        const bottomBoundary = containerRect ? Math.min(containerRect.bottom, window.innerHeight) : window.innerHeight;
+        const topBoundary = containerRect ? Math.max(containerRect.top, 0) : 0;
+        const gap = 8;
+        const spaceBelow = bottomBoundary - targetRect.bottom;
+        const spaceAbove = targetRect.top - topBoundary;
+        const shouldOpenTop = spaceBelow < popupRect.height + gap && spaceAbove > spaceBelow;
 
         this.reactionListPlacement = shouldOpenTop ? 'top' : 'bottom';
 
         requestAnimationFrame(() => {
-            popup.classList.add('open');
+            if (popup.isConnected) popup.classList.add('open');
         });
     }
 
