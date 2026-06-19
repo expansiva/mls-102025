@@ -578,16 +578,27 @@ export class CollabMessagesPrompt extends StateLitElement {
 
     private async applyEditResult(result: EditResult) {
         this.text = result.text;
+        this.syncTextAreaEdit(result);
         this.emitTextChange();
-        await this.updateComplete;
-
-        if (!this.textArea) return;
-        this.textArea.selectionStart = result.selectionStart;
-        this.textArea.selectionEnd = result.selectionEnd;
-        this.textArea.focus();
         this.updateSelectionState();
         this.adjustTextAreaHeight();
         this.handleScroll();
+        await this.updateComplete;
+
+        if (!this.textArea) return;
+        this.syncTextAreaEdit(result);
+        this.updateSelectionState();
+        this.adjustTextAreaHeight();
+        this.handleScroll();
+    }
+
+    private syncTextAreaEdit(result: EditResult) {
+        if (!this.textArea) return;
+        if (this.textArea.value !== result.text) {
+            this.textArea.value = result.text;
+        }
+        this.textArea.focus();
+        this.textArea.setSelectionRange(result.selectionStart, result.selectionEnd);
     }
 
     private applyInlineFormat(before: string, after: string, placeholder: string) {
