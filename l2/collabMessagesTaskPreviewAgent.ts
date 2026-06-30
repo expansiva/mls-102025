@@ -251,8 +251,8 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
     }
 
     renderPayload() {
-        const payload = this.step?.interaction?.payload;
-        if (!payload || (Array.isArray(payload) && payload.length === 0)) {
+        const payload = this.getPayloadTabValue();
+        if (!this.hasPayloadTabValue(payload)) {
             return html`
             <div class="containerinputs">
                 <h3>No payload found!</h3>
@@ -398,8 +398,56 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
     private updateEditorContent(): void {
         const ed1 = this.sharedMonaco;
         if (!ed1 || !this.step) return;
-        const value = JSON.stringify(this.step.interaction?.payload ?? null, null, 2);
+        const value = JSON.stringify(this.getPayloadTabValue(), null, 2);
         ed1.getModel()?.setValue(value);
+    }
+
+    private getPayloadTabValue(): unknown {
+        const payload = this.step?.interaction?.payload;
+        if (this.hasPayloadTabValue(payload)) return payload;
+
+        const tracePayload = this.getTracePayload();
+        if (tracePayload.length > 0) return tracePayload;
+
+        return null;
+    }
+
+    private hasPayloadTabValue(payload: unknown): boolean {
+        return payload !== null && payload !== undefined && (!Array.isArray(payload) || payload.length > 0);
+    }
+
+    private getTracePayload(): unknown[] {
+        const result: unknown[] = [];
+        const trace = this.step?.interaction?.trace;
+        if (!Array.isArray(trace)) return result;
+
+        for (const item of trace) {
+            const parsed = this.parseTracePayloadItem(item);
+            if (parsed !== null) result.push(parsed);
+        }
+
+        return result;
+    }
+
+    private parseTracePayloadItem(item: unknown): unknown | null {
+        if (this.isTracePayloadItem(item)) return item;
+        if (typeof item !== 'string') return null;
+
+        const value = item.trim();
+        if (!value.startsWith('{')) return null;
+
+        try {
+            const parsed = JSON.parse(value);
+            return this.isTracePayloadItem(parsed) ? parsed : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private isTracePayloadItem(value: unknown): boolean {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+        const record = value as Record<string, unknown>;
+        return 'title' in record && ('trace' in record || 'ok' in record || 'stage' in record || 'restart' in record);
     }
 
     private readonly editorConf: monaco.editor.IEditorOptions = {
