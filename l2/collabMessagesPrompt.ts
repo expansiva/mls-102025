@@ -320,7 +320,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     // Rich preview rendering (usa parser compartilhado)
     // ─────────────────────────────────────────────────────────────
 
-    private renderRichToken(token: RichToken) {
+    private renderRichToken(token: RichToken): ReturnType<typeof html> {
         const marker = (m?: string) => m ? html`<span class="marker">${m}</span>` : nothing;
 
         switch (token.type) {

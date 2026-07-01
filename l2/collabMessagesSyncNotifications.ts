@@ -197,8 +197,9 @@ async function scheduleNextSync() {
 	syncTimeout = setTimeout(async () => {
 		syncTimeout = null;
 
-		const [reference] = threadSyncMap.entries().next().value;
-		if (!reference) return;
+		const entry = threadSyncMap.entries().next().value;
+		if (!entry) return;
+		const [reference] = entry;
 		threadSyncMap.delete(reference);
 
 		try {
