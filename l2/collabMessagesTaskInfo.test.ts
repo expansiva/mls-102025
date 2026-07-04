@@ -9,6 +9,7 @@ export const tests: ICANTest[] = [
     { functionName: 'testBuildTaskStatisticsCountsFallbacksAndErrors', params: [{}] },
     { functionName: 'testBuildTaskStatisticsFromStructuredTraceObject', params: [{}] },
     { functionName: 'testBuildTaskStatisticsCountsUntracedInteractionCost', params: [{}] },
+    { functionName: 'testBuildTaskStatisticsIgnoresZeroCostTrace', params: [{}] },
 ];
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -158,4 +159,28 @@ export function testBuildTaskStatisticsCountsUntracedInteractionCost() {
     assert(stats.llmCalls === 1, 'Expected one synthetic untraced call');
     assert(stats.models[0].model === 'untraced interaction', 'Expected untraced model bucket');
     assertClose(stats.totalCost, 0.0174, 'Expected untraced interaction cost');
+}
+
+export function testBuildTaskStatisticsIgnoresZeroCostTrace() {
+    const stats = buildTaskStatistics(makeTask([
+        {
+            type: 'agent',
+            stepId: 5,
+            status: 'completed',
+            agentName: 'agentSkippedRoot',
+            rags: [],
+            interaction: {
+                input: [],
+                cost: 0,
+                trace: ['Root LLM skipped by AgentIntentAddMessageAI.skipRootLLM'],
+                payload: null
+            },
+            nextSteps: null
+        }
+    ]));
+
+    assert(stats.llmCalls === 0, 'Expected no LLM calls for zero-cost trace');
+    assert(stats.traceRecords === 0, 'Expected zero-cost trace to be ignored');
+    assert(stats.jsonTraceRecords === 0, 'Expected no JSON trace records');
+    assert(stats.totalCost === 0, 'Expected no cost');
 }

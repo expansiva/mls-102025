@@ -284,7 +284,7 @@ export class CollabMessagesTaskRoom extends StateLitElement {
             return;
         }
 
-        const lastMessage = this.messages.at(-1);
+        const lastMessage = this.messages[this.messages.length - 1];
         const updatedThread = await markThreadReadLocally(
             this.roomThread.threadId,
             lastMessage?.createAt,

@@ -341,8 +341,9 @@ export function buildTaskStatistics(task: mls.msg.TaskData | undefined): TaskExe
         if (status === 'failed' || status.includes('error')) failedSteps += 1;
 
         if (!step.interaction) continue;
-        interactions += 1;
         const stepCost = toNumber(step.interaction.cost);
+        if (stepCost <= 0) continue;
+        interactions += 1;
         const callsBeforeInteraction = calls.length;
         interactionCost += stepCost;
 
