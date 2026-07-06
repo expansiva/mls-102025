@@ -3,7 +3,7 @@
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { getAllSteps } from '/_102027_/l2/aiAgentHelper.js';
-import { CollabLitElement } from '/_102027_/l2/collabLitElement.js';
+import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 
 import '/_102025_/l2/collabMessagesTaskPreviewAgent.js';
 import '/_102025_/l2/collabMessagesTaskPreviewClarification.js';

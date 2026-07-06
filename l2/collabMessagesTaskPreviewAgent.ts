@@ -4,7 +4,7 @@ import { html } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { CollabLitElement } from '/_102027_/l2/collabLitElement.js';
+import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 import { loadAgent, restartStep } from '/_102027_/l2/aiAgentOrchestration.js';
 
 @customElement('collab-messages-task-preview-agent-102025')
