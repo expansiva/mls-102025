@@ -169,12 +169,11 @@ export class WidgetQuestionsForClarification102025 extends StateLitElement {
               ></textarea>
             ` : q.type === 'select' && q.options ? html`
               <select
-                .value=${String(this.localAnswers[key] ?? '')}
                 @change=${(e: Event) => this.onInputChange(key, (e.target as HTMLSelectElement).value)}
               >
-                <option value="">Select...</option>
+                <option value="" ?selected=${!this.localAnswers[key]}>Select...</option>
                 ${q.options.map(option => html`
-                  <option value=${option.label}>${option.label}</option>
+                  <option value=${option.id} ?selected=${String(this.localAnswers[key] ?? '') === option.id}>${option.label}</option>
                 `)}
               </select>
             ` : null}

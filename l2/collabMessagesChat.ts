@@ -2108,7 +2108,7 @@ export class CollabMessagesChat extends StateLitElement {
     private getLastKnownMessageCreateAt(): string | undefined {
         const lastMessage = [...this.actualMessages]
             .sort((a, b) => (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt))
-            .at(-1);
+            [this.actualMessages.length - 1];
         return lastMessage?.createAt;
     }
 

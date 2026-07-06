@@ -3,8 +3,23 @@
 import { html, TemplateResult, nothing, svg } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
-import { continuePoolingTask, pauseOrContinueTask } from '/_102027_/l2/aiAgentOrchestration.js';
-import { getNextPendentStep } from "/_102027_/l2/aiAgentHelper.js";
+import { continuePoolingTask, pauseOrContinueTask, loadAgent } from '/_102027_/l2/aiAgentOrchestration.js';
+import { getNextPendentStep, getAllSteps } from "/_102027_/l2/aiAgentHelper.js";
+
+// Process-wide cache: does an agent implement openStepView? (Avoids re-importing agents per render.)
+const openStepViewCache = new Map<string, boolean>();
+async function agentHasOpenStepView(agentName: string): Promise<boolean> {
+    if (openStepViewCache.has(agentName)) return openStepViewCache.get(agentName)!;
+    let has = false;
+    try {
+        const agent = await loadAgent(agentName);
+        has = !!agent && typeof (agent as { openStepView?: unknown }).openStepView === 'function';
+    } catch {
+        has = false;
+    }
+    openStepViewCache.set(agentName, has);
+    return has;
+}
 
 const collab_bell = svg`<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 448 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path d="M224 0c-17.7 0-32 14.3-32 32l0 19.2C119 66 64 130.6 64 208l0 18.8c0 47-17.3 92.4-48.5 127.6l-7.4 8.3c-8.4 9.4-10.4 22.9-5.3 34.4S19.4 416 32 416l384 0c12.6 0 24-7.4 29.2-18.9s3.1-25-5.3-34.4l-7.4-8.3C401.3 319.2 384 273.9 384 226.8l0-18.8c0-77.4-55-142-128-156.8L256 32c0-17.7-14.3-32-32-32zm45.3 493.3c12-12 18.7-28.3 18.7-45.3l-64 0-64 0c0 17 6.7 33.3 18.7 45.3s28.3 18.7 45.3 18.7s33.3-6.7 45.3-18.7z"/> </svg>`;
 
@@ -27,6 +42,9 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
     @state() selectedStep: mls.msg.AIPayload | null = null;
     @state() selectedTraceStep: mls.msg.AIPayload | null = null;
     @state() isAgentParallelMode: boolean = false;
+    // Agent names (in this task) whose agent implements openStepView → show an "open" link.
+    @state() private openCapableAgents: Set<string> = new Set();
+    @state() private openedView: HTMLElement | null = null;
 
     async firstUpdated() {
         //this.task = await getTask('20250917143000.1001');
@@ -40,13 +58,57 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
         //console.info(this.task);
 
         this.isAgentParallelMode = !!this.task?.iaCompressed?.nextSteps[0].progress;
+        void this.resolveOpenCapableAgents();
     }
 
     updated(_changedProperties: Map<PropertyKey, unknown>) {
         super.updated(_changedProperties);
         if (_changedProperties.has('task')) {
             this.isAgentParallelMode = !!this.task?.iaCompressed?.nextSteps[0].progress;
+            void this.resolveOpenCapableAgents();
         }
+    }
+
+    // Resolve which agent steps in this task expose openStepView, so renderStep (sync) can show the
+    // "open" link. Result is stored in state so the view re-renders once resolved.
+    private async resolveOpenCapableAgents(): Promise<void> {
+        if (!this.task) return;
+        const names = new Set<string>();
+        for (const s of getAllSteps(this.task.iaCompressed?.nextSteps)) {
+            const name = (s as mls.msg.AIAgentStep).agentName;
+            if (s.type === 'agent' && name) names.add(name);
+        }
+        const capable = new Set<string>();
+        for (const name of names) {
+            if (await agentHasOpenStepView(name)) capable.add(name);
+        }
+        this.openCapableAgents = capable;
+    }
+
+    private async clickOpen(step: mls.msg.AIAgentStep): Promise<void> {
+        if (!this.task) return;
+        try {
+            const agent = await loadAgent(step.agentName);
+            const open = (agent as { openStepView?: (a: unknown, c: unknown, s: unknown) => Promise<HTMLElement> } | undefined)?.openStepView;
+            if (!agent || typeof open !== 'function') return;
+            const context = { task: this.task, message: this.message, isTest: false } as unknown as mls.msg.ExecutionContext;
+            this.openedView = await open(agent, context, step);
+        } catch (error) {
+            console.warn('[aiAgentDefaultFeedback](clickOpen) failed', error);
+        }
+    }
+
+    private renderOpenedView(): TemplateResult {
+        const lang = (document.documentElement.lang || '').toLowerCase();
+        const back = lang.startsWith('pt') ? '← voltar' : '← back';
+        return html`
+            <section class="details">
+                <a class="back" href="#" @click=${(e: MouseEvent) => { e.preventDefault(); this.openedView = null; }}>
+                    ${back}
+                </a>
+                ${this.openedView}
+            </section>
+        `;
     }
 
     private getTitle(
@@ -135,6 +197,11 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
                 </span>
 
                 <span class="actions">
+                    ${step.type === 'agent' && this.openCapableAgents.has((step as mls.msg.AIAgentStep).agentName)
+                ? html`<a href="#" @click=${(e: MouseEvent) => { e.preventDefault(); this.clickOpen(step as mls.msg.AIAgentStep) }}>
+                        ${(document.documentElement.lang || '').toLowerCase().startsWith('pt') ? 'abrir' : 'open'}
+                    </a>`
+                : nothing}
                     <a href="#" @click=${(e: MouseEvent) => { e.preventDefault(); this.clickDetails(step) }}>
                         details
                     </a>
@@ -184,9 +251,10 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
 
         return html`
         <div class="actions">
+            ${showContinue ? html`<span class="paused-label">Paused</span>` : nothing}
             ${showPause || showContinue ? html`<span class="icon" @click=${() => { this.pauseOrContinueTask(showPause ? 'paused' : 'continue') }} >${showPause ? collab_pause : collab_play} </span>` : nothing}
-            
-            
+
+
         </div>
     `;
     }
@@ -364,11 +432,13 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
         if (!this.task.iaCompressed) return html`No find Ai interaction in task`;
         return html`
             <section class="feedback-section">
-                ${this.selectedTraceStep
-                ? this.renderTrace()
-                : this.selectedStep
-                    ? this.renderDetails()
-                    : this.renderTree()
+                ${this.openedView
+                ? this.renderOpenedView()
+                : this.selectedTraceStep
+                    ? this.renderTrace()
+                    : this.selectedStep
+                        ? this.renderDetails()
+                        : this.renderTree()
             }
         </section>
             `;

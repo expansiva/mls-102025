@@ -41,13 +41,17 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
     }
 
     updated(changedProps: Map<string, any>) {
-        if (changedProps.has('mode') && this.mode === 'flexible') {
-            this.mountEditor();
-            this.updateEditorContent();
-        }
-
-        if (changedProps.has('step') && this.mode === 'flexible') {
-            this.updateEditorContent();
+        if (this.mode === 'flexible') {
+            // The shared editor is a single DOM node moved between previews; a
+            // re-render can recreate #elEditor empty, or another instance can
+            // steal the editor. Re-mount whenever it isn't inside our host.
+            const detached = !!this.elEditor && (!this.sharedEditor || this.sharedEditor.parentElement !== this.elEditor);
+            if (detached || changedProps.has('mode')) {
+                this.mountEditor();
+                this.updateEditorContent();
+            } else if (changedProps.has('step')) {
+                this.updateEditorContent();
+            }
         }
 
         if (changedProps.has('msize')) {
@@ -60,19 +64,24 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
 
     private ensureEditorCreated(): void {
         if (this.sharedMonaco) return;
+        if (typeof monaco === 'undefined') return;
 
-        const editorEl = document.createElement('mls-editor-100529') as IHTMLEditorElement;
-        editorEl.style.cssText = 'width:100%; height: calc(100% - 102px)';
+        try {
+            const editorEl = document.createElement('mls-editor-100529') as IHTMLEditorElement;
+            editorEl.style.cssText = 'width:100%; height: calc(100% - 102px)';
 
-        const model = this.createModel();
-        const ed1 = monaco.editor.create(editorEl, this.editorConf as monaco.editor.IEditorOptions);
-        monaco.languages.typescript.javascriptDefaults.setCompilerOptions({ noImplicitAny: true });
-        ed1.updateOptions({ readOnly: true });
-        ed1.setModel(model);
-        editorEl.mlsEditor = ed1;
+            const model = this.createModel();
+            const ed1 = monaco.editor.create(editorEl, this.editorConf as monaco.editor.IEditorOptions);
+            monaco.languages.typescript.javascriptDefaults.setCompilerOptions({ noImplicitAny: true });
+            ed1.updateOptions({ readOnly: true });
+            ed1.setModel(model);
+            editorEl.mlsEditor = ed1;
 
-        (window as any).elEditorTaskView = editorEl;
-        (window as any).editorTaskView = ed1;
+            (window as any).elEditorTaskView = editorEl;
+            (window as any).editorTaskView = ed1;
+        } catch (e) {
+            console.warn('collabMessagesTaskPreviewRaw: monaco editor not ready', e);
+        }
     }
 
     /**
@@ -82,6 +91,7 @@ export class CollabMessagesTaskPreviewRaw extends CollabLitElement {
     private mountEditor(): void {
         if (!this.elEditor) return;
         this.ensureEditorCreated();
+        if (!this.sharedEditor) return;
         this.elEditor.appendChild(this.sharedEditor as any);
         this.observeEditorHost();
         this.layoutEditor();

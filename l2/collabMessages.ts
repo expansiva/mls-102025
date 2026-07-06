@@ -30,7 +30,7 @@ import { checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifi
 import { msgGetUserUpdate, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
 import { ICollabMessageEvent } from '/_102025_/l2/collabMessagesEvents.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
-import { collab_crm, collab_tasks, collab_connect, collab_moments, collab_gear, collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons.js';
+import { collab_crm, collab_tasks, collab_connect, collab_moments, collab_apps, collab_gear, collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons.js';
 import '/_102025_/l2/collabMessagesAdd.js';
 import '/_102025_/l2/collabMessagesChat.js';
 import '/_102025_/l2/collabMessagesTasks.js';
@@ -99,6 +99,7 @@ export class CollabMessages extends CollabLitElement {
         { id: 'TASK', icon: collab_tasks, label: this.msg.tasks, type: 'tab' },
         { id: 'CONNECT', icon: collab_connect, label: this.msg.connect, type: 'tab' },
         { id: 'MOMENTS', icon: collab_moments, label: this.msg.moments, type: 'tab', active: true },
+        { id: 'APPS', icon: collab_apps, label: this.msg.apps, type: 'tab' },
         { id: 'SETTINGS', icon: collab_gear, label: this.msg.settings, type: 'button' }
     ];
 
@@ -115,7 +116,7 @@ export class CollabMessages extends CollabLitElement {
     async updated(changedProperties: Map<PropertyKey, unknown>) {
         super.updated(changedProperties);
 
-        if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT', 'APPS'].includes(this.activeTab)) {
+        if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT'].includes(this.activeTab)) {
 
             if (!this.userPerfil) {
                 this.userPerfil = await this.getUser();
@@ -233,7 +234,7 @@ export class CollabMessages extends CollabLitElement {
         if (this.modeMenu === 'custom') return nothing;
         return html`
           <collab-messages-tab-menu-102025
-            style="width: 375px;"
+            style="width: var(--collab-messages-width, 375px);"
             .items=${this.menuItems}
             activeId="${this.activeTab}"
             @tab-change=${(e: CustomEvent) => { this.onTabChange(e) }}

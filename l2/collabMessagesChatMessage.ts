@@ -70,6 +70,8 @@ const message_pt = {
     notConfirmedRead: 'não confirmado',
     readConfirmationWaiting: 'aguardando leitura',
     readConfirmationRead: 'lido',
+    seeMore: 'ver mais...',
+    seeLess: 'ver menos',
     followupPending: 'pendente',
     followupLido: 'Lido',
     followupVouFazer: 'Vou fazer',
@@ -130,6 +132,8 @@ const message_en = {
     notConfirmedRead: 'not confirmed',
     readConfirmationWaiting: 'waiting for read',
     readConfirmationRead: 'read',
+    seeMore: 'see more...',
+    seeLess: 'see less',
     followupPending: 'pending',
     followupLido: 'Read',
     followupVouFazer: 'Will do',
@@ -217,6 +221,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @state() private isEditingMessage = false;
     @state() private editContent = '';
     @state() private showEditHistory = false;
+    @state() private showFullContent = false;
 
     public onTaskClick?: Function;
     private msg: MessageType = messages['en'];
@@ -347,9 +352,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (message.moderation) {
             const notice = this.renderModerationNotice(message);
             if (this.isMessageContentHidden(message)) return notice;
-            return html`${notice}${this.renderMessageContentByLanguage(message)}`;
+            return html`${notice}${this.renderMessageContentByLanguage(message)}${this.renderSeeMoreButton(message.content)}`;
         }
-        return this.renderMessageContentByLanguage(message);
+        return html`${this.renderMessageContentByLanguage(message)}${this.renderSeeMoreButton(message.content)}`;
     }
 
     private renderMessageContentByLanguage(message: msg.Message) {
@@ -755,6 +760,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderMessageResultByLanguage(message: msg.Message) {
 
+        // TODO-FINAL-028: render the failure reason for failed tasks (not only 'done'),
+        // so the user sees why the task failed without opening the step trace/payload.
+        if (message.taskResults && message.taskResults.length > 0 && message.taskStatus === 'failed') {
+            return html`<div class="message-content task-failed">${message.taskResults[0]}</div>`;
+        }
+
         if (!message.taskResults || message.taskResults.length === 0 || message.taskStatus !== 'done') return html``;
         const mode = this.userPreferenceChat?.translationMode || 'icon';
         if (!this.userPreferenceChat || mode === 'none') {
@@ -967,15 +978,24 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private renderCollabMessagesRichPreview(text: string) {
-        if (text.trim().startsWith('@@')) text = text.slice(0, 300) + (text.length > 300 ? '...' : '');
+        const needsTruncation = text.trim().startsWith('@@') && text.length >= 100;
+        const displayText = needsTruncation && !this.showFullContent ? text.slice(0, 100) + '...' : text;
         return html`
-        <collab-messages-rich-preview-text-102025 
+        <collab-messages-rich-preview-text-102025
             @mention-click=${this.onMentionClick}
             @channel-hover=${this.onChannelHover}
-            .allUsers=${this.usersAvaliables} 
+            .allUsers=${this.usersAvaliables}
             .allThreads=${this.allThreads}
-            text="${text}"
+            text="${displayText}"
         ></collab-messages-rich-preview-text-102025>`
+    }
+
+    private renderSeeMoreButton(text: string) {
+        if (!text.trim().startsWith('@@') || text.length < 100) return nothing;
+        return html`<button
+            class="message-see-more"
+            @click=${(ev: Event) => { ev.stopPropagation(); this.showFullContent = !this.showFullContent; }}
+        >${this.showFullContent ? this.msg.seeLess : this.msg.seeMore}</button>`;
     }
 
     private async onMentionClick(ev: CustomEvent) {
@@ -1285,15 +1305,19 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
         const targetRect = this.reactionListTarget.getBoundingClientRect();
         const popupRect = popup.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const spaceBelow = viewportHeight - targetRect.bottom;
-        const spaceAbove = targetRect.top;
-        const shouldOpenTop = spaceBelow < popupRect.height && spaceAbove > spaceBelow;
+        const scrollContainer = this.closest('.chat-container') as HTMLElement | null;
+        const containerRect = scrollContainer?.getBoundingClientRect();
+        const bottomBoundary = containerRect ? Math.min(containerRect.bottom, window.innerHeight) : window.innerHeight;
+        const topBoundary = containerRect ? Math.max(containerRect.top, 0) : 0;
+        const gap = 8;
+        const spaceBelow = bottomBoundary - targetRect.bottom;
+        const spaceAbove = targetRect.top - topBoundary;
+        const shouldOpenTop = spaceBelow < popupRect.height + gap && spaceAbove > spaceBelow;
 
         this.reactionListPlacement = shouldOpenTop ? 'top' : 'bottom';
 
         requestAnimationFrame(() => {
-            popup.classList.add('open');
+            if (popup.isConnected) popup.classList.add('open');
         });
     }
 

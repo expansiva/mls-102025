@@ -94,27 +94,44 @@ export class CollabMessagesTextCode extends StateLitElement {
     return result;
   }
 
+  private getHighlightLanguage(language: string): string | undefined {
+    const value = language.trim();
+    const normalized = value === 'plain' ? 'plaintext' : value;
+    const hljs = (window as any).hljs;
+    return hljs.getLanguage(normalized) ? normalized : undefined;
+  }
+
+  private markRenderedAfterPaint() {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.markRendered();
+      });
+    });
+  }
+
   setCode() {
 
     if (!this.codeBlock) return;
     this.codeBlock.innerHTML = '';
     this.codeBlock.removeAttribute('data-highlighted');
+    this.codeBlock.classList.add('hljs');
     this.codeBlock.classList.add('language-' + this.language);
     const that = this;
     this.waitForLoadIfNeeded(() => {
       if (!that.codeBlock) return;
       (window as any).hljs.configure({ ignoreUnescapedHTML: true });
       if (!that.languages || that.languages.length === 0) that.languages = (window as any).hljs.listLanguages();
-      const res = (window as any).hljs.highlight(this.unescapeHtml(this.text), { language: that.language });
+      const highlightLanguage = that.getHighlightLanguage(that.language);
+      if (!highlightLanguage) {
+        that.codeBlock.textContent = that.unescapeHtml(that.text);
+        that.markRenderedAfterPaint();
+        return;
+      }
+      const res = (window as any).hljs.highlight(this.unescapeHtml(this.text), { language: highlightLanguage });
       that.codeBlock.removeAttribute("data-highlighted");
-      (window as any).hljs.highlightElement(that.codeBlock, { language: that.language });
       that.codeBlock.innerHTML = res.value;
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          this.markRendered();
-        });
-      });
+      that.markRenderedAfterPaint();
     });
 
   }
