@@ -350,7 +350,7 @@ export class CollabMessages extends CollabLitElement {
 
     private async getUser(): Promise<msg.User> {
         try {
-            const result = await msgGetUserUpdate({ userId: "" });
+            const result = await msgGetUserUpdate({ userId: "", name: environment.config.getDefaultUserName() });
 
             if (!result.success || !result.response?.user) {
                 throw new Error(result.error || 'Failed to fetch user');

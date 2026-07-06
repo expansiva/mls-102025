@@ -1,6 +1,7 @@
 /// <mls fileReference="_102025_/l2/shared/api.ts" enhancement="_blank"/>
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { environment } from '/_102036_/l2/environmentContract.js';
 
 async function handleRequest<T>(promise: Promise<T & { statusCode: number; msg?: string }>): Promise<ApiResult<T>> {
 	try {
@@ -32,7 +33,7 @@ async function handleRequest<T>(promise: Promise<T & { statusCode: number; msg?:
 export async function post<T = msg.ResponseBase>(
 	args: msg.RequestBase
 ): Promise<T> {
-	let urlHttp = "https://on.collab.codes/exec";
+	let urlHttp = environment.config.getApiUrl();
 
 	try {
 		const response = await fetch(urlHttp, {
@@ -41,7 +42,7 @@ export async function post<T = msg.ResponseBase>(
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify(args),
-			credentials: 'include'
+			credentials: environment.config.getApiCredentials()
 		});
 
 		if (response.status !== msg.HttpStatus.OK) {
