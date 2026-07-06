@@ -3,7 +3,7 @@
 import { html } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { CollabLitElement } from '/_102027_/l2/collabLitElement.js'; 
+import { CollabLitElement } from '/_102029_/l2/collabLitElement.js'; 
 import { getStepById, getTemporaryContext } from "/_102027_/l2/aiAgentHelper.js";
 import { loadAgent } from '/_102027_/l2/aiAgentOrchestration.js';
 

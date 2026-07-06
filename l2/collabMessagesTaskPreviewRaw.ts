@@ -2,7 +2,7 @@
 
 import { html } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import { CollabLitElement } from '/_102027_/l2/collabLitElement.js';
+import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 import { getTotalCost } from '/_102027_/l2/aiAgentHelper.js';
 import { collab_money } from '/_102025_/l2/collabMessagesIcons.js';
 

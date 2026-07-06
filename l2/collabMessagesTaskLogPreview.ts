@@ -1,7 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesTaskLogPreview.ts" enhancement="_102027_/l2/enhancementLit" />
 import { html, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { StateLitElement } from '/_102027_/l2/stateLitElement.js';
+import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { getRootAgent } from '/_102027_/l2/aiAgentHelper.js';
 import { IAgent, IAgentAsync } from '/_102027_/l2/aiAgentBase.js';
 import { loadAgent } from '/_102027_/l2/aiAgentOrchestration.js';
