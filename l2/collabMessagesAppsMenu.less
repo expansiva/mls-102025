@@ -77,6 +77,61 @@ collab-messages-apps-menu-102025 {
         }
     }
 
+    .apps-toolbar {
+        display: flex;
+        flex-direction: column;
+        gap: @space-8;
+        margin-bottom: @space-16;
+
+        .apps-search {
+            width: 100%;
+            box-sizing: border-box;
+            padding: @space-8;
+            border: 1px solid @grey-color;
+            border-radius: 6px;
+            font-family: @font-family-primary;
+            color: @text-primary-color;
+            background: @bg-secondary-color-lighter;
+
+            &:focus {
+                outline: none;
+                border-color: @active-color;
+            }
+        }
+
+        .apps-filters {
+            display: flex;
+            gap: @space-8;
+
+            .apps-filter {
+                flex: 1;
+                cursor: pointer;
+                padding: @space-8;
+                border: 1px solid @grey-color;
+                border-radius: 6px;
+                background: @bg-secondary-color-lighter;
+                color: @text-primary-color;
+                font-family: @font-family-primary;
+                transition: background @transition-fast, color @transition-fast;
+
+                &:hover {
+                    background: @bg-primary-color-hover;
+                }
+
+                &.active {
+                    background: @active-color;
+                    border-color: @active-color;
+                    color: #fff;
+                }
+            }
+        }
+    }
+
+    .empty {
+        padding: @space-8;
+        color: @text-primary-color-lighter;
+    }
+
     h3 {
         border-bottom: 1px solid #cecece;
         padding: .5rem;

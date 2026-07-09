@@ -27,6 +27,7 @@ export class CollabMessagesApps extends CollabLitElement {
                     .menuModules=${this.menuModules}
                     menuTitle="Modulos"
                     keyFavoritesLocalStorage="modulesMenuFavorites"
+                    keyHistoryLocalStorage="modulesMenuHistory"
                     identifier="client-shell"
                     @menu-selected=${(e: CustomEvent) => this.handleMenuClick(e)}
                 ></collab-messages-apps-menu-102025>
