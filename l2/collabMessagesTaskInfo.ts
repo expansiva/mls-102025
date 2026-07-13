@@ -24,6 +24,7 @@ const message_pt = {
     errorsFallbacks: 'Erros / fallbacks',
     inputTokens: 'Tokens in',
     outputTokens: 'Tokens out',
+    tps: 'TPS',
     cost: 'Custo',
     calls: 'Chamadas',
     model: 'Modelo',
@@ -55,6 +56,7 @@ const message_en = {
     errorsFallbacks: 'Errors / fallbacks',
     inputTokens: 'Tokens in',
     outputTokens: 'Tokens out',
+    tps: 'TPS',
     cost: 'Cost',
     calls: 'Calls',
     model: 'Model',
@@ -118,6 +120,7 @@ export type TaskModelStatistic = {
     outputTokens: number;
     cost: number;
     llmMs: number;
+    tps: number;
 };
 
 export type TaskExecutionStatistics = {
@@ -307,7 +310,8 @@ function aggregateModels(calls: TaskLLMCall[]): TaskModelStatistic[] {
             inputTokens: 0,
             outputTokens: 0,
             cost: 0,
-            llmMs: 0
+            llmMs: 0,
+            tps: 0
         };
         current.calls += 1;
         current.inputTokens += call.inputTokens;
@@ -316,7 +320,12 @@ function aggregateModels(calls: TaskLLMCall[]): TaskModelStatistic[] {
         current.llmMs += call.llmMs;
         map.set(key, current);
     }
-    return [...map.values()].sort((a, b) => b.cost - a.cost || b.calls - a.calls);
+    return [...map.values()]
+        .map(model => ({
+            ...model,
+            tps: model.llmMs > 0 ? model.outputTokens / (model.llmMs / 1000) : 0
+        }))
+        .sort((a, b) => b.cost - a.cost || b.calls - a.calls);
 }
 
 export function buildTaskStatistics(task: mls.msg.TaskData | undefined): TaskExecutionStatistics {
@@ -751,6 +760,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
                     <span>${m.calls}</span>
                     <span>${m.inputTokens}</span>
                     <span>${m.outputTokens}</span>
+                    <span>${m.tps}</span>
                     <span>${m.cost}</span>
                 </div>
                 ${stats.models.map(model => html`
@@ -762,6 +772,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
                         <span>${this.formatInteger(model.calls)}</span>
                         <span>${this.formatInteger(model.inputTokens)}</span>
                         <span>${this.formatInteger(model.outputTokens)}</span>
+                        <span>${this.formatTps(model.tps)}</span>
                         <span>${this.formatMoney(model.cost)}</span>
                     </div>
                 `)}
@@ -804,11 +815,24 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     }
 
     private formatMoney(value: number) {
-        return `$${value.toFixed(4)}`;
+        const locale = this.getNumberLocale();
+        return `$ ${new Intl.NumberFormat(locale, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value)}`;
     }
 
     private formatInteger(value: number) {
-        return new Intl.NumberFormat().format(Math.round(value));
+        return new Intl.NumberFormat(this.getNumberLocale()).format(Math.round(value));
+    }
+
+    private formatTps(value: number) {
+        if (!value || !Number.isFinite(value)) return '0';
+        return new Intl.NumberFormat(this.getNumberLocale(), { maximumFractionDigits: 1 }).format(value);
+    }
+
+    private getNumberLocale() {
+        return document.documentElement.lang === 'pt' ? 'pt-BR' : 'en-US';
     }
 
     private formatDuration(ms: number) {

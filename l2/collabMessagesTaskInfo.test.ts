@@ -69,6 +69,7 @@ export function testBuildTaskStatisticsFromJsonStringTrace() {
     assert(stats.outputTokens === 1288, 'Expected output tokens from trace');
     assert(stats.models[0].model === 'z-ai/glm-5.2', 'Expected model from trace');
     assert(stats.models[0].alias === 'codehigh', 'Expected alias from trace');
+    assertClose(stats.models[0].tps, 1288 / 12.933, 'Expected TPS from output tokens and LLM time');
     assert(stats.jsonTraceRecords === 1, 'Expected JSON trace record');
     assert(stats.totalExecutionMs === 12935, 'Expected wall-clock execution time');
     assertClose(stats.totalCost, 0.0098, 'Expected trace cost');
@@ -141,6 +142,7 @@ export function testBuildTaskStatisticsFromStructuredTraceObject() {
     assert(stats.totalLlmMs === 2250, 'Expected structured LLM time');
     assert(stats.totalExecutionMs === 3000, 'Expected structured wall time');
     assert(stats.models[0].model === 'structured-model', 'Expected structured model');
+    assertClose(stats.models[0].tps, 222 / 2.25, 'Expected structured TPS');
 }
 
 export function testBuildTaskStatisticsCountsUntracedInteractionCost() {
@@ -158,6 +160,7 @@ export function testBuildTaskStatisticsCountsUntracedInteractionCost() {
 
     assert(stats.llmCalls === 1, 'Expected one synthetic untraced call');
     assert(stats.models[0].model === 'untraced interaction', 'Expected untraced model bucket');
+    assert(stats.models[0].tps === 0, 'Expected zero TPS without LLM time');
     assertClose(stats.totalCost, 0.0174, 'Expected untraced interaction cost');
 }
 
