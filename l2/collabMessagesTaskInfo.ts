@@ -185,7 +185,7 @@ function parseTraceRecord(rawTrace: unknown, step: any): TraceRecord {
     }
 
     const lines = Array.isArray(data?.trace)
-        ? data.trace.map((line: unknown) => String(line))
+        ? data?.trace.map((line: unknown) => String(line))
         : [fallbackRaw];
 
     return {
