@@ -222,6 +222,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @state() private editContent = '';
     @state() private showEditHistory = false;
     @state() private showFullContent = false;
+    @state() private showFullTaskError = false;
 
     public onTaskClick?: Function;
     private msg: MessageType = messages['en'];
@@ -763,7 +764,13 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         // TODO-FINAL-028: render the failure reason for failed tasks (not only 'done'),
         // so the user sees why the task failed without opening the step trace/payload.
         if (message.taskResults && message.taskResults.length > 0 && message.taskStatus === 'failed') {
-            return html`<div class="message-content task-failed">${message.taskResults[0]}</div>`;
+            const errorText = message.taskResults[0];
+            const needsTruncation = errorText.length > 100;
+            const displayText = needsTruncation && !this.showFullTaskError ? errorText.slice(0, 100) + '...' : errorText;
+            return html`<div class="message-content task-failed">${displayText}${needsTruncation ? html`<button
+                class="message-see-more"
+                @click=${(ev: Event) => { ev.stopPropagation(); this.showFullTaskError = !this.showFullTaskError; }}
+            >${this.showFullTaskError ? this.msg.seeLess : this.msg.seeMore}</button>` : nothing}</div>`;
         }
 
         if (!message.taskResults || message.taskResults.length === 0 || message.taskStatus !== 'done') return html``;
