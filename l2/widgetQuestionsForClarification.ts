@@ -18,6 +18,18 @@ export class WidgetQuestionsForClarification102025 extends StateLitElement {
   @state()
   private localAnswers: { [key: string]: string | boolean } = {};
 
+  @state()
+  private autoAcceptRemainingSeconds = 0;
+
+  private autoAcceptTimer: number | null = null;
+  private autoAcceptTimerKey = '';
+  private autoAcceptCancelledFor = '';
+
+  disconnectedCallback() {
+    this.clearAutoAcceptTimer();
+    super.disconnectedCallback?.();
+  }
+
   attributeChangedCallback(name: string, oldVal: string, newVal: string) {
     if (name === 'value') {
       try {
@@ -39,10 +51,14 @@ export class WidgetQuestionsForClarification102025 extends StateLitElement {
       });
       this.localAnswers = initialAnswers;
     }
+    if (changedProps.has('value') || changedProps.has('readonly')) {
+      this.syncAutoAcceptTimer();
+    }
   }
 
   // Input change handler for all field types
   private onInputChange(questionId: string, value: string | boolean) {
+    this.cancelAutoAccept();
     this.localAnswers = {
       ...this.localAnswers,
       [questionId]: value,
@@ -62,6 +78,7 @@ export class WidgetQuestionsForClarification102025 extends StateLitElement {
   }
 
   private onCancel() {
+    this.cancelAutoAccept();
     if (this.value && !this.readonly) {
 
       this.dispatchEvent(
@@ -80,6 +97,7 @@ export class WidgetQuestionsForClarification102025 extends StateLitElement {
   }
 
   private onContinue() {
+    this.cancelAutoAccept();
     // Update answers into 'value'
     if (this.value && !this.readonly) {
       this.value = {
@@ -106,13 +124,73 @@ export class WidgetQuestionsForClarification102025 extends StateLitElement {
     }
   }
 
+  private syncAutoAcceptTimer() {
+    const seconds = this.getAutoAcceptSeconds();
+    const key = this.getAutoAcceptKey(seconds);
+    if (!this.value || this.readonly || seconds <= 0 || this.autoAcceptCancelledFor === key) {
+      this.clearAutoAcceptTimer();
+      return;
+    }
+    if (this.autoAcceptTimer !== null && this.autoAcceptTimerKey === key) return;
+    this.clearAutoAcceptTimer();
+    this.autoAcceptTimerKey = key;
+    this.autoAcceptRemainingSeconds = seconds;
+    this.autoAcceptTimer = window.setInterval(() => {
+      this.autoAcceptRemainingSeconds = Math.max(0, this.autoAcceptRemainingSeconds - 1);
+      if (this.autoAcceptRemainingSeconds === 0) {
+        this.clearAutoAcceptTimer();
+        this.onContinue();
+      }
+    }, 1000);
+  }
+
+  private cancelAutoAccept() {
+    const seconds = this.getAutoAcceptSeconds();
+    if (seconds > 0) this.autoAcceptCancelledFor = this.getAutoAcceptKey(seconds);
+    this.clearAutoAcceptTimer();
+  }
+
+  private clearAutoAcceptTimer() {
+    if (this.autoAcceptTimer !== null) {
+      window.clearInterval(this.autoAcceptTimer);
+      this.autoAcceptTimer = null;
+    }
+    this.autoAcceptTimerKey = '';
+    this.autoAcceptRemainingSeconds = 0;
+  }
+
+  private getAutoAcceptSeconds(): number {
+    const raw = (this.value as (ClarificationValue & { autoAcceptSeconds?: unknown }) | null)?.autoAcceptSeconds;
+    return typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0;
+  }
+
+  private getAutoAcceptKey(seconds: number): string {
+    return `${this.value?.taskId || ''}:${this.value?.stepId || ''}:${seconds}`;
+  }
+
+  private renderAutoAcceptCounter() {
+    if (this.autoAcceptRemainingSeconds <= 0) return '';
+    const text = this.value?.userLanguage === 'pt-BR'
+      ? `Auto-aceitando em ${this.autoAcceptRemainingSeconds}s...`
+      : `Auto-accepting in ${this.autoAcceptRemainingSeconds}s...`;
+    return html`<div class="auto-accept-counter" role="status">${text}</div>`;
+  }
+
   render() {
     if (!this.value || !this.value.questions || !this.value.legends) return html`<div>No questions available. value is ${typeof this.value}</div>`;
 
     const isDisabled = this.readonly === true;
     return html`
     <h2 class='title'>${this.value.title}</h2>
-    <form class="clarification-form" @submit=${(e: Event) => e.preventDefault()}>
+    <form
+      class="clarification-form"
+      @submit=${(e: Event) => e.preventDefault()}
+      @click=${() => this.cancelAutoAccept()}
+      @focusin=${() => this.cancelAutoAccept()}
+      @input=${() => this.cancelAutoAccept()}
+      @keydown=${() => this.cancelAutoAccept()}
+    >
+      ${this.renderAutoAcceptCounter()}
       ${Object.entries(this.value.questions).map(([key, q]) => html`
         <div
           class="clarification-question"
@@ -197,4 +275,3 @@ export class WidgetQuestionsForClarification102025 extends StateLitElement {
 if (!customElements.get('widget-questions-for-clarification-102025')) {
   customElements.define('widget-questions-for-clarification-102025', WidgetQuestionsForClarification102025);
 }
-
