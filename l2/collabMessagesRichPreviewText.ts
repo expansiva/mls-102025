@@ -17,6 +17,7 @@ const message_pt = {
     copied: 'Copiado',
     showMore: 'ver mais',
     showLess: 'ver menos',
+    open: 'Abrir',
 }
 
 const message_en = {
@@ -25,6 +26,7 @@ const message_en = {
     copied: 'Copied',
     showMore: 'show more',
     showLess: 'show less',
+    open: 'Open',
 }
 
 type MessageType = typeof message_en;
@@ -149,13 +151,22 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
                     ${expanded ? this.msg.showLess : this.msg.showMore}
                     </button>
                 ` : html``}
-                <button
-                class="collab-md-codeblock-copy"
-                title="Copiar código"
-                @click=${(e: MouseEvent) => this.copyToClipboard(e, token.value)}
-                >
-                ${this.msg.copy}
-                </button>
+                ${token.language.toUpperCase() === 'BUG' ? html`
+                    <button
+                    class="collab-md-codeblock-copy"
+                    @click=${() => this.openBugReport(token.value)}
+                    >
+                    ${this.msg.open}
+                    </button>
+                ` : html`
+                    <button
+                    class="collab-md-codeblock-copy"
+                    title="Copiar código"
+                    @click=${(e: MouseEvent) => this.copyToClipboard(e, token.value)}
+                    >
+                    ${this.msg.copy}
+                    </button>
+                `}
                 </div>
             </div>
 
@@ -165,6 +176,11 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
             </collab-messages-text-code-102025>
             </div>
         `;
+    }
+
+    private openBugReport(json: string) {
+        // Handled by _100554_serviceReportBug, which opens the bug in view mode.
+        window.dispatchEvent(new CustomEvent('collab-bug-report-open', { detail: { json } }));
     }
 
     private toggleCodeBlock(key: string) {
