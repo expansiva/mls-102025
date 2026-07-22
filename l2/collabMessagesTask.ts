@@ -2,7 +2,7 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { getTask, getMessage, deleteTask } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { getTask, getMessage, deleteTask, addOrUpdateTask } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { msgGetTaskUpdate } from '/_102025_/l2/shared/api.js';
 
 import {
@@ -54,6 +54,7 @@ export class CollabMessagesTask extends StateLitElement {
     @state() private lastStep: number | undefined;
 
     private timerId: number | undefined;
+    private finalSnapshotSyncedKey: string | undefined;
 
     disconnectedCallback() {
         super.disconnectedCallback();
@@ -78,6 +79,9 @@ export class CollabMessagesTask extends StateLitElement {
                         this.resetTimer();
                         this.lastStep = nextStep.stepId
                     }
+                }
+                if (this.shouldSyncFailedSnapshot(this.task)) {
+                    await this.syncTaskFromServer(this.task.PK || this.taskid);
                 }
             }
         }
@@ -179,12 +183,29 @@ export class CollabMessagesTask extends StateLitElement {
         this.task = task;
 
         const shouldSync =
-            task.status === 'in progress' &&
-            task.owner === this.userId &&
-            !this.context;
+            (task.status === 'in progress' &&
+                task.owner === this.userId &&
+                !this.context) ||
+            this.shouldSyncFailedSnapshot(task);
 
         if (!shouldSync) return;
 
+        await this.syncTaskFromServer(taskId);
+    }
+
+    private shouldSyncFailedSnapshot(task: msg.TaskData | undefined): boolean {
+        const syncKey = this.getTaskSnapshotKey(task);
+        return !!task &&
+            task.status === 'failed' &&
+            task.owner === this.userId &&
+            this.finalSnapshotSyncedKey !== syncKey;
+    }
+
+    private getTaskSnapshotKey(task: msg.TaskData | undefined): string {
+        return `${task?.PK || this.taskid}:${task?.last_updated || ''}`;
+    }
+
+    private async syncTaskFromServer(taskId: string) {
         const messageId = this.normalizeMessageId(this.threadId, this.messageid);
 
         try {
@@ -204,11 +225,18 @@ export class CollabMessagesTask extends StateLitElement {
                 return;
             }
 
+            const syncedTask = result.response.task;
+            if (syncedTask.status === 'failed') {
+                this.finalSnapshotSyncedKey = this.getTaskSnapshotKey(syncedTask);
+            }
+            this.task = syncedTask;
+            await addOrUpdateTask(syncedTask);
+
             const message = await getMessage(messageId);
             if (!message) return;
 
             this.context = {
-                task: result.response.task,
+                task: syncedTask,
                 message,
                 isTest: false
             };
