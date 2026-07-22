@@ -100,7 +100,7 @@ function extractResultArgs(text: string): unknown {
     const call = (JSON.parse(text) as { choices?: Array<{ message?: { tool_calls?: Array<{ function?: { arguments?: unknown } }> } }> })
       ?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     const parsed = typeof call === 'string' ? JSON.parse(call) : call;
-    return (parsed as { result?: unknown })?.result ?? null;
+    return (parsed as { result?: unknown })?.result ?? parsed ?? null;
   } catch {
     return null;
   }
