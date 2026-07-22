@@ -146,6 +146,11 @@ export type TaskExecutionStatistics = {
     errorLines: string[];
 };
 
+export function roundMoneyUpToCents(value: number): number {
+    if (!Number.isFinite(value) || value <= 0) return 0;
+    return Math.ceil(value * 100) / 100;
+}
+
 function toNumber(value: unknown): number {
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     if (typeof value === 'string') {
@@ -816,10 +821,11 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
     private formatMoney(value: number) {
         const locale = this.getNumberLocale();
+        const rounded = roundMoneyUpToCents(value);
         return `$ ${new Intl.NumberFormat(locale, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-        }).format(value)}`;
+        }).format(rounded)}`;
     }
 
     private formatInteger(value: number) {

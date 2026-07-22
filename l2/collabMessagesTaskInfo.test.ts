@@ -1,7 +1,7 @@
 /// <mls fileReference="_102025_/l2/collabMessagesTaskInfo.test.ts" enhancement="_blank" />
 
 import type { ICANTest, ICANIntegration } from '/_102025_/l2/tsTestAST.js';
-import { buildTaskStatistics } from '/_102025_/l2/collabMessagesTaskInfo.js';
+import { buildTaskStatistics, roundMoneyUpToCents } from '/_102025_/l2/collabMessagesTaskInfo.js';
 
 export const integrations: ICANIntegration[] = [];
 export const tests: ICANTest[] = [
@@ -10,6 +10,7 @@ export const tests: ICANTest[] = [
     { functionName: 'testBuildTaskStatisticsFromStructuredTraceObject', params: [{}] },
     { functionName: 'testBuildTaskStatisticsCountsUntracedInteractionCost', params: [{}] },
     { functionName: 'testBuildTaskStatisticsIgnoresZeroCostTrace', params: [{}] },
+    { functionName: 'testRoundMoneyUpToCents', params: [{}] },
 ];
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -186,4 +187,10 @@ export function testBuildTaskStatisticsIgnoresZeroCostTrace() {
     assert(stats.traceRecords === 0, 'Expected zero-cost trace to be ignored');
     assert(stats.jsonTraceRecords === 0, 'Expected no JSON trace records');
     assert(stats.totalCost === 0, 'Expected no cost');
+}
+
+export function testRoundMoneyUpToCents() {
+    assertClose(roundMoneyUpToCents(1.7601), 1.77, 'Expected cost to round up to cents');
+    assertClose(roundMoneyUpToCents(1.76), 1.76, 'Expected exact cents to stay unchanged');
+    assert(roundMoneyUpToCents(0) === 0, 'Expected zero cost to stay zero');
 }
