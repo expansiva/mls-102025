@@ -95,6 +95,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() hasSelection: boolean = false;
     @state() selectedFiles: File[] = [];
     @state() sendError: string = '';
+    @state() isSending: boolean = false;
 
     @state() allAgents: IMentionAgent[] = [];
     @state() alreadyLoadingAgents: boolean = false;
@@ -384,12 +385,14 @@ export class CollabMessagesPrompt extends StateLitElement {
                             class="attachment-input"
                             type="file"
                             multiple
+                            ?disabled=${this.isSending}
                             @change=${this.handleAttachmentInput}
                         />
                         <button
                             class="attachment-button"
                             title=${this.msg.attachFiles}
                             aria-label=${this.msg.attachFiles}
+                            ?disabled=${this.isSending}
                             @click=${this.openAttachmentPicker}
                         >
                             ${collab_plus}
@@ -401,6 +404,7 @@ export class CollabMessagesPrompt extends StateLitElement {
                         ` : ''}
                         <textarea
                             .value=${this.text}
+                            ?disabled=${this.isSending}
                             @input=${this.handleInput}
                             @focus=${this.handleFocus}
                             @keydown=${this.handleKeyDown}
@@ -414,7 +418,7 @@ export class CollabMessagesPrompt extends StateLitElement {
                             placeholder="${ifDefined(this.placeholder)}">
                         </textarea>
                     </div>
-                    ${this.showSubmitButton ? html`<button @click=${this.handleSend}>${collab_arrow_up_long}</button>` : nothing}
+                    ${this.showSubmitButton ? html`<button ?disabled=${this.isSending} @click=${this.handleSend}>${collab_arrow_up_long}</button>` : nothing}
                     ${this.mentionActive && this.mentionSuggestions.length > 0 ? html`
                         <ul class="mention-suggestions">
                             ${this.mentionSuggestions.map((s, i) => html`
@@ -857,7 +861,8 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     async handleSend() {
-        if (!this.text && this.selectedFiles.length === 0) return;
+        if (this.isSending || (!this.text && this.selectedFiles.length === 0)) return;
+        this.isSending = true;
         let finalText = this.text.trim();
         let isSpecialMention = false;
         let agentName: string | undefined;
@@ -873,26 +878,27 @@ export class CollabMessagesPrompt extends StateLitElement {
             }
         }
 
-        if (this.onSend && typeof this.onSend === 'function') {
-            try {
+        try {
+            if (this.onSend && typeof this.onSend === 'function') {
                 await Promise.resolve(this.onSend(finalText, {
                     isSpecialMention,
                     agentName,
                     replyTo: this.replyingTo?.messageId,
                     attachments: this.selectedFiles,
                 }));
-            } catch (err: any) {
-                this.sendError = err?.message || this.msg.sendError;
-                return;
             }
-        }
 
-        this.replyingTo = undefined;
-        this.text = '';
-        this.emitTextChange();
-        this.selectedFiles = [];
-        await this.updateComplete;
-        this.adjustTextAreaHeight();
+            this.replyingTo = undefined;
+            this.text = '';
+            this.emitTextChange();
+            this.selectedFiles = [];
+            await this.updateComplete;
+            this.adjustTextAreaHeight();
+        } catch (err: any) {
+            this.sendError = err?.message || this.msg.sendError;
+        } finally {
+            this.isSending = false;
+        }
     }
 }
 

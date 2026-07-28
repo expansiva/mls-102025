@@ -2042,7 +2042,7 @@ export class CollabMessagesChat extends StateLitElement {
             this.updateUsersInState(threadByServer.users);
             notifyThreadChange(threadUpdated);
             if (threadByServer.hasMore) await this.loadAllMessages(threadInfo);
-            if (this.unreadCountInSelectedThread === 0) await this.markActualThreadRead(threadByServer.thread.threadId);
+            await this.clearUnreadMarkerForActualThread();
             this.checkForRegisterNotification();
 
             if (threadByServer.threadsPending) {
