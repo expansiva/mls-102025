@@ -761,9 +761,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderMessageResultByLanguage(message: msg.Message) {
 
-        // TODO-FINAL-028: render the failure reason for failed tasks (not only 'done'),
-        // so the user sees why the task failed without opening the step trace/payload.
-        if (message.taskResults && message.taskResults.length > 0 && message.taskStatus === 'failed') {
+        // A task paused after a terminal step failure carries the same reason as a
+        // failed task, separate from individual step traces rendered below.
+        if (message.taskResults && message.taskResults.length > 0 && (message.taskStatus === 'failed' || message.taskStatus === 'paused')) {
             const errorText = message.taskResults[0];
             const needsTruncation = errorText.length > 100;
             const displayText = needsTruncation && !this.showFullTaskError ? errorText.slice(0, 100) + '...' : errorText;
