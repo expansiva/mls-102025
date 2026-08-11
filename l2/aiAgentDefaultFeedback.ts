@@ -5,6 +5,7 @@ import { customElement, state, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { continuePoolingTask, pauseOrContinueTask, loadAgent } from '/_102027_/l2/aiAgentOrchestration.js';
 import { getNextPendentStep, getAllSteps } from "/_102027_/l2/aiAgentHelper.js";
+import { countCollapsedRows, isBranchCompleted, isTransparentCompletedStep } from '/_102025_/l2/aiAgentDefaultFeedbackTree.js';
 
 // Process-wide cache: does an agent implement openStepView? (Avoids re-importing agents per render.)
 const openStepViewCache = new Map<string, boolean>();
@@ -45,6 +46,8 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
     // Agent names (in this task) whose agent implements openStepView → show an "open" link.
     @state() private openCapableAgents: Set<string> = new Set();
     @state() private openedView: HTMLElement | null = null;
+    @state() private userExpanded = new Set<number>();
+    @state() private userCollapsed = new Set<number>();
 
     async firstUpdated() {
         //this.task = await getTask('20250917143000.1001');
@@ -64,6 +67,11 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
     updated(_changedProperties: Map<PropertyKey, unknown>) {
         super.updated(_changedProperties);
         if (_changedProperties.has('task')) {
+            const previousTask = _changedProperties.get('task') as mls.msg.TaskData | undefined;
+            if (previousTask?.PK !== this.task?.PK) {
+                this.userExpanded = new Set();
+                this.userCollapsed = new Set();
+            }
             this.isAgentParallelMode = !!this.task?.iaCompressed?.nextSteps[0].progress;
             void this.resolveOpenCapableAgents();
         }
@@ -164,19 +172,35 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
     // Running row counter for zebra striping (reset each render in renderTree).
     private rowIndex = 0;
 
-    private getChildren(step: mls.msg.AIPayload) {
+    private getChildren(step: mls.msg.AIPayload): mls.msg.AIPayload[] {
         return [
             ...(step.nextSteps ?? []),
             ...(step.interaction?.payload ?? [])
         ];
     }
 
+    private toggleBranch(event: MouseEvent, stepId: number, collapsed: boolean): void {
+        event.preventDefault();
+        event.stopPropagation();
+        if (collapsed) {
+            this.userCollapsed.delete(stepId);
+            this.userExpanded.add(stepId);
+        } else {
+            this.userExpanded.delete(stepId);
+            this.userCollapsed.add(stepId);
+        }
+        this.userExpanded = new Set(this.userExpanded);
+        this.userCollapsed = new Set(this.userCollapsed);
+    }
+
     private renderStep(step: mls.msg.AIPayload, depth = 0): TemplateResult {
 
         const children = this.getChildren(step);
         const hasChildren = children.length > 0;
+        const visibleChildRows = countCollapsedRows(step);
+        const hasVisibleChildren = visibleChildRows > 0;
 
-        if (step.type === 'flexible' || step.type === 'result' || (step.type === 'clarification' && step.status === 'completed')) {
+        if (isTransparentCompletedStep(step)) {
             return html`
              ${hasChildren
                     ? children.map((s: mls.msg.AIPayload) =>
@@ -186,14 +210,25 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
              `
         }
 
+        const eligibleForAutoCollapse = isBranchCompleted(step);
+        const collapsed = hasVisibleChildren && (this.userCollapsed.has(step.stepId)
+            || (eligibleForAutoCollapse && !this.userExpanded.has(step.stepId)));
+        const toggleBranch = (event: MouseEvent) => this.toggleBranch(event, step.stepId, collapsed);
+
         return html`
         <div class="step" style="padding-left:${depth + 15}px; ${depth !== 0 ? 'border-left:1px solid #cecece' : ''}" >
 
             <div class="row ${this.rowIndex++ % 2 === 0 ? 'even' : 'odd'}">
                 <span class="icon">${this.getIconStep(step.status)}</span>
 
-                <span class="title">
+                ${hasVisibleChildren ? html`
+                    <button class="branch-toggle" type="button" @click=${toggleBranch}
+                        aria-label=${collapsed ? 'Expand step' : 'Collapse step'}>${collapsed ? '▸' : '▾'}</button>
+                ` : nothing}
+
+                <span class="title ${hasVisibleChildren ? 'branch-title' : ''}" @click=${hasVisibleChildren ? toggleBranch : nothing}>
                     ${this.getTitle(step)}
+                    ${collapsed ? html`<span class="collapsed-count">(${visibleChildRows})</span>` : nothing}
                 </span>
 
                 <span class="actions">
@@ -215,7 +250,7 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
                 </span>
             </div>
 
-            ${hasChildren
+            ${hasChildren && !collapsed
                 ? children.map((s: any) =>
                     this.renderStep(s, depth + 1)
                 )
@@ -259,7 +294,7 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
     `;
     }
 
-    private clickDetails(step: mls.msg.AIAgentStep | mls.msg.AIToolStep | mls.msg.AIClarificationStep) {
+    private clickDetails(step: mls.msg.AIPayload) {
         //this.selectedStep = step;
 
         if (!this.father) return;
@@ -519,5 +554,3 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
 
 
 }
-
-
