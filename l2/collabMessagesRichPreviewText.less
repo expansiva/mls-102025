@@ -5,12 +5,12 @@ collab-messages-rich-preview-text-102025 {
     width: 100%;
 
     a {
-        color: @link-color;
+        color: @link-text;
         text-decoration: underline;
         text-underline-offset: 2px;
 
         &:hover {
-            color: @link-color-hover;
+            color: @link-text-hover;
         }
     }
 
@@ -153,16 +153,16 @@ collab-messages-rich-preview-text-102025 {
     }
 
     .command--valid {
-        color: @active-color;
-        background: @bg-secondary-color-lighter;
+        color: @selected-text;
+        background: @surface-alt-bg;
         padding: 0 @space-8;
         border-radius: @space-8;
         font-family: monospace;
     }
 
     .help--valid {
-        color: @success-color;
-        background: @bg-secondary-color-lighter;
+        color: @status-success-text;
+        background: @surface-alt-bg;
         padding: 0 @space-8;
         border-radius: 0.2em;
     }
@@ -205,7 +205,7 @@ collab-messages-rich-preview-text-102025 {
     }
 
     .mention-agent {
-        color: var(--active-color);
+        color: var(--selected-text);
         background-color: transparent;
         padding: 0 @space-8;
         border-radius: @space-8;
@@ -214,7 +214,7 @@ collab-messages-rich-preview-text-102025 {
         transition: background @transition-normal;
 
         &:hover {
-            color: var(--active-color-hover);
+            color: var(--selected-text-hover);
         }
     }
 

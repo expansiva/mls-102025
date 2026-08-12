@@ -8,8 +8,8 @@ collab-messages-task-info-102025 {
     font-family: @font-family-primary;
     font-weight: @font-weight-normal;
     line-height: 1.5;
-    color: @text-primary-color;
-    background-color: @bg-primary-color;
+    color: @text-default;
+    background-color: @surface-bg;
     height: 100%;
     min-height: 0;
     box-sizing: border-box;
@@ -19,8 +19,8 @@ collab-messages-task-info-102025 {
     .viewraw {
         border: none;
         margin-top: 2px;
-        background: var(--bg-primary-color);
-        color: var(--text-primary-color);
+        background: var(--surface-bg);
+        color: var(--text-default);
         cursor: pointer;
         position: absolute;
         right: 5px;
@@ -34,7 +34,7 @@ collab-messages-task-info-102025 {
 
     .tabs {
         display: flex;
-        border-bottom: 1px solid @grey-color;
+        border-bottom: 1px solid @border-default;
         margin-bottom: 0;
         flex-shrink: 0;
     }
@@ -45,17 +45,17 @@ collab-messages-task-info-102025 {
         border-bottom: 2px solid transparent;
         transition: border-color 0.3s, color 0.3s;
         font-size: 0.9rem;
-        color: @text-primary-color-disabled;
+        color: @text-default-disabled;
     }
 
     .tab:hover {
-        color: @text-primary-color-darker;
+        color: @text-strong;
     }
 
     .tab.active {
-        border-bottom: 2px solid @link-color;
+        border-bottom: 2px solid @link-text;
         font-weight: 600;
-        color: @text-primary-color-lighter-focus;
+        color: @text-muted-focus;
     }
 
     .tab-shell {
@@ -82,8 +82,8 @@ collab-messages-task-info-102025 {
     }
 
     .stats-dashboard {
-        --stats-text: var(--color-text-primary, @text-primary-color);
-        --stats-muted: var(--color-text-secondary, @text-primary-color-disabled);
+        --stats-text: var(--color-text-primary, @text-default);
+        --stats-muted: var(--color-text-secondary, @text-default-disabled);
         --stats-panel-bg: var(--color-background-secondary, #f7f8fa);
         --stats-border: var(--color-border-tertiary, rgba(0, 0, 0, .10));
         --stats-track: var(--color-background-tertiary, #eceff3);
@@ -403,7 +403,12 @@ collab-messages-task-info-102025 {
         }
     }
 
-    @media (prefers-color-scheme: dark) {
+    // Dark follows the app theme, not the operating system: the design system
+    // emits `[data-theme="dark"], :root.dark` (_102029_/l2/designSystemBase.ts),
+    // so a @media (prefers-color-scheme) block ignored the app toggle and could
+    // darken this panel inside an otherwise light screen.
+    :root.dark &,
+    [data-theme="dark"] & {
         .stats-dashboard {
             --stats-panel-bg: #242422;
             --stats-border: rgba(255, 255, 255, .10);

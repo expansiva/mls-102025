@@ -33,8 +33,8 @@ collab-messages-task-102025 {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: @success-color;
-            fill: @success-color;
+            color: @status-success-text;
+            fill: @status-success-text;
             pointer-events: none;
 
             svg {
@@ -67,18 +67,18 @@ collab-messages-task-102025 {
             }
 
             &.failed {
-                fill: @error-color;
-                color: @error-color;
+                fill: @status-error-text;
+                color: @status-error-text;
             }
 
             &.done {
-                fill: @success-color;
-                color: @success-color;
+                fill: @status-success-text;
+                color: @status-success-text;
             }
 
             &.waitingforuser {
-                fill: @warning-color;
-                color: @warning-color;
+                fill: @status-warning-text;
+                color: @status-warning-text;
             }
 
         }
@@ -164,23 +164,23 @@ collab-messages-task-102025 {
                 white-space: nowrap;
 
                 &.todo {
-                    color: @grey-color-darker;
+                    color: @text-muted;
                 }
 
                 &.done {
-                    color: @success-color;
+                    color: @status-success-text;
                 }
 
                 &.in-progress {
-                    color: @active-color;
+                    color: @selected-text;
                 }
 
                 &.waitingforuser {
-                    color: @warning-color;
+                    color: @status-warning-text;
                 }
 
                 &.paused {
-                    color: @info-color-disabled;
+                    color: @status-info-text-disabled;
                 }
             }
         }

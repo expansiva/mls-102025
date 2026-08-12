@@ -44,10 +44,10 @@ collab-messages-task-room-102025 {
         z-index: 5;
         width: 36px;
         height: 36px;
-        border: 1px solid @grey-color-light;
+        border: 1px solid @border-subtle;
         border-radius: 50%;
-        background: @bg-primary-color;
-        color: @success-color;
+        background: @surface-bg;
+        color: @status-success-text;
         box-shadow: rgba(0, 0, 0, .2) 0 2px 8px;
         display: flex;
         align-items: center;
@@ -55,18 +55,18 @@ collab-messages-task-room-102025 {
         cursor: pointer;
 
         &:hover {
-            background: @bg-primary-color-focus;
+            background: @surface-bg-focus;
         }
     }
 
     .task-room-empty,
     .task-room-loading,
     .task-room-error {
-        color: @text-primary-color-disabled;
+        color: @text-default-disabled;
         padding: .75rem 0;
     }
 
     .task-room-error {
-        color: @error-color;
+        color: @status-error-text;
     }
 }

@@ -3,10 +3,10 @@ collab-messages-task-preview-102025 {
     
     display: flex;
     flex-direction: column;
-    border: 1px solid @grey-color;
+    border: 1px solid @border-default;
     padding: 1rem;
     border-radius: 8px;
-    background: @bg-secondary-color-lighter;
+    background: @surface-alt-bg;
     font-family: var(--font-family-primary);
     height: 100%;
     min-height: 0;
@@ -29,7 +29,7 @@ collab-messages-task-preview-102025 {
         span {
             font-weight: 500;
             font-size: 1.1rem;
-            color: @text-primary-color;
+            color: @text-default;
         }
 
         button {
@@ -38,8 +38,8 @@ collab-messages-task-preview-102025 {
             border-radius: 2px;
             display: flex;
             align-items: center;
-            background-color: @text-primary-color-darker;
-            color: @bg-primary-color;
+            background-color: @text-strong;
+            color: @surface-bg;
             font-size: 0.95rem;
             cursor: pointer;
 
@@ -48,7 +48,7 @@ collab-messages-task-preview-102025 {
             }
 
             &:disabled {
-                background-color: @bg-secondary-color;
+                background-color: @surface-alt-bg;
                 cursor: not-allowed;
             }
         }
@@ -70,7 +70,7 @@ collab-messages-task-preview-102025 {
 
         span {
             display: inline-block;
-            color: @link-color;
+            color: @link-text;
             padding: 0 0.75rem;
             position: relative;
             flex-shrink: 0;
@@ -79,20 +79,20 @@ collab-messages-task-preview-102025 {
             font-size: 10px;
 
             &:hover {
-                color: @link-color-hover;
+                color: @link-text-hover;
             }
 
             &::after {
                 content: '>';
                 position: absolute;
                 right: -0.5rem;
-                color: @grey-color-dark;
+                color: @text-muted;
                 pointer-events: none;
             }
 
             &:last-of-type {
                 font-weight: bold;
-                color: @text-primary-color;
+                color: @text-default;
 
                 &::after {
                     content: none;
@@ -102,9 +102,9 @@ collab-messages-task-preview-102025 {
     }
 
     .container {
-        background: @bg-primary-color;
+        background: @surface-bg;
         border-radius: 5px;
-        border: 1px solid @grey-color;
+        border: 1px solid @border-default;
         flex: 1;
         min-height: 0;
         overflow-y: auto;
@@ -115,7 +115,7 @@ collab-messages-task-preview-102025 {
         flex-direction: column;
         gap: .75rem;
         padding: 1rem;
-        color: @text-primary-color;
+        color: @text-default;
 
         .workflow-step-title {
             font-size: 1rem;
@@ -128,17 +128,17 @@ collab-messages-task-preview-102025 {
             gap: .5rem;
 
             span {
-                border: 1px solid @grey-color;
+                border: 1px solid @border-default;
                 border-radius: 4px;
                 padding: .15rem .4rem;
                 font-size: .75rem;
-                color: @text-primary-color-disabled;
+                color: @text-default-disabled;
             }
         }
 
         p {
             margin: 0;
-            color: @text-primary-color-disabled;
+            color: @text-default-disabled;
         }
     }
 }

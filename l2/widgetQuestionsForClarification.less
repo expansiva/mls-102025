@@ -2,11 +2,11 @@
 
 widget-questions-for-clarification-102025 {
 
-  background: @bg-primary-color;
-  color: @text-primary-color;
+  background: @surface-bg;
+  color: @text-default;
   font-size: @font-size-16;
   border-radius: @space-16;
-  box-shadow: 0 2px 12px 0 fade(@grey-color-darker, 18%);
+  box-shadow: 0 2px 12px 0 color-mix(in srgb, var(--border-default-focus) 18%, transparent);
   padding: @space-32;
   max-width: 880px;
   margin: @space-40 auto;
@@ -15,7 +15,7 @@ widget-questions-for-clarification-102025 {
   .title {
     font-size: @font-size-24;
     font-weight: 500;
-    color: @text-primary-color-darker;
+    color: @text-strong;
     letter-spacing: 0.5px;
     margin-bottom: 1.6em;
     margin-top: .2em;
@@ -29,10 +29,10 @@ widget-questions-for-clarification-102025 {
   }
 
   .auto-accept-counter {
-    background: @bg-secondary-color-lighter;
-    border: 1px solid @grey-color;
+    background: @surface-alt-bg;
+    border: 1px solid @border-default;
     border-radius: @space-8;
-    color: @text-primary-color-lighter;
+    color: @text-muted;
     font-size: @font-size-12;
     padding: @space-8 @space-16;
   }
@@ -54,21 +54,21 @@ widget-questions-for-clarification-102025 {
         padding: @space-8 @space-8;
         font-size: @font-size-16;
         border-radius: @space-8;
-        border: 1.2px solid @grey-color;
-        background: @bg-primary-color-lighter;
-        color: @text-primary-color;
+        border: 1.2px solid @border-default;
+        background: @surface-bg;
+        color: @text-default;
         margin-right: @space-16;
         font-weight: 500;
 
         &:focus {
-          border: 1.2px solid @active-color;
-          background: @bg-primary-color-lighter;
+          border: 1.2px solid @selected-border;
+          background: @surface-bg;
         }
       }
 
       .moscow-label {
         font-size: @font-size-16;
-        color: @text-primary-color;
+        color: @text-default;
         font-weight: 400;
         line-height: 1.4;
         margin: 0;
@@ -78,7 +78,7 @@ widget-questions-for-clarification-102025 {
     label,
     .moscow-label {
       font-size: @font-size-16;
-      color: @text-primary-color-lighter;
+      color: @text-muted;
       font-weight: 400;
       margin: 0 0 0.2em 0;
       line-height: 1.5;
@@ -86,8 +86,8 @@ widget-questions-for-clarification-102025 {
 
     textarea,
     select {
-      color: @text-primary-color;
-      background: @bg-primary-color;
+      color: @text-default;
+      background: @surface-bg;
       font-family: @font-family-primary;
     }
 
@@ -96,14 +96,14 @@ widget-questions-for-clarification-102025 {
       font-size: @font-size-16;
       padding: @space-8 @space-16;
       border-radius: @space-8;
-      border: 1.2px solid @grey-color;
-      background: @bg-secondary-color-lighter;
+      border: 1.2px solid @border-default;
+      background: @surface-alt-bg;
       transition: border @transition-slow;
       margin-top: 0.25em;
 
       &:focus {
-        border: 1.2px solid @active-color;
-        background: @bg-primary-color-lighter;
+        border: 1.2px solid @selected-border;
+        background: @surface-bg;
       }
     }
 
@@ -113,7 +113,7 @@ widget-questions-for-clarification-102025 {
     }
 
     input[type="checkbox"] {
-      accent-color: @active-color;
+      accent-color: @selected-border;
       transform: scale(1.1);
       margin: 0 @space-8 0 0;
       vertical-align: middle;
@@ -138,27 +138,27 @@ widget-questions-for-clarification-102025 {
       outline: none;
 
       &.cancel {
-        background: @bg-secondary-color;
-        color: @text-primary-color;
+        background: @surface-alt-bg;
+        color: @text-default;
 
         &:hover {
-          background: @bg-secondary-color-hover;
+          background: @surface-alt-bg-hover;
         }
       }
 
       &.continue {
-        background: @active-color;
+        background: @selected-border;
         color: #fff;
 
         &:hover {
-          background: @active-color-hover;
+          background: @selected-border-hover;
         }
       }
     }
 
     .action-btn:disabled {
-      background: @bg-secondary-color-disabled;
-      color: @text-primary-color-disabled;
+      background: @surface-alt-bg-disabled;
+      color: @text-default-disabled;
       cursor: not-allowed;
       opacity: 0.7;
     }
@@ -166,7 +166,7 @@ widget-questions-for-clarification-102025 {
 
   .clarification-legends {
     font-size: @font-size-12;
-    color: @text-primary-color-lighter;
+    color: @text-muted;
     margin-top: 1.8em;
     opacity: 0.7;
   }

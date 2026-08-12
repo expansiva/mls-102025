@@ -6,8 +6,8 @@ collab-messages-user-modal-102025 {
     position: absolute;
 
     .collab-messages-user-modal-box {
-        background: @bg-primary-color-darker;
-        color: @text-primary-color;
+        background: @surface-alt-bg;
+        color: @text-default;
         border-radius: 8px;
         padding: 16px;
         width: 280px;
@@ -35,21 +35,21 @@ collab-messages-user-modal-102025 {
 
     .collab-messages-user-modal-userId {
         font-size: @font-size-12;
-        color: @text-primary-color-lighter;
+        color: @text-muted;
     }
 
     .collab-messages-user-modal-userStatus {
         margin-top: .5rem;
         font-size: @font-size-12;
-        color: @grey-color-darker;
+        color: @text-muted;
 
         &.active {
-            color: @success-color;
+            color: @status-success-text;
         }
     }
 
     .user-message-error {
-        color: @error-color;
+        color: @status-error-text;
         font-size: @font-size-12;
         display: flex;
         align-items: center;
@@ -57,7 +57,7 @@ collab-messages-user-modal-102025 {
         svg {
             margin-right: .3rem;
             width: 12px;
-            fill: @error-color;
+            fill: @status-error-text;
         }
     }
 
@@ -100,7 +100,7 @@ collab-messages-user-modal-102025 {
 
 
     .collab-messages-user-modal-message-btn {
-        color: @active-color;
+        color: @selected-text;
     }
 
 

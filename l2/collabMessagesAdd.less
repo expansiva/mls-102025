@@ -18,7 +18,7 @@ collab-messages-add-102025 {
             display: block;
             margin-bottom: .2rem;
             font-size: 14px;
-            color: @text-primary-color;
+            color: @text-default;
         }
 
         input,
@@ -43,12 +43,12 @@ collab-messages-add-102025 {
         }
 
         input:invalid {
-            border-color: @error-color;
+            border-color: @status-error-text;
         }
 
         input:invalid+.field-thread-name-error {
             display: block;
-            color: @error-color;
+            color: @status-error-text;
             font-size: 0.9em;
         }
 
@@ -66,10 +66,10 @@ collab-messages-add-102025 {
 
 
     button {
-        background-color: @info-color;
+        background-color: @button-primary-bg;
         border-radius: 8px;
         border: none;
-        box-shadow: 0px 1px 3px 0px @grey-color;
+        box-shadow: 0px 1px 3px 0px @border-default;
         display: flex;
         flex-direction: row;
         justify-content: center;
@@ -84,7 +84,7 @@ collab-messages-add-102025 {
         min-width: 100px;
 
         &:hover {
-            background-color: @info-color-hover;
+            background-color: @button-primary-bg-hover;
         }
     }
 
@@ -126,12 +126,12 @@ collab-messages-add-102025 {
     }
 
     .saving-ok {
-        color: @success-color;
+        color: @status-success-text;
         font-size: @font-size-12;
     }
 
     .saving-error {
-        color: @error-color;
+        color: @status-error-text;
         font-size: @font-size-12;
     }
 
@@ -176,9 +176,9 @@ collab-messages-add-102025 {
         }
 
         .radio-label.selected {
-            border-color: @active-color;
+            border-color: @selected-border;
             background-color: #eff6ff;
-            color: @active-color;
+            color: @selected-text;
         }
 
         svg {
@@ -188,7 +188,7 @@ collab-messages-add-102025 {
         }
 
         .radio-input:focus-visible+.content-wrapper {
-            outline: 2px solid @active-color;
+            outline: 2px solid @focus-ring;
             outline-offset: 2px;
             border-radius: 4px;
         }

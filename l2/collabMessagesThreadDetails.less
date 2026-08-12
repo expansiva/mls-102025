@@ -8,8 +8,8 @@ collab-messages-thread-details-102025 {
     font-size: @font-size-16;
     font-weight: @font-weight-normal;
     line-height: 1.5;
-    color: @text-primary-color;
-    background-color: @bg-primary-color;
+    color: @text-default;
+    background-color: @surface-bg;
     padding: 1rem;
 
     @keyframes spin {
@@ -23,12 +23,12 @@ collab-messages-thread-details-102025 {
     }
 
     .saving-ok {
-        color: @success-color;
+        color: @status-success-text;
         font-size: @font-size-12;
     }
 
     .saving-error {
-        color: @error-color;
+        color: @status-error-text;
         font-size: @font-size-12;
         display: flex;
         align-items: center;
@@ -36,7 +36,7 @@ collab-messages-thread-details-102025 {
         svg {
             margin-right: .3rem;
             width: 12px;
-            fill: @error-color;
+            fill: @status-error-text;
         }
     }
 
@@ -50,7 +50,7 @@ collab-messages-thread-details-102025 {
         padding: 1.4rem 0.75rem;
         border-radius: 10px;
         box-shadow: #e7e3e3 0px 1px 4px;
-        background-color: @bg-primary-color-darker;
+        background-color: @surface-alt-bg;
 
         .details-header h3 {
             display: flex;
@@ -76,7 +76,7 @@ collab-messages-thread-details-102025 {
         button.remove {
             margin-left: auto;
             padding: 0.25rem 0.5rem;
-            background: @error-color;
+            background: @button-danger-bg;
             color: white;
             border: none;
             border-radius: 4px;
@@ -84,14 +84,14 @@ collab-messages-thread-details-102025 {
             font-size: @font-size-12;
 
             &:hover {
-                background: @error-color-hover;
+                background: @button-danger-bg-hover;
             }
         }
 
         button.activate {
             margin-left: auto;
             padding: 0.25rem 0.5rem;
-            background: @info-color;
+            background: @button-primary-bg;
             color: white;
             border: none;
             border-radius: 4px;
@@ -99,13 +99,13 @@ collab-messages-thread-details-102025 {
             font-size: @font-size-12;
 
             &:hover {
-                background: @info-color-hover;
+                background: @button-primary-bg-hover;
             }
         }
 
         button.edit {
             padding: 0.25rem 0.5rem;
-            background: @info-color;
+            background: @button-primary-bg;
             color: white;
             border: none;
             border-radius: 4px;
@@ -121,7 +121,7 @@ collab-messages-thread-details-102025 {
             }
 
             &:hover {
-                background: @info-color-hover;
+                background: @button-primary-bg-hover;
             }
         }
 
@@ -155,7 +155,7 @@ collab-messages-thread-details-102025 {
             >.add-participant {
                 margin-top: 0.5rem;
                 padding: 1rem;
-                border-top: 1px solid @grey-color;
+                border-top: 1px solid @border-default;
                 border-radius: 8px;
             }
         }
@@ -188,11 +188,11 @@ collab-messages-thread-details-102025 {
             margin-bottom: 0.5rem;
             padding: 0.5rem;
             border-radius: 6px;
-            background: @bg-secondary-color-lighter;
+            background: @surface-alt-bg;
 
             &.empty-list {
                 background: transparent;
-                color: @text-primary-color-lighter;
+                color: @text-muted;
                 font-style: italic;
             }
 
@@ -209,11 +209,11 @@ collab-messages-thread-details-102025 {
 
                 .agent-name {
                     font-weight: @font-weight-bold;
-                    color: @text-primary-color;
+                    color: @text-default;
                 }
 
                 .agent-integration {
-                    color: @text-primary-color-lighter;
+                    color: @text-muted;
                     font-size: @font-size-12;
                 }
             }
@@ -233,14 +233,14 @@ collab-messages-thread-details-102025 {
         .agent-form-content {
             margin-top: 0.5rem;
             padding: 1rem;
-            border-top: 1px solid @grey-color;
+            border-top: 1px solid @border-default;
             border-radius: 8px;
 
             label {
                 display: block;
                 margin-bottom: 1rem;
                 font-size: @font-size-12;
-                color: @text-primary-color-lighter;
+                color: @text-muted;
 
                 select {
                     width: 100%;
@@ -258,7 +258,7 @@ collab-messages-thread-details-102025 {
                     outline: none;
 
                     &:focus {
-                        border-color: @info-color;
+                        border-color: @button-primary-bg;
                         box-shadow: 0 0 0 2px rgba(10, 109, 201, 0.1);
                     }
                 }
@@ -270,9 +270,9 @@ collab-messages-thread-details-102025 {
                 gap: 1rem;
                 padding: 1rem;
                 margin-bottom: 1rem;
-                background: @bg-primary-color;
+                background: @surface-bg;
                 border-radius: 8px;
-                border: 1px solid @grey-color-light;
+                border: 1px solid @border-subtle;
 
                 img {
                     border-radius: 50%;
@@ -284,12 +284,12 @@ collab-messages-thread-details-102025 {
                     flex-direction: column;
 
                     strong {
-                        color: @text-primary-color;
+                        color: @text-default;
                         font-size: @font-size-16;
                     }
 
                     small {
-                        color: @text-primary-color-lighter;
+                        color: @text-muted;
                         font-size: @font-size-12;
                     }
                 }
@@ -328,7 +328,7 @@ collab-messages-thread-details-102025 {
         }
 
         .btn-save {
-            background: @info-color;
+            background: @button-primary-bg;
             color: white;
 
             svg {
@@ -336,11 +336,11 @@ collab-messages-thread-details-102025 {
             }
 
             &:hover {
-                background: @info-color-hover;
+                background: @button-primary-bg-hover;
             }
 
             &:disabled {
-                background: @info-color-disabled;
+                background: @button-primary-bg-disabled;
                 cursor: not-allowed;
             }
         }
@@ -365,8 +365,8 @@ collab-messages-thread-details-102025 {
 
             .btn-edit {
                 padding: 0.4rem 0.6rem;
-                background: @bg-secondary-color-lighter;
-                border: 1px solid @grey-color;
+                background: @surface-alt-bg;
+                border: 1px solid @border-default;
                 border-radius: 6px;
                 cursor: pointer;
                 display: flex;
@@ -377,15 +377,15 @@ collab-messages-thread-details-102025 {
                 svg {
                     width: 16px;
                     height: 16px;
-                    fill: @text-primary-color-lighter;
+                    fill: @text-muted;
                 }
 
                 &:hover {
-                    background: @bg-secondary-color;
-                    border-color: @grey-color-dark;
+                    background: @surface-alt-bg;
+                    border-color: @border-default-hover;
 
                     svg {
-                        fill: @text-primary-color;
+                        fill: @text-default;
                     }
                 }
             }
@@ -410,7 +410,7 @@ collab-messages-thread-details-102025 {
                 img {
                     border-radius: 50%;
                     object-fit: cover;
-                    border: 2px solid @grey-color-light;
+                    border: 2px solid @border-subtle;
                 }
             }
 
@@ -435,7 +435,7 @@ collab-messages-thread-details-102025 {
 
                 .summary-label {
                     font-size: @font-size-12;
-                    color: @text-primary-color-lighter;
+                    color: @text-muted;
                     font-weight: @font-weight-bold;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
@@ -443,7 +443,7 @@ collab-messages-thread-details-102025 {
 
                 .summary-value {
                     font-size: @font-size-12;
-                    color: @text-primary-color;
+                    color: @text-default;
 
                     .tags-inline {
                         display: inline;
@@ -451,7 +451,7 @@ collab-messages-thread-details-102025 {
                     }
 
                     .empty-value {
-                        color: @text-primary-color-lighter;
+                        color: @text-muted;
                         font-style: italic;
                         font-size: @font-size-12;
                     }
@@ -463,7 +463,7 @@ collab-messages-thread-details-102025 {
                         overflow: hidden;
                         text-overflow: ellipsis;
                         font-size: @font-size-12;
-                        color: @text-primary-color-lighter;
+                        color: @text-muted;
                         line-height: 1.4;
                     }
                 }
@@ -477,23 +477,23 @@ collab-messages-thread-details-102025 {
                     width: fit-content;
 
                     &.status-active {
-                        background: fade(@success-color, 15%);
-                        color: @success-color-focus;
+                        background: color-mix(in srgb, var(--status-success-text) 15%, transparent);
+                        color: @status-success-text-focus;
                     }
 
                     &.status-archived {
-                        background: fade(@warning-color, 15%);
-                        color: @warning-color-focus;
+                        background: color-mix(in srgb, var(--status-warning-text) 15%, transparent);
+                        color: @status-warning-text-focus;
                     }
 
                     &.status-deleted {
-                        background: fade(@error-color, 15%);
-                        color: @error-color-focus;
+                        background: color-mix(in srgb, var(--status-error-text) 15%, transparent);
+                        color: @status-error-text-focus;
                     }
 
                     &.status-deleting {
-                        background: fade(@error-color, 15%);
-                        color: @error-color;
+                        background: color-mix(in srgb, var(--status-error-text) 15%, transparent);
+                        color: @status-error-text;
                     }
                 }
             }
@@ -506,7 +506,7 @@ collab-messages-thread-details-102025 {
             display: block;
             margin-bottom: .4rem;
             font-size: @font-size-12;
-            color: @text-primary-color-lighter;
+            color: @text-muted;
 
             input,
             select,
@@ -525,7 +525,7 @@ collab-messages-thread-details-102025 {
                 outline: none;
 
                 &[disabled] {
-                    background-color: @grey-color-light;
+                    background-color: @surface-alt-bg;
                 }
             }
         }
@@ -540,12 +540,12 @@ collab-messages-thread-details-102025 {
         }
 
         input:invalid {
-            border-color: @error-color;
+            border-color: @status-error-text;
         }
 
         input:invalid+.field-thread-name-error {
             display: block;
-            color: @error-color;
+            color: @status-error-text;
             font-size: 0.9em;
         }
 
@@ -569,7 +569,7 @@ collab-messages-thread-details-102025 {
             resize: vertical;
 
             &[disabled] {
-                background-color: @grey-color-light;
+                background-color: @surface-alt-bg;
             }
         }
 
@@ -580,7 +580,7 @@ collab-messages-thread-details-102025 {
             gap: 0.5rem;
             margin-top: 1rem;
             padding-top: 1rem;
-            border-top: 1px solid @grey-color-light;
+            border-top: 1px solid @border-subtle;
         }
     }
 

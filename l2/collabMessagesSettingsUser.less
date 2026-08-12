@@ -7,7 +7,7 @@ collab-messages-settings-user-102025 {
         padding: 1.4rem 0.75rem;
         border-radius: 10px;
         box-shadow: #e7e3e3 0px 1px 4px;
-        background-color: @bg-primary-color-darker;
+        background-color: @surface-alt-bg;
         margin-bottom: 1.5rem;
 
         h4 {
@@ -43,12 +43,12 @@ collab-messages-settings-user-102025 {
         }
 
         .saving-ok {
-            color: @success-color;
+            color: @status-success-text;
             font-size: @font-size-12;
         }
 
         .saving-error {
-            color: @error-color;
+            color: @status-error-text;
             font-size: @font-size-12;
         }
 
@@ -59,7 +59,7 @@ collab-messages-settings-user-102025 {
             gap: 0.75rem;
             margin-top: 1.5rem;
             padding-top: 1rem;
-            border-top: 1px solid @grey-color;
+            border-top: 1px solid @border-default;
         }
 
         input {
@@ -79,8 +79,8 @@ collab-messages-settings-user-102025 {
         }
 
         button {
-            background-color: @info-color;
-            box-shadow: 0px 1px 3px 0px @grey-color;
+            background-color: @button-primary-bg;
+            box-shadow: 0px 1px 3px 0px @border-default;
             flex-direction: row;
             justify-content: center;
             width: max-content;
@@ -104,7 +104,7 @@ collab-messages-settings-user-102025 {
             }
 
             &:hover {
-                background-color: @info-color-hover;
+                background-color: @button-primary-bg-hover;
             }
 
             &.btn-small {
@@ -122,18 +122,18 @@ collab-messages-settings-user-102025 {
             }
 
             &.btn-secondary {
-                background-color: @bg-secondary-color;
-                color: @text-primary-color;
+                background-color: @surface-alt-bg;
+                color: @text-default;
 
                 &:hover {
-                    background-color: @bg-secondary-color-hover;
+                    background-color: @surface-alt-bg-hover;
                 }
             }
 
             &.btn-link {
                 border: none;
                 background-color: transparent;
-                color: @active-color;
+                color: @selected-text;
                 box-shadow: none;
                 cursor: pointer;
 
@@ -148,12 +148,12 @@ collab-messages-settings-user-102025 {
                 padding: 0.25rem;
                 border-radius: 6px;
                 background-color: transparent;
-                color: @text-primary-color;
+                color: @text-default;
                 box-shadow: none;
                 margin-right: 0.5rem;
 
                 &:hover {
-                    background-color: @bg-secondary-color;
+                    background-color: @surface-alt-bg;
                 }
 
                 svg {
@@ -191,23 +191,23 @@ collab-messages-settings-user-102025 {
                 height: 80px;
                 border-radius: 50%;
                 object-fit: cover;
-                border: 2px solid @grey-color;
+                border: 2px solid @border-default;
             }
 
             .avatar-placeholder {
                 width: 80px;
                 height: 80px;
                 border-radius: 50%;
-                background-color: @grey-color;
+                background-color: @status-neutral-bg;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border: 2px solid @grey-color-dark;
+                border: 2px solid @border-default-hover;
 
                 svg {
                     width: 36px;
                     height: 36px;
-                    color: @text-primary-color-lighter;
+                    color: @text-muted;
                 }
             }
         }
@@ -228,7 +228,7 @@ collab-messages-settings-user-102025 {
             label {
                 display: block;
                 font-size: @font-size-12;
-                color: @text-primary-color-lighter;
+                color: @text-muted;
                 margin-bottom: 0.25rem;
             }
 
@@ -250,19 +250,19 @@ collab-messages-settings-user-102025 {
             .user-id {
                 font-family: monospace;
                 font-size: @font-size-12;
-                color: @text-primary-color-lighter;
+                color: @text-muted;
                 word-break: break-all;
             }
 
             &.status {
                 .blocked svg {
-                    color: @error-color;
-                    fill: @error-color;
+                    color: @status-error-text;
+                    fill: @status-error-text;
                 }
 
                 .active svg {
-                    color: @success-color;
-                    fill: @success-color;
+                    color: @status-success-text;
+                    fill: @status-success-text;
                 }
             }
         }
@@ -299,23 +299,23 @@ collab-messages-settings-user-102025 {
                 height: 80px;
                 border-radius: 50%;
                 object-fit: cover;
-                border: 2px solid @grey-color;
+                border: 2px solid @border-default;
             }
 
             .avatar-placeholder {
                 width: 80px;
                 height: 80px;
                 border-radius: 50%;
-                background-color: @grey-color;
+                background-color: @status-neutral-bg;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border: 2px solid @grey-color-dark;
+                border: 2px solid @border-default-hover;
 
                 svg {
                     width: 36px;
                     height: 36px;
-                    color: @text-primary-color-lighter;
+                    color: @text-muted;
                 }
             }
 
@@ -323,11 +323,11 @@ collab-messages-settings-user-102025 {
                 width: 80px;
                 height: 80px;
                 border-radius: 50%;
-                background-color: @grey-color-light;
+                background-color: @surface-alt-bg;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border: 2px solid @grey-color;
+                border: 2px solid @border-default;
             }
         }
 
@@ -342,7 +342,7 @@ collab-messages-settings-user-102025 {
             label {
                 display: block;
                 font-size: @font-size-12;
-                color: @text-primary-color-lighter;
+                color: @text-muted;
                 margin-bottom: 0.25rem;
             }
 

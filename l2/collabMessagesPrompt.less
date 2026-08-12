@@ -180,12 +180,12 @@ collab-messages-prompt-102025 {
                     
                     // Mentions
                     .mention-preview {
-                        color: @active-color;
+                        color: @selected-text;
                     }
                     
                     // Agents
                     .agent-preview {
-                        color: @info-color;
+                        color: @status-info-text;
                     }
                     
                     // Channels
@@ -195,17 +195,17 @@ collab-messages-prompt-102025 {
                     
                     // Commands
                     .command-preview {
-                        color: @active-color;
+                        color: @selected-text;
                     }
                     
                     // Help
                     .help-preview {
-                        color: @success-color;
+                        color: @status-success-text;
                     }
                     
                     // Links
                     .link-preview {
-                        color: @link-color;
+                        color: @link-text;
                         text-decoration: underline;
                         text-underline-offset: 2px;
                     }
@@ -298,7 +298,7 @@ collab-messages-prompt-102025 {
 
     .prompt-error {
         padding: 0 10px 8px;
-        color: @error-color;
+        color: @status-error-text;
         font-size: @font-size-12;
         line-height: 1.35;
         word-break: break-word;
@@ -392,12 +392,12 @@ collab-messages-prompt-102025 {
     }
 
     .mention {
-        color: @active-color;
+        color: @selected-text;
         font-weight: bold;
     }
 
     .special-mention {
-        color: @info-color;
+        color: @status-info-text;
         font-weight: bold;
     }
 
@@ -413,7 +413,7 @@ collab-messages-prompt-102025 {
 
     .agent-suggestion {
         font-weight: 600;
-        color: @active-color;
+        color: @selected-text;
     }
 
     .user-suggestion {

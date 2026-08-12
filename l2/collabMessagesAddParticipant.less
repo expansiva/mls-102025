@@ -7,8 +7,8 @@ collab-messages-add-participant-102025 {
     font-size: @font-size-16;
     font-weight: @font-weight-normal;
     line-height: 1.5;
-    color: @text-primary-color;
-    background-color: @bg-primary-color;
+    color: @text-default;
+    background-color: @surface-bg;
 
 
     .add-participant {
@@ -18,12 +18,12 @@ collab-messages-add-participant-102025 {
         gap: .2rem;
 
         .add-participant-ok {
-            color: @success-color;
+            color: @status-success-text;
             font-size: @font-size-12;
         }
 
         .add-participant-error {
-            color: @error-color;
+            color: @status-error-text;
             font-size: @font-size-12;
         }
 
@@ -59,7 +59,7 @@ collab-messages-add-participant-102025 {
             display: block;
             margin-bottom: .4rem;
             font-size: @font-size-12;
-            color: @text-primary-color-lighter;
+            color: @text-muted;
 
             input,
             select,
@@ -78,7 +78,7 @@ collab-messages-add-participant-102025 {
                 outline: none;
 
                 &[disabled] {
-                    background-color: @grey-color-light;
+                    background-color: @surface-alt-bg;
                 }
             }
         }
@@ -112,7 +112,7 @@ collab-messages-add-participant-102025 {
             }
 
             .btn-save {
-                background: @info-color;
+                background: @button-primary-bg;
                 color: white;
 
                 svg {
@@ -120,11 +120,11 @@ collab-messages-add-participant-102025 {
                 }
 
                 &:hover {
-                    background: @info-color-hover;
+                    background: @button-primary-bg-hover;
                 }
 
                 &:disabled {
-                    background: @info-color-disabled;
+                    background: @button-primary-bg-disabled;
                     cursor: not-allowed;
                 }
             }

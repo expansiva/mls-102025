@@ -4,14 +4,14 @@ collab-messages-apps-menu-102025 {
 
     display: block;
     font-family: @font-family-primary;
-    color: @text-primary-color;
+    color: @text-default;
     padding: @space-16;
 
     .menu-module {
         margin: @space-16 0;
-        border: 1px solid @grey-color;
+        border: 1px solid @border-default;
         border-radius: 8px;
-        background: @bg-secondary-color-lighter;
+        background: @surface-alt-bg;
         transition: background @transition-normal;
 
 
@@ -21,7 +21,7 @@ collab-messages-apps-menu-102025 {
             align-items: center;
             padding: @space-8 @space-8;
             font-weight: @font-weight-bold;
-            color: @text-primary-color;
+            color: @text-default;
             position: relative;
             list-style: none;
             user-select: none;
@@ -43,7 +43,7 @@ collab-messages-apps-menu-102025 {
             &::after {
                 content: '▶';
                 font-size: 0.8rem;
-                color: @text-primary-color-lighter;
+                color: @text-muted;
                 margin-left: auto;
                 transition: transform @transition-slow ease, color @transition-slow;
             }
@@ -52,7 +52,7 @@ collab-messages-apps-menu-102025 {
         // seta muda para baixo quando o <details> está aberto
         &[open]>summary::after {
             transform: rotate(0deg);
-            color: @text-primary-color;
+            color: @text-default;
             content: '▼';
         }
     }
@@ -87,15 +87,15 @@ collab-messages-apps-menu-102025 {
             width: 100%;
             box-sizing: border-box;
             padding: @space-8;
-            border: 1px solid @grey-color;
+            border: 1px solid @border-default;
             border-radius: 6px;
             font-family: @font-family-primary;
-            color: @text-primary-color;
-            background: @bg-secondary-color-lighter;
+            color: @text-default;
+            background: @surface-alt-bg;
 
             &:focus {
                 outline: none;
-                border-color: @active-color;
+                border-color: @selected-border;
             }
         }
 
@@ -107,20 +107,20 @@ collab-messages-apps-menu-102025 {
                 flex: 1;
                 cursor: pointer;
                 padding: @space-8;
-                border: 1px solid @grey-color;
+                border: 1px solid @border-default;
                 border-radius: 6px;
-                background: @bg-secondary-color-lighter;
-                color: @text-primary-color;
+                background: @surface-alt-bg;
+                color: @text-default;
                 font-family: @font-family-primary;
                 transition: background @transition-fast, color @transition-fast;
 
                 &:hover {
-                    background: @bg-primary-color-hover;
+                    background: @surface-bg-hover;
                 }
 
                 &.active {
-                    background: @active-color;
-                    border-color: @active-color;
+                    background: @selected-border;
+                    border-color: @selected-border;
                     color: #fff;
                 }
             }
@@ -129,7 +129,7 @@ collab-messages-apps-menu-102025 {
 
     .empty {
         padding: @space-8;
-        color: @text-primary-color-lighter;
+        color: @text-muted;
     }
 
     h3 {
@@ -147,28 +147,28 @@ collab-messages-apps-menu-102025 {
             justify-content: start;
             padding: @space-8;
             cursor: pointer;
-            color: @text-primary-color;
+            color: @text-default;
             border-radius: 4px;
             transition: background @transition-slow;
 
             &:hover {
-                background: @bg-primary-color-hover;
+                background: @surface-bg-hover;
             }
 
 
             .favorite {
                 margin-left: auto;
-                color: @grey-color-darker;
+                color: @text-muted;
                 cursor: pointer;
                 font-size: 1rem;
                 transition: color @transition-fast;
 
                 &.active {
-                    color: @active-color;
+                    color: @selected-text;
                 }
 
                 &:hover {
-                    color: @active-color-hover;
+                    color: @selected-text-hover;
                 }
             }
         }
@@ -178,7 +178,7 @@ collab-messages-apps-menu-102025 {
             padding-inline-start: 0;
             margin-left: 1rem;
             margin-top: 4px;
-            border-left: 2px solid @grey-color-darker;
+            border-left: 2px solid @border-default-focus;
         }
     }
 

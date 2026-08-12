@@ -8,7 +8,7 @@ collab-messages-settings-chat-preferences-102025 {
         padding: 1.4rem 0.75rem;
         border-radius: 10px;
         box-shadow: #e7e3e3 0px 1px 4px;
-        background-color: @bg-primary-color-darker;
+        background-color: @surface-alt-bg;
         margin-bottom: 1.5rem;
 
         h4 {
@@ -44,12 +44,12 @@ collab-messages-settings-chat-preferences-102025 {
         }
 
         .saving-ok {
-            color: @success-color;
+            color: @status-success-text;
             font-size: @font-size-12;
         }
 
         .saving-error {
-            color: @error-color;
+            color: @status-error-text;
             font-size: @font-size-12;
         }
 
@@ -59,7 +59,7 @@ collab-messages-settings-chat-preferences-102025 {
             label {
                 display: block;
                 font-size: @font-size-12;
-                color: @text-primary-color-lighter;
+                color: @text-muted;
                 margin-bottom: 0.3rem;
             }
         }
@@ -92,8 +92,8 @@ collab-messages-settings-chat-preferences-102025 {
         }
 
         button {
-            background-color: @info-color;
-            box-shadow: 0px 1px 3px 0px @grey-color;
+            background-color: @button-primary-bg;
+            box-shadow: 0px 1px 3px 0px @border-default;
             flex-direction: row;
             justify-content: center;
             width: max-content;
@@ -117,7 +117,7 @@ collab-messages-settings-chat-preferences-102025 {
             }
 
             &:hover {
-                background-color: @info-color-hover;
+                background-color: @button-primary-bg-hover;
             }
 
             &:disabled {
@@ -140,7 +140,7 @@ collab-messages-settings-chat-preferences-102025 {
                 align-items: flex-end;
                 margin-top: 1.5rem;
                 padding-top: 1rem;
-                border-top: 1px solid @grey-color;
+                border-top: 1px solid @border-default;
             }
         }
     }

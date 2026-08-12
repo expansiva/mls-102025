@@ -4,8 +4,8 @@ collab-tasks-topbar-102025 {
     display: flex;
     align-items: center;
     padding: 12px 20px;
-    border-bottom: 1px solid @grey-color-light;
-    background: @bg-primary-color;
+    border-bottom: 1px solid @border-subtle;
+    background: @surface-bg;
     gap: 12px;
     min-height: 52px;
     flex-shrink: 0;
@@ -18,7 +18,7 @@ collab-tasks-topbar-102025 {
     .title {
         font-size: 18px;
         font-weight: 700;
-        color: @text-primary-color;
+        color: @text-default;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -26,7 +26,7 @@ collab-tasks-topbar-102025 {
 
     .subtitle {
         font-size: 12px;
-        color: @grey-color-darker;
+        color: @text-muted;
         margin-top: 1px;
     }
 
@@ -38,19 +38,19 @@ collab-tasks-topbar-102025 {
 
     .reload-btn {
         background: none;
-        border: 1px solid @grey-color-light;
+        border: 1px solid @border-subtle;
         border-radius: 6px;
         padding: 5px 12px;
         font-size: 13px;
         cursor: pointer;
-        color: @grey-color-darker;
+        color: @text-muted;
         display: flex;
         align-items: center;
         gap: 6px;
         transition: background 0.15s;
 
         &:hover {
-            background: @bg-primary-color-focus;
+            background: @surface-bg-focus;
         }
     }
 }

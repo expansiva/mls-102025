@@ -9,8 +9,8 @@ collab-messages-topics-102025 {
         justify-content: space-between;
         align-items: center;
         padding: 4px 8px;
-        border-bottom: 1px solid @grey-color-dark;
-        background: @grey-color-light;
+        border-bottom: 1px solid @border-default-hover;
+        background: @surface-alt-bg;
     }
 
     .topics {
@@ -26,7 +26,7 @@ collab-messages-topics-102025 {
 
     button {
         background: none;
-        border: 1px solid @grey-color-dark;
+        border: 1px solid @border-default-hover;
         border-radius: 4px;
         padding: 2px 6px;
         cursor: pointer;
@@ -34,9 +34,9 @@ collab-messages-topics-102025 {
     }
 
     button.active {
-        background: @active-color;
+        background: @selected-border;
         color: white;
-        border-color: @active-color;
+        border-color: @selected-border;
     }
 
     .groups {
@@ -44,7 +44,7 @@ collab-messages-topics-102025 {
         flex-direction: column;
         gap: 12px;
         padding: 0 .3rem .3rem .3rem;
-        background: @grey-color-light;
+        background: @surface-alt-bg;
     }
 
     .group {

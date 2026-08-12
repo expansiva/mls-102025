@@ -87,12 +87,12 @@ collab-messages-chat-message-102025 {
                 }
 
                 &.pinned {
-                    border: 1px solid @active-color;
+                    border: 1px solid @selected-border;
                 }
 
                 &.toolbar-highlighted {
-                    border: 2px solid @active-color;
-                    box-shadow: 0 0 0 2px fade(@active-color, 18%);
+                    border: 2px solid @selected-border;
+                    box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus-ring) 18%, transparent);
                 }
 
                 .message-title {
@@ -137,7 +137,7 @@ collab-messages-chat-message-102025 {
                     margin-top: .2rem;
 
                     svg {
-                        fill: @error-color;
+                        fill: @status-error-text;
                         width: 14px;
                         height: 14px;
                     }
@@ -223,7 +223,7 @@ collab-messages-chat-message-102025 {
                     }
 
                     &.moderated svg {
-                        color: @error-color;
+                        color: @status-error-text;
                     }
                 }
 
@@ -450,11 +450,11 @@ collab-messages-chat-message-102025 {
                         }
 
                         widget-text2-collab-messages-m-d-102025 .collab-md-message .mention-agent {
-                            color: var(--active-color);
+                            color: var(--selected-text);
                             background-color: transparent;
 
                             &:hover {
-                                color: var(--active-color-hover);
+                                color: var(--selected-text-hover);
                             }
                         }
                     }
@@ -500,7 +500,7 @@ collab-messages-chat-message-102025 {
                 }
 
                 .read-confirmation-user {
-                    color: @active-color;
+                    color: @selected-text;
                     font-weight: 600;
                     background: var(--cm-soft-overlay, rgba(255, 255, 255, .75));
                     border-radius: 4px;
@@ -528,7 +528,7 @@ collab-messages-chat-message-102025 {
                     svg {
                         width: 12px;
                         height: 12px;
-                        color: @active-color;
+                        color: @selected-text;
                         fill: currentColor;
                     }
                 }
@@ -658,7 +658,7 @@ collab-messages-chat-message-102025 {
             }
 
             .read-confirmation-icon {
-                color: @active-color;
+                color: @selected-text;
                 font-weight: 800;
             }
         }
@@ -737,7 +737,7 @@ collab-messages-chat-message-102025 {
                 }
 
                 .reaction-list-name {
-                    color: @active-color;
+                    color: @selected-text;
                     font-weight: 500;
                 }
             }
@@ -881,7 +881,7 @@ collab-messages-chat-message-102025 {
         align-items: center;
         
         .followup-reactions-summary {
-            color: @active-color;
+            color: @selected-text;
         }
 
         .followup-icon {
@@ -897,7 +897,7 @@ collab-messages-chat-message-102025 {
         }
 
         .read-confirmation-icon {
-            color: @active-color;
+            color: @selected-text;
             font-weight: 800;
         }
     }
@@ -931,7 +931,7 @@ collab-messages-chat-message-102025 {
 
         &:hover,
         &.active {
-            color: @active-color;
+            color: @selected-text;
             background: var(--cm-panel-muted, #f3f7f4);
             transform: translateY(-1px);
         }
@@ -980,7 +980,7 @@ collab-messages-chat-message-102025 {
 
         &:hover,
         &.active {
-            color: @active-color;
+            color: @selected-text;
             background: var(--cm-soft-overlay, rgba(0, 0, 0, .06));
         }
     }
@@ -1024,7 +1024,7 @@ collab-messages-chat-message-102025 {
         gap: 4px;
         padding: 2px 6px;
         border-radius: 10px;
-        color: @active-color;
+        color: @selected-text;
 
         .read-confirmation-picker-symbol {
             font-weight: 800;
@@ -1161,7 +1161,7 @@ collab-messages-chat-message-102025 {
             width: 16px;
             height: 16px;
             flex: 0 0 16px;
-            color: @active-color;
+            color: @selected-text;
             font-weight: 800;
             line-height: 1;
         }
@@ -1200,11 +1200,11 @@ collab-messages-chat-message-102025 {
     }
 
     .message.user .message-reply-bar {
-        background: @success-color;
+        background: @status-success-text;
     }
 
     .message.system .message-reply-bar {
-        background: @grey-color;
+        background: @status-neutral-bg;
     }
 
     .message-reply-content {
