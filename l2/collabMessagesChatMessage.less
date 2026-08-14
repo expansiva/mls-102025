@@ -94,12 +94,15 @@ collab-messages-chat-message-102025 {
                     border: 2px solid @selected-border;
                     box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus-ring) 18%, transparent);
                 }
-
                 .message-title {
-                    color: var(--cm-green-dark, #007a3d);
+                    color: var(--cm-text-on-bubble-in, #007a3d);
                     font-size: 12px;
                     font-weight: 700;
                     margin-bottom: .06rem;
+                }
+
+                &.user .message-title {
+                    color: var(--cm-text-on-bubble-out, #007a3d);
                 }
 
                 .message-see-more {
