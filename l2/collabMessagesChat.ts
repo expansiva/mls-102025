@@ -2514,7 +2514,9 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async updateMessageAI(context: msg.ExecutionContext, updateThreadDB: boolean, oldContextCreateAt?: string) {
 
-        if (this.activeScenerie !== 'details') return;
+        // 'task': the details panel is open over the chat; the task card in the
+        // message list reads context/lastChanged from here, so it would freeze.
+        if (this.activeScenerie !== 'details' && this.activeScenerie !== 'task') return;
         if (!context.message) return;
 
         const { content, createAt, orderAt, senderId, threadId, taskId, taskTitle, taskTitleTranslated, taskStatus,
@@ -2692,10 +2694,14 @@ export class CollabMessagesChat extends StateLitElement {
 
 
     private async onTaskClick(taskId: string, messageId: string, threadId: string, message: IMessage) {
-        this.saveScrollPosition();
         const task = await this.getTaskUpdate(taskId, messageId, threadId);
         if (!task) return;
         addOrUpdateTask(task);
+        await this.openTaskDetailsPanel(task, message);
+    }
+
+    private async openTaskDetailsPanel(task: msg.TaskData, message: IMessage) {
+        this.saveScrollPosition();
         this.actualTask = task;
         this.actualMessage = message;
         const messageId2 = `${this.actualThread?.thread.threadId}/${this.actualMessage?.createAt}`;
@@ -3275,7 +3281,22 @@ export class CollabMessagesChat extends StateLitElement {
         if (!this.actualThread || !thId || thId !== this.actualThread.thread.threadId) return;
         await this.updateMessageAI(customEvent.detail.context, false, customEvent.detail.oldContextCreateAt);
         if (task) await addOrUpdateTask(customEvent.detail.context.task);
+        if (task && customEvent.detail.oldContextCreateAt) await this.openCreatedTaskDetails(task, message);
     };
+
+    // oldContextCreateAt is only carried by the task-change of the add-message-ai
+    // intent, which is the one that creates the task — so this opens the details
+    // once, right after creation (a pending clarification lives inside the panel).
+    private async openCreatedTaskDetails(task: msg.TaskData, message: msg.Message) {
+        if (this.activeScenerie !== 'details') return;
+        const messageInList = this.actualMessages.find((item) =>
+            item.senderId === message.senderId &&
+            item.createAt === message.createAt &&
+            item.threadId === message.threadId
+        );
+        if (!messageInList) return;
+        await this.openTaskDetailsPanel(task, messageInList);
+    }
 
 
     /*
