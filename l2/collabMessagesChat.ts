@@ -1455,8 +1455,8 @@ export class CollabMessagesChat extends StateLitElement {
           
             ${this.filteredThreads.deleted.map((item) => {
             let threadAvatar = this.getThreadAvatar(item);
-            if (!item.lastMessageDateDeleting) return html``
             const unreadCount = item.thread.unreadCount || 0;
+            if (!item.lastMessageDateDeleting || unreadCount === 0) return html``
 
             return html`
                 <li @click=${() => this.onThreadClick(item)} class="thread-item">
