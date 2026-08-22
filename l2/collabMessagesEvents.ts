@@ -22,6 +22,93 @@ export function notifyTaskChange(context: msg.ExecutionContext, oldContextCreate
   scopeWindow.dispatchEvent(event);
 }
 
+/** Ephemeral step title on the client. No server, store, or intents. */
+export const STEP_TITLE_LOCAL_EVENT = 'step-title-local';
+export const LOCAL_STEP_TITLE_MIN_MS = 500;
+
+export interface LocalStepTitleDetail {
+  taskPK: string;
+  stepId: number;
+  title: string;
+}
+
+type LocalStepTitleThrottle = { at: number; title: string };
+
+const localStepTitleLastEmit = new Map<string, LocalStepTitleThrottle>();
+
+/** Pure tick decision: at most one event per step per ~500ms, drop a repeated same title. */
+export function shouldEmitLocalStepTitle(
+  last: LocalStepTitleThrottle | undefined,
+  now: number,
+  title: string,
+  minIntervalMs: number = LOCAL_STEP_TITLE_MIN_MS,
+): boolean {
+  if (!title) return false;
+  if (!last) return true;
+  if (last.title === title) return false;
+  if (now - last.at < minIntervalMs) return false;
+  return true;
+}
+
+export function getLocalStepTitleEventScope(): Window | undefined {
+  try {
+    if (typeof window === 'undefined') return undefined;
+    return window.top ?? window;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Paint a step title in the open task UI. Fail-soft: no window (headless/CLI) is a silent no-op;
+ * any throw is swallowed — an ornament must never kill a run.
+ */
+export function changeLocalStepTitle(taskPK: string, stepId: number, title: string): void {
+  try {
+    if (!taskPK || !title) return;
+    const scopeWindow = getLocalStepTitleEventScope();
+    if (!scopeWindow) return;
+    const key = `${taskPK}:${stepId}`;
+    const now = Date.now();
+    const last = localStepTitleLastEmit.get(key);
+    if (!shouldEmitLocalStepTitle(last, now, title)) return;
+    localStepTitleLastEmit.set(key, { at: now, title });
+    scopeWindow.dispatchEvent(new CustomEvent(STEP_TITLE_LOCAL_EVENT, {
+      detail: { taskPK, stepId, title } satisfies LocalStepTitleDetail,
+      bubbles: true,
+      composed: true,
+    }));
+  } catch {
+    /* fail-soft */
+  }
+}
+
+/** Main-thread tick while a worker/await holds. No-op (and no timer) without window. */
+export function startLocalStepTitleTick(
+  taskPK: string,
+  stepId: number,
+  makeTitle: (elapsedSec: number) => string,
+  intervalMs: number = LOCAL_STEP_TITLE_MIN_MS,
+): () => void {
+  try {
+    if (!getLocalStepTitleEventScope()) return () => {};
+    const startedAt = Date.now();
+    const tick = (): void => {
+      changeLocalStepTitle(taskPK, stepId, makeTitle(Math.floor((Date.now() - startedAt) / 1000)));
+    };
+    tick();
+    const id = setInterval(tick, intervalMs);
+    let stopped = false;
+    return () => {
+      if (stopped) return;
+      stopped = true;
+      try { clearInterval(id); } catch { /* fail-soft */ }
+    };
+  } catch {
+    return () => {};
+  }
+}
+
 export function notifyTaskCompleted(context: msg.ExecutionContext, result?: string): void {
   const scopeWindow = window?.top ? window.top : window;
   const event = new CustomEvent('task-completed', {

@@ -6,6 +6,14 @@ import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { continuePoolingTask, pauseOrContinueTask, loadAgent } from '/_102027_/l2/aiAgentOrchestration.js';
 import { getNextPendentStep, getAllSteps } from "/_102027_/l2/aiAgentHelper.js";
 import { countCollapsedRows, isBranchCompleted, isTransparentCompletedStep } from '/_102025_/l2/aiAgentDefaultFeedbackTree.js';
+import { STEP_TITLE_LOCAL_EVENT, getLocalStepTitleEventScope } from '/_102025_/l2/collabMessagesEvents.js';
+import {
+    applyLocalStepTitle,
+    displayedStepTitle,
+    dropLocalTitleIfStatusChanged,
+    dropLocalTitlesOnTaskChange,
+    type LocalStepTitles,
+} from '/_102025_/l2/aiAgentDefaultFeedbackLocalTitle.js';
 
 // Process-wide cache: does an agent implement openStepView? (Avoids re-importing agents per render.)
 const openStepViewCache = new Map<string, boolean>();
@@ -48,6 +56,43 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
     @state() private openedView: HTMLElement | null = null;
     @state() private userExpanded = new Set<number>();
     @state() private userCollapsed = new Set<number>();
+    @state() private localTitles: LocalStepTitles = new Map();
+
+    connectedCallback(): void {
+        super.connectedCallback();
+        const w = getLocalStepTitleEventScope();
+        if (!w) return;
+        w.addEventListener(STEP_TITLE_LOCAL_EVENT, this.onLocalStepTitle);
+        w.addEventListener('task-change', this.onDurableTaskChange);
+    }
+
+    disconnectedCallback(): void {
+        const w = getLocalStepTitleEventScope();
+        if (w) {
+            w.removeEventListener(STEP_TITLE_LOCAL_EVENT, this.onLocalStepTitle);
+            w.removeEventListener('task-change', this.onDurableTaskChange);
+        }
+        super.disconnectedCallback();
+    }
+
+    private onLocalStepTitle = (e: Event): void => {
+        const detail = (e as CustomEvent).detail as { taskPK?: string; stepId?: number; title?: string } | undefined;
+        const next = applyLocalStepTitle(this.localTitles, this.task?.PK, detail || {}, this.statusOf(detail?.stepId));
+        if (next !== this.localTitles) this.localTitles = next;
+    };
+
+    private onDurableTaskChange = (e: Event): void => {
+        const taskPK = (e as CustomEvent).detail?.context?.task?.PK as string | undefined;
+        const next = dropLocalTitlesOnTaskChange(this.localTitles, this.task?.PK, taskPK);
+        if (next !== this.localTitles) this.localTitles = next;
+    };
+
+    private statusOf(stepId: number | undefined): string | undefined {
+        if (stepId == null || !this.task) return undefined;
+        for (const s of getAllSteps(this.task.iaCompressed?.nextSteps)) {
+            if (s.stepId === stepId) return s.status;
+        }
+    }
 
     async firstUpdated() {
         //this.task = await getTask('20250917143000.1001');
@@ -71,6 +116,13 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
             if (previousTask?.PK !== this.task?.PK) {
                 this.userExpanded = new Set();
                 this.userCollapsed = new Set();
+                if (this.localTitles.size) this.localTitles = new Map();
+            } else if (this.localTitles.size) {
+                let next = this.localTitles;
+                for (const s of getAllSteps(this.task?.iaCompressed?.nextSteps)) {
+                    next = dropLocalTitleIfStatusChanged(next, s.stepId, s.status);
+                }
+                if (next !== this.localTitles) this.localTitles = next;
             }
             this.isAgentParallelMode = !!this.task?.iaCompressed?.nextSteps[0].progress;
             void this.resolveOpenCapableAgents();
@@ -127,13 +179,7 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
             | mls.msg.AIResultStep
             | mls.msg.AIFlexibleResultStep
     ): string {
-        return (
-            step.stepTitle ||
-            (step as mls.msg.AIAgentStep).agentName ||
-            (step as mls.msg.AIToolStep).toolName ||
-            step.type ||
-            'step'
-        );
+        return displayedStepTitle(step, this.localTitles);
     }
 
 

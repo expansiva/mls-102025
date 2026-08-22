@@ -50,7 +50,8 @@ export const asis: mls.defs.AsIs =
         "Dispatch custom events for thread-create",
         "Dispatch custom events for task-details-close",
         "Dispatch custom events for task-details-click",
-        "Dispatch custom events for thread-open"
+        "Dispatch custom events for thread-open",
+        "Dispatch ephemeral local step-title events without mutating the task"
       ],
       "implementedFeatures": [
         "notifyMessageSendChange function",
@@ -63,6 +64,9 @@ export const asis: mls.defs.AsIs =
         "dispatchDetailsTaskClose function",
         "dispatchDetailsTaskClick function",
         "dispatchThreadOpen function",
+        "changeLocalStepTitle function",
+        "startLocalStepTitleTick function",
+        "shouldEmitLocalStepTitle function",
         "ICollabMessageEvent interface"
       ]
     }
