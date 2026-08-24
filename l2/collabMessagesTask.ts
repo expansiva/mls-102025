@@ -23,10 +23,12 @@ import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 /// **collab_i18n_start** 
 const message_pt = {
     loading: 'Carregando...',
+    'llm.provider.unavailable': 'Estamos com dificuldades técnicas. Tente novamente mais tarde.',
 }
 
 const message_en = {
     loading: 'Loading...',
+    'llm.provider.unavailable': 'We are experiencing technical difficulties. Please try again later.',
 }
 type MessageType = typeof message_en;
 const messages: { [key: string]: MessageType } = {
@@ -146,7 +148,10 @@ export class CollabMessagesTask extends StateLitElement {
         }
 
         if (!status) return html`<span class="task-icon in progress ">${collab_clock}</span>`;
-        return html`<span class="task-icon ${status.split(' ').join('-')} ">${taskObj[status]}</span>`;
+        const providerHint = this.task?.status === 'paused' && String(this.task.last_update_log || '').includes('llm.provider.')
+            ? this.msg['llm.provider.unavailable']
+            : '';
+        return html`<span class="task-icon ${status.split(' ').join('-')} " title=${providerHint}>${taskObj[status]}</span>`;
 
     }
 
