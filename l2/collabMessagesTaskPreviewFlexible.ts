@@ -74,8 +74,30 @@ export class CollabMessagesTaskPreviewFlexible extends CollabLitElement {
      */
     private mountEditor(): void {
         if (!this.elEditor) return;
+        if (typeof monaco === 'undefined') {
+            void this.loadMonacoThenMount();
+            return;
+        }
         this.ensureEditorCreated();
         this.elEditor.appendChild(this.sharedEditor as any);
+    }
+
+    /**
+     * Monaco is no longer guaranteed to be loaded outside the Studio dev environment
+     * (Ctrl+Alt+S) — this preview is a normal end-user feature, so it loads Monaco itself on
+     * demand instead of assuming some other part of the boot chain already did.
+     */
+    private async loadMonacoThenMount(): Promise<void> {
+        const mls = (window as any).mls;
+        if (!mls) return;
+        try {
+            const { initStudio } = await import('/_102033_/l2/cbe/initStudio.js');
+            await initStudio(mls);
+        } catch (e) {
+            console.warn('collabMessagesTaskPreviewFlexible: monaco could not be loaded', e);
+            return;
+        }
+        this.mountEditor();
     }
 
     private createModel(): monaco.editor.ITextModel {
