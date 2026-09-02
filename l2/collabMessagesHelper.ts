@@ -18,6 +18,7 @@ import { addThread, listThreads, updateThread } from '/_102025_/l2/collabMessage
 import { environment } from '/_102036_/l2/environmentContract.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { getMessageKey } from '/_102029_/l2/libCommom.js';
 
 /// **collab_i18n_start** 
 const message_pt = {
@@ -685,19 +686,6 @@ export async function changeFavIcon(notification: boolean) {
     const newIcon = canvas.toDataURL("image/png");
 
     link.href = newIcon;
-}
-
-
-function getMessageKey(messages: any): string {
-    const keys = Object.keys(messages);
-    if (!keys || keys.length < 1) throw new Error('Error Message not valid for international');
-    const firstKey = keys[0];
-    const lang = (document.documentElement.lang || '').toLowerCase();
-    if (!lang) return firstKey;
-    if (messages.hasOwnProperty(lang)) return lang;
-    const similarLang = keys.find((key: string) => lang.substring(0, 2) === key);
-    if (similarLang) return similarLang;
-    return firstKey;
 }
 
 
