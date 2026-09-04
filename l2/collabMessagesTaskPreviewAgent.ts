@@ -7,6 +7,7 @@ import { customElement, property, state, query } from 'lit/decorators.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 import { loadAgent, restartStep } from '/_102027_/l2/aiAgentOrchestration.js';
 import { getAllSteps } from '/_102027_/l2/aiAgentHelper.js';
+import { requestMonacoLoad } from '/_102025_/l2/requestMonacoLoad.js';
 
 @customElement('collab-messages-task-preview-agent-102025')
 export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
@@ -18,6 +19,7 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
     
     @state() private prompts: mls.msg.IAMessageInputType[] = [];
     @state() private mode: string = 'info';
+    @state() private monacoLoadError: string | null = null;
 
     @query('#elEditor') elEditor: IHTMLEditorElement | undefined;
 
@@ -259,6 +261,13 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
             </div>
         `;
         }
+        if (this.monacoLoadError) {
+            return html`
+            <div class="containerinputs">
+                <h3>${this.monacoLoadError}</h3>
+            </div>
+        `;
+        }
         requestAnimationFrame(() => this.updateEditorContent());
         return html`<div id="elEditor" style="width:100%; height:100%"></div>`;
     }
@@ -395,19 +404,20 @@ export class CollabMessagesTaskPreviewAgent extends CollabLitElement {
 
     /**
      * Monaco is no longer guaranteed to be loaded outside the Studio dev environment
-     * (Ctrl+Alt+S) — this preview (the Payload tab) is a normal end-user feature, so it loads
-     * Monaco itself on demand instead of assuming some other part of the boot chain already did.
+     * (Ctrl+Alt+S) — this preview (the Payload tab) is a normal end-user feature, so it asks
+     * the host via LoadMonaco instead of importing the shell that hosts it.
      */
     private async loadMonacoThenMount(): Promise<void> {
         const mls = (window as any).mls;
         if (!mls) return;
         try {
-            const { initStudio } = await import('/_102033_/l2/cbe/initStudio.js');
-            await initStudio(mls);
+            await requestMonacoLoad(mls);
         } catch (e) {
             console.warn('collabMessagesTaskPreviewAgent: monaco could not be loaded', e);
+            this.monacoLoadError = 'Monaco could not be loaded.';
             return;
         }
+        this.monacoLoadError = null;
         this.mountEditor();
     }
 

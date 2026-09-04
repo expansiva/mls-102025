@@ -3,6 +3,7 @@
 import { html } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
+import { requestMonacoLoad } from '/_102025_/l2/requestMonacoLoad.js';
 
 type TabMode = 'flexible' | 'info' | 'result';
 
@@ -10,6 +11,7 @@ type TabMode = 'flexible' | 'info' | 'result';
 export class CollabMessagesTaskPreviewFlexible extends CollabLitElement {
 
     @state() private mode: TabMode = 'flexible';
+    @state() private monacoLoadError: string | null = null;
     @property({ type: Object }) message: mls.msg.Message | null = null;
     @property({ type: Object }) task: mls.msg.TaskData | null = null;
     @property({ type: Object }) step: mls.msg.AIFlexibleResultStep | null = null;
@@ -84,19 +86,20 @@ export class CollabMessagesTaskPreviewFlexible extends CollabLitElement {
 
     /**
      * Monaco is no longer guaranteed to be loaded outside the Studio dev environment
-     * (Ctrl+Alt+S) — this preview is a normal end-user feature, so it loads Monaco itself on
-     * demand instead of assuming some other part of the boot chain already did.
+     * (Ctrl+Alt+S) — this preview is a normal end-user feature, so it asks the host via
+     * LoadMonaco instead of importing the shell that hosts it.
      */
     private async loadMonacoThenMount(): Promise<void> {
         const mls = (window as any).mls;
         if (!mls) return;
         try {
-            const { initStudio } = await import('/_102033_/l2/cbe/initStudio.js');
-            await initStudio(mls);
+            await requestMonacoLoad(mls);
         } catch (e) {
             console.warn('collabMessagesTaskPreviewFlexible: monaco could not be loaded', e);
+            this.monacoLoadError = 'Monaco could not be loaded.';
             return;
         }
+        this.monacoLoadError = null;
         this.mountEditor();
     }
 
@@ -221,6 +224,12 @@ export class CollabMessagesTaskPreviewFlexible extends CollabLitElement {
                         </figcaption>
                     </figure>
                 </div>
+            `;
+        }
+
+        if (this.monacoLoadError) {
+            return html`
+                <div class="containerinputs"><h3>${this.monacoLoadError}</h3></div>
             `;
         }
 
