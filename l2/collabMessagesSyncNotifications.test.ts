@@ -1,0 +1,332 @@
+/// <mls fileReference="_102025_/l2/collabMessagesSyncNotifications.test.ts" enhancement="_blank" />
+
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { setEnvironment } from '/_102036_/l2/environmentContract.js';
+import {
+    loadLastAlertTime,
+    loadNotificationPreferences,
+    saveLastAlertTime,
+    saveNotificationPreferences,
+} from '/_102025_/l2/collabMessagesHelper.js';
+import {
+    acceptNotificationOffer,
+    dismissNotificationOffer,
+    getNotificationOffer,
+    initNotifications,
+    resetNotificationSession,
+} from '/_102025_/l2/collabMessagesSyncNotifications.js';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const LS_KEY = 'serviceCollabMessages';
+
+type MlsHolder = { mls?: { events?: unknown; stor?: unknown } };
+
+function installMemoryStorage(): Map<string, string> {
+    const store = new Map<string, string>();
+    (globalThis as { localStorage?: Storage }).localStorage = {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => { store.set(key, value); },
+        removeItem: (key: string) => { store.delete(key); },
+        clear: () => store.clear(),
+        key: (index: number) => [...store.keys()][index] ?? null,
+        get length() { return store.size; },
+    } as Storage;
+    return store;
+}
+
+function withPermission(permission: NotificationPermission, fn: () => Promise<void>): Promise<void> {
+    const holder = globalThis as { Notification?: { permission: NotificationPermission } };
+    const previous = holder.Notification;
+    holder.Notification = { permission };
+    return fn().finally(() => {
+        if (previous === undefined) delete holder.Notification;
+        else holder.Notification = previous;
+    });
+}
+
+function withPushCapability(fn: () => Promise<void>): Promise<void> {
+    const holder = globalThis as MlsHolder;
+    const previous = holder.mls;
+    holder.mls = {
+        ...(previous ?? {}),
+        events: { getPushSubscriptionForBackend: async () => null },
+    };
+    return fn().finally(() => {
+        if (previous === undefined) delete holder.mls;
+        else holder.mls = previous;
+    });
+}
+
+function withoutPushCapability(fn: () => Promise<void>): Promise<void> {
+    const holder = globalThis as MlsHolder;
+    const previous = holder.mls;
+    holder.mls = { ...(previous ?? {}), events: {} };
+    return fn().finally(() => {
+        if (previous === undefined) delete holder.mls;
+        else holder.mls = previous;
+    });
+}
+
+function installServiceWorkerSpy(): { messages: number; restore: () => void } {
+    const holder = globalThis as { navigator?: Navigator };
+    const previous = holder.navigator;
+    let messages = 0;
+    Object.defineProperty(globalThis, 'navigator', {
+        configurable: true,
+        writable: true,
+        value: {
+            ...(previous as object | undefined),
+            serviceWorker: {
+                addEventListener: (type: string) => {
+                    if (type === 'message') messages += 1;
+                },
+            },
+        },
+    });
+    return {
+        get messages() { return messages; },
+        restore() {
+            if (previous === undefined) {
+                delete (globalThis as { navigator?: Navigator }).navigator;
+            } else {
+                Object.defineProperty(globalThis, 'navigator', {
+                    configurable: true,
+                    writable: true,
+                    value: previous,
+                });
+            }
+        },
+    };
+}
+
+function countingNotifications() {
+    let registerCalls = 0;
+    let missed = 0;
+    setEnvironment({
+        notifications: {
+            getPushSubscriptionForBackend: async () => {
+                registerCalls += 1;
+                return null;
+            },
+            getNotifySoundUrl: async () => null,
+            sendRequestMissed: async () => { missed += 1; },
+            sendACK: async () => undefined,
+        },
+    });
+    return {
+        get registerCalls() { return registerCalls; },
+        get missed() { return missed; },
+    };
+}
+
+function setup(): { counts: ReturnType<typeof countingNotifications>; sw: ReturnType<typeof installServiceWorkerSpy> } {
+    resetNotificationSession();
+    installMemoryStorage();
+    if (!(globalThis as { window?: unknown }).window) {
+        (globalThis as { window?: unknown }).window = globalThis;
+    }
+    const counts = countingNotifications();
+    const sw = installServiceWorkerSpy();
+    return { counts, sw };
+}
+
+test('T1: two initNotifications in one session plus Enable call registerToken once', async () => {
+    const { counts, sw } = setup();
+    try {
+        await withPushCapability(async () => {
+            await withPermission('default', async () => {
+                await initNotifications();
+                await initNotifications();
+                assert.equal(counts.registerCalls, 0);
+                assert.equal(getNotificationOffer(), 'offer');
+                await acceptNotificationOffer();
+                assert.equal(counts.registerCalls, 1);
+                await acceptNotificationOffer();
+                assert.equal(counts.registerCalls, 1);
+            });
+        });
+    } finally {
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('T2: permission granted listens and does not register or show the offer', async () => {
+    const { counts, sw } = setup();
+    try {
+        await withPushCapability(async () => {
+            await withPermission('granted', async () => {
+                await initNotifications();
+                await initNotifications();
+                assert.equal(counts.registerCalls, 0);
+                assert.equal(getNotificationOffer(), 'none');
+                assert.equal(sw.messages, 1);
+                assert.equal(counts.missed, 1);
+            });
+        });
+    } finally {
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('T2b: permission default shows the offer and does not register until Enable', async () => {
+    const { counts, sw } = setup();
+    try {
+        await withPushCapability(async () => {
+            await withPermission('default', async () => {
+                await initNotifications();
+                assert.equal(getNotificationOffer(), 'offer');
+                assert.equal(counts.registerCalls, 0);
+                assert.equal(sw.messages, 0);
+                await acceptNotificationOffer();
+                assert.equal(counts.registerCalls, 1);
+                assert.equal(getNotificationOffer(), 'none');
+            });
+        });
+    } finally {
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('T2c: closing the offer does not persist denied; offer returns after the weekly window', async () => {
+    const { counts, sw } = setup();
+    try {
+        await withPushCapability(async () => {
+            await withPermission('default', async () => {
+                await initNotifications();
+                assert.equal(getNotificationOffer(), 'offer');
+                dismissNotificationOffer();
+                assert.equal(getNotificationOffer(), 'none');
+                assert.equal(loadNotificationPreferences(), null);
+                assert.equal(typeof loadLastAlertTime(), 'number');
+                assert.equal(counts.registerCalls, 0);
+
+                resetNotificationSession();
+                await initNotifications();
+                assert.equal(getNotificationOffer(), 'none', 'same week must not re-offer');
+
+                saveLastAlertTime(Date.now() - 8 * 24 * 60 * 60 * 1000);
+                resetNotificationSession();
+                await initNotifications();
+                assert.equal(getNotificationOffer(), 'offer');
+            });
+        });
+    } finally {
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('stale local denied with permission still default is offered again', async () => {
+    const { counts, sw } = setup();
+    try {
+        saveNotificationPreferences('denied');
+        await withPushCapability(async () => {
+            await withPermission('default', async () => {
+                await initNotifications();
+                assert.equal(getNotificationOffer(), 'offer');
+                assert.equal(counts.registerCalls, 0);
+            });
+        });
+    } finally {
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('T3: permission denied does not register and does not listen', async () => {
+    const { counts, sw } = setup();
+    try {
+        await withPushCapability(async () => {
+            await withPermission('denied', async () => {
+                await initNotifications();
+                assert.equal(counts.registerCalls, 0);
+                assert.equal(sw.messages, 0);
+                assert.equal(counts.missed, 0);
+                assert.equal(getNotificationOffer(), 'none');
+            });
+        });
+    } finally {
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('T4: missing mls.events does not persist denied and retries', async () => {
+    const { sw } = setup();
+    let polls = 0;
+    const original = globalThis.setTimeout;
+    (globalThis as { setTimeout: typeof setTimeout }).setTimeout = ((handler: TimerHandler) => {
+        polls += 1;
+        if (typeof handler === 'function') handler();
+        return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout;
+    try {
+        await withoutPushCapability(async () => {
+            await withPermission('default', async () => {
+                await initNotifications();
+                assert.equal(loadNotificationPreferences(), null);
+                assert.equal(localStorage.getItem(LS_KEY), null);
+                assert.equal(getNotificationOffer(), 'none');
+                const afterFirst = polls;
+                assert.ok(afterFirst > 0);
+                await initNotifications();
+                assert.ok(polls > afterFirst);
+                assert.equal(loadNotificationPreferences(), null);
+            });
+        });
+    } finally {
+        globalThis.setTimeout = original;
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('T5: Studio no longer owns listenToThreadEvents or registerToken', () => {
+    const studioRoot = join(here, '../../mls-102020');
+    const hits: string[] = [];
+
+    function walk(dir: string) {
+        for (const name of readdirSync(dir)) {
+            if (name === 'node_modules' || name === '.git') continue;
+            const full = join(dir, name);
+            if (statSync(full).isDirectory()) {
+                walk(full);
+                continue;
+            }
+            if (!/\.(ts|js)$/.test(name)) continue;
+            const text = readFileSync(full, 'utf8');
+            if (/listenToThreadEvents|registerToken/.test(text)) hits.push(full);
+        }
+    }
+
+    walk(studioRoot);
+    assert.deepEqual(hits, []);
+});
+
+test('chat no longer offers notification after opening a room', () => {
+    const source = readFileSync(join(here, 'collabMessagesChat.ts'), 'utf8');
+    assert.doesNotMatch(source, /checkForRegisterNotification/);
+    assert.doesNotMatch(source, /alreadyCheckForRegisterToken/);
+    assert.doesNotMatch(source, /registerToken/);
+});
+
+test('initNotifications itself never calls registerToken', () => {
+    const source = readFileSync(join(here, 'collabMessagesSyncNotifications.ts'), 'utf8');
+    const start = source.indexOf('export async function initNotifications');
+    const end = source.indexOf('export async function acceptNotificationOffer');
+    assert.ok(start >= 0 && end > start);
+    const body = source.slice(start, end);
+    assert.doesNotMatch(body, /registerToken\(/);
+    const root = readFileSync(join(here, 'collabMessages.ts'), 'utf8');
+    const userIdx = root.indexOf('this.userPerfil = await this.getUser()');
+    const initIdx = root.indexOf('void initNotifications()');
+    assert.ok(userIdx >= 0 && initIdx > userIdx);
+});

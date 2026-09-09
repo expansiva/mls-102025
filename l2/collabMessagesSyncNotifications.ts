@@ -1,6 +1,19 @@
 /// <mls fileReference="_102025_/l2/collabMessagesSyncNotifications.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { getUserId, loadNotificationDeviceId, loadNotificationPreferencesAudio } from "/_102025_/l2/collabMessagesHelper.js";
+import {
+	getUserId,
+	loadNotificationDeviceId,
+	loadNotificationPreferences,
+	loadNotificationPreferencesAudio,
+	loadLastAlertTime,
+	registerToken,
+	saveLastAlertTime,
+} from "/_102025_/l2/collabMessagesHelper.js";
+import {
+	hasPushSubscriptionCapability,
+	MLS_LIB_RETRIES,
+	MLS_LIB_RETRY_MS,
+} from '/_102025_/l2/notificationsRuntime.js';
 import {
 	getThread,
 	updateThread,
@@ -153,36 +166,135 @@ async function notifyThreadChangeById(threadId: string) {
 	if (thread) notifyThreadChange(thread);
 }
 
-export async function listenToThreadEvents() {
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-	notificationSound = await getNotificationSound();
+export type NotificationOffer = 'none' | 'offer';
 
-	navigator.serviceWorker.addEventListener('message', async (event) => {
+let sessionChecked = false;
+let inFlight: Promise<void> | null = null;
+let acceptedThisSession = false;
+let listeningToThreadEvents = false;
+let notificationOffer: NotificationOffer = 'none';
 
-		if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Received`)
-		if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Data`, event?.data)
-		const id = event.data.id;
-		if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] : sendACK id: ${id}`);
-		await environment.notifications.sendACK(id);
+export function getNotificationOffer(): NotificationOffer {
+	return notificationOffer;
+}
 
-		const reference = event.data?.data?.reference;
-		if (!reference) return;
-		let threadId: string = '';
+export function resetNotificationSession(): void {
+	sessionChecked = false;
+	inFlight = null;
+	acceptedThisSession = false;
+	listeningToThreadEvents = false;
+	notificationOffer = 'none';
+}
 
-		const parts = reference.split(':');
-		const typeNotification = parts.length === 2 ? 'message-update' : 'thread-update';
-		threadId = parts[0];
+async function waitForPushCapability(): Promise<boolean> {
+	if (hasPushSubscriptionCapability()) return true;
+	let left = MLS_LIB_RETRIES;
+	while (left > 0) {
+		left -= 1;
+		await new Promise<void>((resolve) => setTimeout(resolve, MLS_LIB_RETRY_MS));
+		if (hasPushSubscriptionCapability()) return true;
+	}
+	return hasPushSubscriptionCapability();
+}
 
-		await enqueueThreadForSync(reference);
-		if ((window as any).isTraceNotification) {
-			console.info(`[NOTIFICATION] : queued ${typeNotification} ${threadId}`);
+function isWithinWeeklyAlertWindow(): boolean {
+	const lastShown = Number(loadLastAlertTime() || 0);
+	if (!lastShown) return false;
+	return (Date.now() - lastShown) <= ONE_WEEK_MS;
+}
+
+/** Idempotent. Called by the collab-messages root once the user is known (post-login). */
+export async function initNotifications(): Promise<void> {
+	if (sessionChecked) return;
+	if (inFlight) return inFlight;
+	inFlight = initNotificationsOnce();
+	try {
+		await inFlight;
+	} finally {
+		inFlight = null;
+	}
+}
+
+async function initNotificationsOnce(): Promise<void> {
+	const ready = await waitForPushCapability();
+	if (!ready) return;
+
+	sessionChecked = true;
+
+	if (typeof Notification === 'undefined') return;
+
+	const permission = Notification.permission;
+	const pref = loadNotificationPreferences();
+
+	if (permission === 'granted' || pref === 'granted') {
+		try {
+			await listenToThreadEvents();
+		} catch (err: any) {
+			console.error('Error on listen notifications' + err.message);
 		}
+		return;
+	}
+
+	if (permission === 'denied') return;
+
+	if (isWithinWeeklyAlertWindow()) return;
+	notificationOffer = 'offer';
+}
+
+export async function acceptNotificationOffer(): Promise<void> {
+	notificationOffer = 'none';
+	if (acceptedThisSession) return;
+	acceptedThisSession = true;
+	const subscription = await registerToken();
+	if (subscription) {
+		await listenToThreadEvents();
+	}
+}
+
+export function dismissNotificationOffer(): void {
+	notificationOffer = 'none';
+	saveLastAlertTime(Date.now());
+}
+
+export async function listenToThreadEvents() {
+	if (listeningToThreadEvents) return;
+	listeningToThreadEvents = true;
+
+	try {
+		notificationSound = await getNotificationSound();
+
+		navigator.serviceWorker.addEventListener('message', async (event) => {
+
+			if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Received`)
+			if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Data`, event?.data)
+			const id = event.data.id;
+			if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] : sendACK id: ${id}`);
+			await environment.notifications.sendACK(id);
+
+			const reference = event.data?.data?.reference;
+			if (!reference) return;
+			let threadId: string = '';
+
+			const parts = reference.split(':');
+			const typeNotification = parts.length === 2 ? 'message-update' : 'thread-update';
+			threadId = parts[0];
+
+			await enqueueThreadForSync(reference);
+			if ((window as any).isTraceNotification) {
+				console.info(`[NOTIFICATION] : queued ${typeNotification} ${threadId}`);
+			}
 
 
-	});
+		});
 
-	if ((window as any).isTraceNotification) console.info('[NOTIFICATION] : sendRequestMissed');
-	await environment.notifications.sendRequestMissed();
+		if ((window as any).isTraceNotification) console.info('[NOTIFICATION] : sendRequestMissed');
+		await environment.notifications.sendRequestMissed();
+	} catch (err) {
+		listeningToThreadEvents = false;
+		throw err;
+	}
 
 }
 

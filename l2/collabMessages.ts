@@ -27,7 +27,13 @@ import {
     loadLastAlertTime,
     changeFavIcon
 } from "/_102025_/l2/collabMessagesHelper.js";
-import { checkIfNotificationUnread } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import {
+    acceptNotificationOffer,
+    checkIfNotificationUnread,
+    dismissNotificationOffer,
+    getNotificationOffer,
+    initNotifications,
+} from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { msgGetUserUpdate, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
 import { ICollabMessageEvent } from '/_102025_/l2/collabMessagesEvents.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
@@ -49,6 +55,9 @@ const message_pt = {
     connect: 'Conectar',
     alertMsgTitle: 'Ative as notificações',
     alertMsgBody: 'Para não perder mensagens importantes, permita notificações no navegador.',
+    offerMsgTitle: 'Fique por dentro',
+    offerMsgBody: 'Ative as notificações para saber quando chegar uma mensagem nova.',
+    offerEnable: 'Ativar',
     moments: 'Moments',
     apps: 'Apps',
     settings: 'Configurações'
@@ -62,6 +71,9 @@ const message_en = {
     connect: 'Connect',
     alertMsgTitle: 'Enable notifications',
     alertMsgBody: 'To avoid missing important messages, allow notifications in your browser.',
+    offerMsgTitle: 'Stay up to date',
+    offerMsgBody: 'Enable notifications to know when a new message arrives.',
+    offerEnable: 'Enable',
     moments: 'Moments',
     apps: 'Apps',
     settings: 'Settings'
@@ -87,6 +99,7 @@ export class CollabMessages extends CollabLitElement {
     @state() userPerfil: msg.User | undefined;
     @state() userThreads: IThreadData = {}
     @state() showNotificationAlert: boolean = false;
+    @state() notificationAlertKind: 'offer' | 'blocked' = 'blocked';
 
     @state() threadToOpen: string = '';
     @state() taskToOpen: string = '';
@@ -123,6 +136,13 @@ export class CollabMessages extends CollabLitElement {
                 this.userPerfil = await this.getUser();
                 saveUserId(this.userPerfil.userId);
                 await cleanupThreads(this.userPerfil.threads);
+                void initNotifications().then(() => {
+                    if (getNotificationOffer() === 'offer') {
+                        this.notificationAlertKind = 'offer';
+                        this.showNotificationAlert = true;
+                        this.requestUpdate();
+                    }
+                });
             }
 
             await this.getThreadFromLocalDB();
@@ -266,20 +286,31 @@ export class CollabMessages extends CollabLitElement {
 
     renderAlert() {
         if (!this.showNotificationAlert) return html``
+        const isOffer = this.notificationAlertKind === 'offer';
+        const title = isOffer ? this.msg.offerMsgTitle : this.msg.alertMsgTitle;
+        const body = isOffer ? this.msg.offerMsgBody : this.msg.alertMsgBody;
         return html`  
             <div class="alert-notification">
                 ${collab_bell_slash}
                 <div>
-                    <strong>${this.msg.alertMsgTitle}</strong><br>
-                    ${this.msg.alertMsgBody}
-                <div>
-                
-                <button @click=${this.onAlertClose}>${collab_xmark}</button>
+                    <strong>${title}</strong><br>
+                    ${body}
+                    ${isOffer ? html`<button class="alert-enable" @click=${this.onAlertEnable}>${this.msg.offerEnable}</button>` : nothing}
+                </div>
+                <button class="alert-close" @click=${this.onAlertClose}>${collab_xmark}</button>
             </div>
         `
     }
 
+    private async onAlertEnable() {
+        this.showNotificationAlert = false;
+        await acceptNotificationOffer();
+    }
+
     private onAlertClose() {
+        if (this.notificationAlertKind === 'offer') {
+            dismissNotificationOffer();
+        }
         this.showNotificationAlert = false;
     }
 

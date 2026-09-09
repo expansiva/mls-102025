@@ -47,8 +47,6 @@ import {
 
 import {
     getBotsContext,
-    registerToken,
-    loadNotificationPreferences,
     loadNotificationDeviceId,
     generateAgentAvatar,
     getTemporaryContext,
@@ -2043,7 +2041,6 @@ export class CollabMessagesChat extends StateLitElement {
             notifyThreadChange(threadUpdated);
             if (threadByServer.hasMore) await this.loadAllMessages(threadInfo);
             await this.clearUnreadMarkerForActualThread();
-            this.checkForRegisterNotification();
 
             if (threadByServer.threadsPending) {
                 this.updateThreadPendingsInBackground(threadInfo.thread.threadId, threadByServer.threadsPending)
@@ -2158,15 +2155,6 @@ export class CollabMessagesChat extends StateLitElement {
             changeFavIcon(false);
             notifyThreadNotification(false);
         }
-    }
-
-    private alreadyCheckForRegisterToken: boolean = false;
-    private async checkForRegisterNotification() {
-        if (this.alreadyCheckForRegisterToken) return;
-        this.alreadyCheckForRegisterToken = true;
-        const notificationPreference = loadNotificationPreferences();
-        if (notificationPreference === 'denied') return;
-        await registerToken();
     }
 
     private async loadAllMessages(threadInfo: IThreadInfo): Promise<void> {
