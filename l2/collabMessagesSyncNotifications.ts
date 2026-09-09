@@ -28,7 +28,7 @@ import {
 
 import { notifyThreadChange, notifyMessageChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 import { changeFavIcon } from '/_102025_/l2/collabMessagesHelper.js';
-import { msgGetMessage, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
+import { msgGetMessage, msgGetThreadUpdates, post } from '/_102025_/l2/shared/api.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
@@ -186,6 +186,7 @@ export function resetNotificationSession(): void {
 	acceptedThisSession = false;
 	listeningToThreadEvents = false;
 	notificationOffer = 'none';
+	stopPresenceHeartbeat();
 }
 
 async function waitForPushCapability(): Promise<boolean> {
@@ -291,11 +292,72 @@ export async function listenToThreadEvents() {
 
 		if ((window as any).isTraceNotification) console.info('[NOTIFICATION] : sendRequestMissed');
 		await environment.notifications.sendRequestMissed();
+		startPresenceHeartbeat();
 	} catch (err) {
 		listeningToThreadEvents = false;
 		throw err;
 	}
 
+}
+
+const HEARTBEAT_MS = 60_000;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let heartbeatVisibilityBound = false;
+
+function startPresenceHeartbeat(): void {
+	if (typeof document === 'undefined' || typeof document.visibilityState !== 'string') return;
+	if (heartbeatVisibilityBound) return;
+	heartbeatVisibilityBound = true;
+	document.addEventListener('visibilitychange', onHeartbeatVisibility);
+	syncHeartbeatInterval();
+}
+
+function stopPresenceHeartbeat(): void {
+	if (heartbeatTimer !== null) {
+		clearInterval(heartbeatTimer);
+		heartbeatTimer = null;
+	}
+	if (heartbeatVisibilityBound && typeof document !== 'undefined') {
+		document.removeEventListener('visibilitychange', onHeartbeatVisibility);
+		heartbeatVisibilityBound = false;
+	}
+}
+
+function onHeartbeatVisibility(): void {
+	syncHeartbeatInterval();
+}
+
+function syncHeartbeatInterval(): void {
+	const visible = typeof document !== 'undefined' && document.visibilityState === 'visible';
+	if (visible) {
+		if (heartbeatTimer === null) {
+			void beatOnce();
+			heartbeatTimer = setInterval(() => { void beatOnce(); }, HEARTBEAT_MS);
+		}
+	} else if (heartbeatTimer !== null) {
+		clearInterval(heartbeatTimer);
+		heartbeatTimer = null;
+	}
+}
+
+async function beatOnce(): Promise<void> {
+	if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+	const userId = getUserId();
+	const deviceId = loadNotificationDeviceId();
+	if (!userId || !deviceId) return;
+	try {
+		const res = await post<{ statusCode: number; pending?: string[] }>({
+			action: 'heartbeat',
+			userId,
+			deviceId,
+		} as msg.RequestBase);
+		if (!res.pending) return;
+		for (const reference of res.pending) {
+			enqueueThreadForSync(reference);
+		}
+	} catch {
+		// safety net — network failure is silent
+	}
 }
 
 function enqueueThreadForSync(reference: string) {
