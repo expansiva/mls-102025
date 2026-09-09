@@ -11,6 +11,7 @@ import {
     loadLastAlertTime,
     loadNotificationPreferences,
     saveLastAlertTime,
+    saveNotificationDeviceId,
     saveNotificationPreferences,
 } from '/_102025_/l2/collabMessagesHelper.js';
 import {
@@ -18,6 +19,7 @@ import {
     dismissNotificationOffer,
     getNotificationOffer,
     initNotifications,
+    listenToThreadEvents,
     resetNotificationSession,
 } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
@@ -133,6 +135,70 @@ function setup(): { counts: ReturnType<typeof countingNotifications>; sw: Return
     const counts = countingNotifications();
     const sw = installServiceWorkerSpy();
     return { counts, sw };
+}
+
+function withImmediateTimeout(fn: () => Promise<void>): Promise<void> {
+    const original = globalThis.setTimeout;
+    (globalThis as { setTimeout: typeof setTimeout }).setTimeout = ((handler: TimerHandler) => {
+        if (typeof handler === 'function') handler();
+        return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout;
+    return fn().finally(() => {
+        globalThis.setTimeout = original;
+    });
+}
+
+function withVisibleDocument(fn: () => Promise<void>): Promise<void> {
+    const doc = globalThis.document as unknown as {
+        visibilityState?: string;
+        addEventListener?: typeof document.addEventListener;
+        removeEventListener?: typeof document.removeEventListener;
+    };
+    const prevState = doc.visibilityState;
+    const prevAdd = doc.addEventListener;
+    const prevRemove = doc.removeEventListener;
+    doc.visibilityState = 'visible';
+    doc.addEventListener = (() => undefined) as typeof document.addEventListener;
+    doc.removeEventListener = (() => undefined) as typeof document.removeEventListener;
+    return fn().finally(() => {
+        resetNotificationSession();
+        if (prevState === undefined) delete doc.visibilityState;
+        else doc.visibilityState = prevState;
+        if (prevAdd) doc.addEventListener = prevAdd;
+        else delete doc.addEventListener;
+        if (prevRemove) doc.removeEventListener = prevRemove;
+        else delete doc.removeEventListener;
+    });
+}
+
+function countingHeartbeatTimers(): { get count(): number; restore: () => void } {
+    const original = globalThis.setInterval;
+    let count = 0;
+    (globalThis as { setInterval: typeof setInterval }).setInterval = ((handler: TimerHandler, ms?: number) => {
+        if (ms === 60_000) count += 1;
+        return 0 as unknown as ReturnType<typeof setInterval>;
+    }) as typeof setInterval;
+    return {
+        get count() { return count; },
+        restore() { globalThis.setInterval = original; },
+    };
+}
+
+function countingHeartbeatPosts(): { get actions(): unknown[]; restore: () => void } {
+    const original = globalThis.fetch;
+    const actions: unknown[] = [];
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+        const body = init?.body ? JSON.parse(String(init.body)) : null;
+        actions.push(body);
+        return { status: 200, json: async () => ({ statusCode: 200 }) } as Response;
+    }) as typeof fetch;
+    return {
+        get actions() { return actions; },
+        restore() {
+            if (original) globalThis.fetch = original;
+            else delete (globalThis as { fetch?: typeof fetch }).fetch;
+        },
+    };
 }
 
 test('T1: two initNotifications in one session plus Enable call registerToken once', async () => {
@@ -329,4 +395,111 @@ test('initNotifications itself never calls registerToken', () => {
     const userIdx = root.indexOf('this.userPerfil = await this.getUser()');
     const initIdx = root.indexOf('void initNotifications()');
     assert.ok(userIdx >= 0 && initIdx > userIdx);
+});
+
+test('not16 T1: missing push capability still starts the presence heartbeat', async () => {
+    const { sw } = setup();
+    const timers = countingHeartbeatTimers();
+    try {
+        await withImmediateTimeout(async () => {
+            await withoutPushCapability(async () => {
+                await withPermission('default', async () => {
+                    await withVisibleDocument(async () => {
+                        await initNotifications();
+                        assert.equal(timers.count, 1);
+                        assert.equal(getNotificationOffer(), 'none');
+                    });
+                });
+            });
+        });
+    } finally {
+        timers.restore();
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('not16 T2: permission denied still starts the heartbeat and writes no preference', async () => {
+    const { sw } = setup();
+    const timers = countingHeartbeatTimers();
+    try {
+        await withPushCapability(async () => {
+            await withPermission('denied', async () => {
+                await withVisibleDocument(async () => {
+                    await initNotifications();
+                    assert.equal(timers.count, 1);
+                    assert.equal(loadNotificationPreferences(), null);
+                    assert.equal(getNotificationOffer(), 'none');
+                });
+            });
+        });
+    } finally {
+        timers.restore();
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('not16 T3: pending offer starts the heartbeat before Enable', async () => {
+    const { counts, sw } = setup();
+    const timers = countingHeartbeatTimers();
+    try {
+        await withPushCapability(async () => {
+            await withPermission('default', async () => {
+                await withVisibleDocument(async () => {
+                    await initNotifications();
+                    assert.equal(getNotificationOffer(), 'offer');
+                    assert.equal(timers.count, 1);
+                    assert.equal(counts.registerCalls, 0);
+                });
+            });
+        });
+    } finally {
+        timers.restore();
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('not16 T4: granted starts the heartbeat once even if listenToThreadEvents also runs', async () => {
+    const { sw } = setup();
+    const timers = countingHeartbeatTimers();
+    try {
+        await withPushCapability(async () => {
+            await withPermission('granted', async () => {
+                await withVisibleDocument(async () => {
+                    await initNotifications();
+                    await listenToThreadEvents();
+                    assert.equal(timers.count, 1);
+                });
+            });
+        });
+    } finally {
+        timers.restore();
+        sw.restore();
+        setEnvironment({});
+    }
+});
+
+test('not16 T5: beatOnce does not call the heartbeat action without userId', async () => {
+    const { sw } = setup();
+    const timers = countingHeartbeatTimers();
+    const posts = countingHeartbeatPosts();
+    try {
+        saveNotificationDeviceId('device-without-user');
+        await withPushCapability(async () => {
+            await withPermission('granted', async () => {
+                await withVisibleDocument(async () => {
+                    await initNotifications();
+                    assert.equal(timers.count, 1);
+                    assert.equal(posts.actions.filter((body) => (body as { action?: string })?.action === 'heartbeat').length, 0);
+                });
+            });
+        });
+    } finally {
+        posts.restore();
+        timers.restore();
+        sw.restore();
+        setEnvironment({});
+    }
 });

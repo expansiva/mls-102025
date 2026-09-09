@@ -8,6 +8,7 @@ import {
 	loadLastAlertTime,
 	registerToken,
 	saveLastAlertTime,
+	saveNotificationDeviceId,
 } from "/_102025_/l2/collabMessagesHelper.js";
 import {
 	hasPushSubscriptionCapability,
@@ -208,6 +209,9 @@ function isWithinWeeklyAlertWindow(): boolean {
 
 /** Idempotent. Called by the collab-messages root once the user is known (post-login). */
 export async function initNotifications(): Promise<void> {
+	// Presence owner: this function (post-login). Not listenToThreadEvents —
+	// being online is "logged in"; receiving push is "permission granted".
+	startPresenceHeartbeat();
 	if (sessionChecked) return;
 	if (inFlight) return inFlight;
 	inFlight = initNotificationsOnce();
@@ -292,7 +296,6 @@ export async function listenToThreadEvents() {
 
 		if ((window as any).isTraceNotification) console.info('[NOTIFICATION] : sendRequestMissed');
 		await environment.notifications.sendRequestMissed();
-		startPresenceHeartbeat();
 	} catch (err) {
 		listeningToThreadEvents = false;
 		throw err;
@@ -343,8 +346,12 @@ function syncHeartbeatInterval(): void {
 async function beatOnce(): Promise<void> {
 	if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
 	const userId = getUserId();
-	const deviceId = loadNotificationDeviceId();
-	if (!userId || !deviceId) return;
+	if (!userId) return;
+	let deviceId = loadNotificationDeviceId();
+	if (!deviceId) {
+		deviceId = crypto.randomUUID();
+		saveNotificationDeviceId(deviceId);
+	}
 	try {
 		const res = await post<{ statusCode: number; pending?: string[] }>({
 			action: 'heartbeat',
