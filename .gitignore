@@ -10,3 +10,4 @@ package-lock.json
 mls.d.ts
 monaco.d.ts
 pnpm-lock.yaml
+/obj/
