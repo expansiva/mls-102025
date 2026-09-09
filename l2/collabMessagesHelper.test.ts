@@ -7,8 +7,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setEnvironment } from '/_102036_/l2/environmentContract.js';
 import {
+    loadNotificationDeviceId,
     loadNotificationPreferences,
     registerToken,
+    saveNotificationDeviceId,
 } from '/_102025_/l2/collabMessagesHelper.js';
 import { notificationsRuntime } from '/_102025_/l2/notificationsRuntime.js';
 
@@ -35,6 +37,11 @@ test('registerToken sends subscription and stores endpoint as local identity', (
         source,
         /msgUpdateUserDetails\(\{[\s\S]*?\bsubscription\b[\s\S]*?\}\)/,
         'msgUpdateUserDetails must send subscription, not notificationToken',
+    );
+    assert.match(
+        source,
+        /const deviceId = loadNotificationDeviceId\(\) \|\| crypto\.randomUUID\(\)/,
+        'registerToken must reuse the persisted deviceId',
     );
 });
 
@@ -86,6 +93,59 @@ test('registerToken does not persist denied when the capability is absent', asyn
         });
     });
     setEnvironment({});
+});
+
+test('T5: registerToken called twice reuses the persisted deviceId', async () => {
+    installMemoryStorage();
+    const persisted = 'persisted-device-id';
+    saveNotificationDeviceId(persisted);
+
+    let call = 0;
+    const captured: string[] = [];
+    setEnvironment({
+        notifications: {
+            getPushSubscriptionForBackend: async () => {
+                call += 1;
+                return {
+                    endpoint: `https://push.example/e${call}`,
+                    keys: { p256dh: 'p', auth: 'a' },
+                };
+            },
+            getNotifySoundUrl: async () => null,
+            sendRequestMissed: async () => undefined,
+            sendACK: async () => undefined,
+        },
+    });
+
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+        const body = init?.body ? JSON.parse(String(init.body)) : null;
+        if (body?.action === 'getUserUpdate') {
+            return {
+                status: 200,
+                json: async () => ({
+                    statusCode: 200,
+                    user: { userId: 'u1', name: 'U', status: 'active', avatar_url: '' },
+                }),
+            } as Response;
+        }
+        if (body?.action === 'updateUserDetails') {
+            captured.push(body.deviceId);
+            return { status: 200, json: async () => ({ statusCode: 200 }) } as Response;
+        }
+        return { status: 200, json: async () => ({ statusCode: 200 }) } as Response;
+    }) as typeof fetch;
+
+    try {
+        await registerToken();
+        await registerToken();
+        assert.deepEqual(captured, [persisted, persisted]);
+        assert.equal(loadNotificationDeviceId(), persisted);
+    } finally {
+        if (original) globalThis.fetch = original;
+        else delete (globalThis as { fetch?: typeof fetch }).fetch;
+        setEnvironment({});
+    }
 });
 
 test('registerToken persists denied only when Notification.permission is denied', async () => {

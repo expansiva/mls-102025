@@ -111,7 +111,7 @@ export async function registerToken() {
     saveNotificationToken(subscription.endpoint);
 
     try {
-        const deviceId = crypto.randomUUID();
+        const deviceId = loadNotificationDeviceId() || crypto.randomUUID();
         saveNotificationDeviceId(deviceId);
 
         const userResult = await msgGetUserUpdate({ userId: "" });
