@@ -18,3 +18,16 @@ test('collabMessagesHelper has no local getMessageKey and imports it from libCom
     );
     assert.match(source, /\bconst lang = getMessageKey\(messages\)/, 'top-level call must remain');
 });
+
+test('registerToken sends subscription and stores endpoint as local identity', () => {
+    assert.match(source, /environment\.notifications\.getPushSubscriptionForBackend\(\)/);
+    assert.doesNotMatch(source, /getFCMTokenForBackend/);
+    assert.doesNotMatch(source, /notificationToken/);
+    assert.match(source, /saveNotificationToken\(subscription\.endpoint\)/);
+    assert.match(source, /lastToken === subscription\.endpoint/);
+    assert.match(
+        source,
+        /msgUpdateUserDetails\(\{[\s\S]*?\bsubscription\b[\s\S]*?\}\)/,
+        'msgUpdateUserDetails must send subscription, not notificationToken',
+    );
+});

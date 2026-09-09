@@ -80,18 +80,18 @@ const LOCAL_STORAGE_KEY = 'serviceCollabMessages';
 export const AGENTDEFAULT = 'agentPlanner1';
 
 export async function registerToken() {
-    const token = await environment.notifications.getFCMTokenForBackend();
+    const subscription = await environment.notifications.getPushSubscriptionForBackend();
 
 
-    if (token === null) {
+    if (subscription === null) {
         saveNotificationPreferences('denied');
-        return token;
+        return subscription;
     }
 
     const lastToken = loadNotificationToken();
-    if (lastToken === token) return token;
+    if (lastToken === subscription.endpoint) return subscription;
 
-    saveNotificationToken(token);
+    saveNotificationToken(subscription.endpoint);
 
     try {
         const deviceId = crypto.randomUUID();
@@ -110,7 +110,7 @@ export async function registerToken() {
             name: user.name,
             status: user.status,
             deviceId,
-            notificationToken: token
+            subscription
         });
 
         if (!updateResult.success) {
@@ -118,7 +118,7 @@ export async function registerToken() {
         }
 
         saveNotificationPreferences('granted');
-        return token;
+        return subscription;
 
     } catch (err: any) {
         throw new Error('Error on register token: ' + err.message);

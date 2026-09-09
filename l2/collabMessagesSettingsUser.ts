@@ -238,7 +238,7 @@ export class CollabMessagesSettingsUser extends StateLitElement {
                 name: this.userPerfil.name,
                 status: this.userPerfil.status,
                 deviceId: this.userPerfil.notifications?.[0]?.deviceId || '',
-                notificationToken: this.userPerfil.notifications?.[0]?.notificationToken || '',
+                subscription: this.userPerfil.notifications?.[0]?.subscription,
             });
 
             if (!result.success || !result.response?.user) {
