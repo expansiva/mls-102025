@@ -16,6 +16,11 @@ import {
 
 import { addThread, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
+import {
+    isNotificationPermissionDenied,
+    MLS_LIB_RETRIES,
+    MLS_LIB_RETRY_MS,
+} from '/_102025_/l2/notificationsRuntime.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { getMessageKey } from '/_102029_/l2/libCommom.js';
@@ -79,13 +84,25 @@ const LS_KEY_OLD = 'collabChatPreferences';
 const LOCAL_STORAGE_KEY = 'serviceCollabMessages';
 export const AGENTDEFAULT = 'agentPlanner1';
 
+async function waitForDefinedSubscription() {
+    let subscription = await environment.notifications.getPushSubscriptionForBackend();
+    let left = MLS_LIB_RETRIES;
+    while (subscription === undefined && left > 0) {
+        left -= 1;
+        await new Promise<void>((resolve) => setTimeout(resolve, MLS_LIB_RETRY_MS));
+        subscription = await environment.notifications.getPushSubscriptionForBackend();
+    }
+    return subscription;
+}
+
 export async function registerToken() {
-    const subscription = await environment.notifications.getPushSubscriptionForBackend();
+    const subscription = await waitForDefinedSubscription();
 
-
-    if (subscription === null) {
-        saveNotificationPreferences('denied');
-        return subscription;
+    if (subscription == null) {
+        if (isNotificationPermissionDenied()) {
+            saveNotificationPreferences('denied');
+        }
+        return subscription ?? null;
     }
 
     const lastToken = loadNotificationToken();

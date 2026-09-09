@@ -5,6 +5,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { setEnvironment } from '/_102036_/l2/environmentContract.js';
+import {
+    loadNotificationPreferences,
+    registerToken,
+} from '/_102025_/l2/collabMessagesHelper.js';
+import { notificationsRuntime } from '/_102025_/l2/notificationsRuntime.js';
 
 const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'collabMessagesHelper.ts'), 'utf8');
 
@@ -30,4 +36,72 @@ test('registerToken sends subscription and stores endpoint as local identity', (
         /msgUpdateUserDetails\(\{[\s\S]*?\bsubscription\b[\s\S]*?\}\)/,
         'msgUpdateUserDetails must send subscription, not notificationToken',
     );
+});
+
+const LS_KEY = 'serviceCollabMessages';
+
+function installMemoryStorage(): Map<string, string> {
+    const store = new Map<string, string>();
+    (globalThis as { localStorage?: Storage }).localStorage = {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => { store.set(key, value); },
+        removeItem: (key: string) => { store.delete(key); },
+        clear: () => store.clear(),
+        key: (index: number) => [...store.keys()][index] ?? null,
+        get length() { return store.size; },
+    } as Storage;
+    return store;
+}
+
+function withPermission(permission: NotificationPermission, fn: () => Promise<void>): Promise<void> {
+    const holder = globalThis as { Notification?: { permission: NotificationPermission } };
+    const previous = holder.Notification;
+    holder.Notification = { permission };
+    return fn().finally(() => {
+        if (previous === undefined) delete holder.Notification;
+        else holder.Notification = previous;
+    });
+}
+
+function withImmediateTimeout(fn: () => Promise<void>): Promise<void> {
+    const original = globalThis.setTimeout;
+    (globalThis as { setTimeout: typeof setTimeout }).setTimeout = ((handler: TimerHandler) => {
+        if (typeof handler === 'function') handler();
+        return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout;
+    return fn().finally(() => {
+        globalThis.setTimeout = original;
+    });
+}
+
+test('registerToken does not persist denied when the capability is absent', async () => {
+    installMemoryStorage();
+    setEnvironment({ notifications: notificationsRuntime });
+    await withPermission('default', async () => {
+        await withImmediateTimeout(async () => {
+            const result = await registerToken();
+            assert.equal(result, null);
+            assert.equal(loadNotificationPreferences(), null);
+            assert.equal(localStorage.getItem(LS_KEY), null);
+        });
+    });
+    setEnvironment({});
+});
+
+test('registerToken persists denied only when Notification.permission is denied', async () => {
+    installMemoryStorage();
+    setEnvironment({
+        notifications: {
+            getPushSubscriptionForBackend: async () => null,
+            getNotifySoundUrl: async () => null,
+            sendRequestMissed: async () => undefined,
+            sendACK: async () => undefined,
+        },
+    });
+    await withPermission('denied', async () => {
+        const result = await registerToken();
+        assert.equal(result, null);
+        assert.equal(loadNotificationPreferences(), 'denied');
+    });
+    setEnvironment({});
 });
