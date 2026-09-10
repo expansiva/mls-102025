@@ -372,7 +372,7 @@ function loadDefaultPreferences(): IChatPreferences {
 }
 
 function extractAgentName(str: string) {
-    const match = str.match(/^@@([a-zA-Z]+)/);
+    const match = str.match(/^@@([a-zA-Z][a-zA-Z0-9]*)/);
     if (!match) return undefined;
     const name = match[1];
     if (name.toLowerCase().startsWith('agent')) {
