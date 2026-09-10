@@ -192,6 +192,17 @@ export function dispatchThreadOpen(threadId: string, taskId?: string): void {
   scopeWindow.dispatchEvent(event);
 }
 
+/** Existing share-link format from createMessageLink: `#message/{threadId}` or `#message/{threadId}/{messageId}`. */
+export function threadOpenFromHash(hash: string): { threadId: string; messageId?: string } | undefined {
+  const raw = hash.startsWith('#') ? hash.slice(1) : hash;
+  const match = raw.match(/^message\/([^/]+)(?:\/([^/]+))?$/);
+  if (!match || !match[1]) return undefined;
+  const threadId = decodeURIComponent(match[1]);
+  if (!threadId) return undefined;
+  const messageId = match[2] ? decodeURIComponent(match[2]) : undefined;
+  return messageId ? { threadId, messageId } : { threadId };
+}
+
 export function notifyTaskMetaChanged(payload: { taskId: string; taskTitle: string; threadId: string }): void {
   const scopeWindow = window?.top ? window.top : window;
   const event = new CustomEvent('task-meta-changed', {

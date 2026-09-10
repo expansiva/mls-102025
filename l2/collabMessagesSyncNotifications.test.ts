@@ -16,11 +16,14 @@ import {
 } from '/_102025_/l2/collabMessagesHelper.js';
 import {
     acceptNotificationOffer,
+    consumeSystemNotificationShown,
     dismissNotificationOffer,
     getNotificationOffer,
     initNotifications,
     listenToThreadEvents,
+    markSystemNotificationShown,
     resetNotificationSession,
+    shouldPlayPageNotificationSound,
 } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -503,3 +506,28 @@ test('not16 T5: beatOnce does not call the heartbeat action without userId', asy
         setEnvironment({});
     }
 });
+
+test('T6: page does not play sound when the system notification was shown', () => {
+    resetNotificationSession();
+    try {
+        assert.equal(shouldPlayPageNotificationSound({
+            audioEnabled: true,
+            hasSound: true,
+            systemNotificationShown: false,
+        }), true);
+        markSystemNotificationShown('thread-1');
+        assert.equal(shouldPlayPageNotificationSound({
+            audioEnabled: true,
+            hasSound: true,
+            systemNotificationShown: consumeSystemNotificationShown('thread-1'),
+        }), false);
+        assert.equal(consumeSystemNotificationShown('thread-1'), false);
+        const source = readFileSync(join(here, 'collabMessagesSyncNotifications.ts'), 'utf8');
+        assert.match(source, /shouldPlayPageNotificationSound/);
+        assert.match(source, /system-notification-shown/);
+        assert.match(source, /consumeSystemNotificationShown/);
+    } finally {
+        resetNotificationSession();
+    }
+});
+

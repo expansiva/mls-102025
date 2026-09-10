@@ -9,7 +9,15 @@ import {
   shouldEmitLocalStepTitle,
   startLocalStepTitleTick,
   STEP_TITLE_LOCAL_EVENT,
+  threadOpenFromHash,
 } from '/_102025_/l2/collabMessagesEvents.js';
+
+test('threadOpenFromHash reads the existing #message/{threadId}/{messageId} route', () => {
+  assert.deepEqual(threadOpenFromHash('#message/thread-1/msg-9'), { threadId: 'thread-1', messageId: 'msg-9' });
+  assert.deepEqual(threadOpenFromHash('message/thread-1'), { threadId: 'thread-1' });
+  assert.equal(threadOpenFromHash('#other'), undefined);
+  assert.equal(threadOpenFromHash(''), undefined);
+});
 
 test('shouldEmitLocalStepTitle: first title emits, same text is dropped, interval gates a new text', () => {
   assert.equal(shouldEmitLocalStepTitle(undefined, 1000, 'compiling 10 files (0s)'), true);

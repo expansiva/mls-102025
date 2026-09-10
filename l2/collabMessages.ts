@@ -35,7 +35,7 @@ import {
     initNotifications,
 } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { msgGetUserUpdate, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
-import { ICollabMessageEvent } from '/_102025_/l2/collabMessagesEvents.js';
+import { ICollabMessageEvent, threadOpenFromHash } from '/_102025_/l2/collabMessagesEvents.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 import { collab_crm, collab_tasks, collab_connect, collab_moments, collab_apps, collab_gear, collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons.js';
 import '/_102025_/l2/collabMessagesAdd.js';
@@ -107,6 +107,7 @@ export class CollabMessages extends CollabLitElement {
     @state() modeMenu: string = 'default';
 
     private groupSelected: ITabType = 'CRM';
+    private hashOpenConsumed = false;
 
     private menuItems = [
         { id: 'CRM', icon: collab_crm, label: this.msg.crm, type: 'tab' },
@@ -147,6 +148,7 @@ export class CollabMessages extends CollabLitElement {
 
             await this.getThreadFromLocalDB();
             this.updateThreads();
+            void this.tryOpenFromHash();
         }
 
         if (changedProperties.has('dataLocal')) {
@@ -220,6 +222,7 @@ export class CollabMessages extends CollabLitElement {
         if (this.groupSelected !== 'CONNECT') {
             this.checkNotificationPending();
         }
+        void this.tryOpenFromHash();
     }
 
     private async onThreadOpen(e: Event) {
@@ -514,6 +517,7 @@ export class CollabMessages extends CollabLitElement {
         };
 
         this.requestUpdate();
+        void this.tryOpenFromHash();
     }
 
     private async checkNotificationPending() {
@@ -523,6 +527,20 @@ export class CollabMessages extends CollabLitElement {
         } else {
             changeFavIcon(false);
         }
+    }
+
+    private async tryOpenFromHash(): Promise<void> {
+        if (this.hashOpenConsumed) return;
+        const parsed = threadOpenFromHash(globalThis.location?.hash ?? '');
+        if (!parsed) {
+            this.hashOpenConsumed = true;
+            return;
+        }
+        const thread = await getThread(parsed.threadId);
+        if (!thread) return;
+        this.hashOpenConsumed = true;
+        this.threadToOpen = thread.threadId;
+        if (thread.group && thread.group !== this.activeTab) this.activeTab = thread.group as ITabType;
     }
 
     private onTabChange(e: CustomEvent) {

@@ -27,7 +27,7 @@ import {
 	updateLastMessageReadTime
 } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
-import { notifyThreadChange, notifyMessageChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
+import { dispatchThreadOpen, notifyThreadChange, notifyMessageChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 import { changeFavIcon } from '/_102025_/l2/collabMessagesHelper.js';
 import { msgGetMessage, msgGetThreadUpdates, post } from '/_102025_/l2/shared/api.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -39,6 +39,8 @@ let hasNotificationMessages: boolean = false;
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 let notificationSound: HTMLAudioElement | null = null;
 const pendingNotificationThreads = new Set<string>();
+/** Counts of OS notifications the SW already showed, keyed by threadId. One aviso per message. */
+const systemNotificationShownByThread = new Map<string, number>();
 const pendingTaskRoomNotifications = new Set<string>();
 const pendingTaskRoomParentThreads = new Map<string, string>();
 
@@ -187,7 +189,30 @@ export function resetNotificationSession(): void {
 	acceptedThisSession = false;
 	listeningToThreadEvents = false;
 	notificationOffer = 'none';
+	systemNotificationShownByThread.clear();
 	stopPresenceHeartbeat();
+}
+
+export function markSystemNotificationShown(threadId: string): void {
+	if (!threadId) return;
+	systemNotificationShownByThread.set(threadId, (systemNotificationShownByThread.get(threadId) ?? 0) + 1);
+}
+
+export function consumeSystemNotificationShown(threadId: string): boolean {
+	const n = systemNotificationShownByThread.get(threadId) ?? 0;
+	if (n <= 0) return false;
+	if (n === 1) systemNotificationShownByThread.delete(threadId);
+	else systemNotificationShownByThread.set(threadId, n - 1);
+	return true;
+}
+
+/** One aviso per message: if the SW showed the OS notification, the page does not play too. */
+export function shouldPlayPageNotificationSound(opts: {
+	audioEnabled: boolean;
+	hasSound: boolean;
+	systemNotificationShown: boolean;
+}): boolean {
+	return opts.audioEnabled && opts.hasSound && !opts.systemNotificationShown;
 }
 
 async function waitForPushCapability(): Promise<boolean> {
@@ -274,9 +299,18 @@ export async function listenToThreadEvents() {
 
 			if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Received`)
 			if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Data`, event?.data)
-			const id = event.data.id;
-			if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] : sendACK id: ${id}`);
-			await environment.notifications.sendACK(id);
+
+			if (event.data?.type === 'system-notification-shown') {
+				const threadId = event.data.data?.threadId || String(event.data.data?.reference || '').split(':')[0];
+				if (threadId) markSystemNotificationShown(threadId);
+				return;
+			}
+
+			const id = event.data?.id;
+			if (id) {
+				if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] : sendACK id: ${id}`);
+				await environment.notifications.sendACK(id);
+			}
 
 			const reference = event.data?.data?.reference;
 			if (!reference) return;
@@ -287,6 +321,9 @@ export async function listenToThreadEvents() {
 			threadId = parts[0];
 
 			await enqueueThreadForSync(reference);
+			if (event.data?.data?.open && threadId) {
+				dispatchThreadOpen(threadId);
+			}
 			if ((window as any).isTraceNotification) {
 				console.info(`[NOTIFICATION] : queued ${typeNotification} ${threadId}`);
 			}
@@ -701,7 +738,12 @@ async function showThreadNotificationIfNeeded(target: NotificationTarget) {
 	notifyThreadNotification(true);
 
 	const audioEnabled = loadNotificationPreferencesAudio();
-	if (audioEnabled && notificationSound) {
+	const skipSound = consumeSystemNotificationShown(threadId);
+	if (shouldPlayPageNotificationSound({
+		audioEnabled,
+		hasSound: !!notificationSound,
+		systemNotificationShown: skipSound,
+	}) && notificationSound) {
 		notificationSound.currentTime = 0;
 		notificationSound.play().catch(err => console.warn('Erro on play notification audio:', err));
 	}
