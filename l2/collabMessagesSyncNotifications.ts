@@ -34,6 +34,48 @@ import { environment } from '/_102036_/l2/environmentContract.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 
+const TRACE_LS_KEY = 'collabTraceNotification';
+
+export function isNotificationTraceEnabled(): boolean {
+	try {
+		if (typeof window !== 'undefined' && (window as any).isTraceNotification) return true;
+		return typeof localStorage !== 'undefined' && localStorage.getItem(TRACE_LS_KEY) === 'true';
+	} catch {
+		return false;
+	}
+}
+
+export function traceNotification(event: string, fields?: { reference?: string; [key: string]: unknown }): void {
+	if (!isNotificationTraceEnabled()) return;
+	if (fields?.reference !== undefined) console.info(`[NOTIFICATION] ${event}`, fields.reference, fields);
+	else console.info(`[NOTIFICATION] ${event}`, fields ?? '');
+}
+
+function tellServiceWorkerNotificationTrace(enabled: boolean): void {
+	const payload = { type: 'collab-trace-notification', enabled };
+	const sw = (globalThis as { navigator?: Navigator }).navigator?.serviceWorker as ServiceWorkerContainer | undefined;
+	if (!sw) return;
+	try {
+		sw.controller?.postMessage(payload);
+	} catch {
+		// no controller yet
+	}
+	void sw.ready?.then((reg) => { reg.active?.postMessage(payload); }).catch(() => undefined);
+}
+
+/** Boot: localStorage.collabTraceNotification === 'true' liga o trace sem rebuild. */
+export function applyNotificationTraceFromStorage(): boolean {
+	try {
+		if (typeof localStorage !== 'undefined' && localStorage.getItem(TRACE_LS_KEY) === 'true') {
+			(window as any).isTraceNotification = true;
+			tellServiceWorkerNotificationTrace(true);
+		}
+	} catch {
+		// private mode / missing storage
+	}
+	return isNotificationTraceEnabled();
+}
+
 export const threadSyncMap = new Map<string, boolean>();
 let hasNotificationMessages: boolean = false;
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -191,6 +233,7 @@ export function resetNotificationSession(): void {
 	notificationOffer = 'none';
 	systemNotificationShownByThread.clear();
 	stopPresenceHeartbeat();
+	if (typeof window !== 'undefined') delete (window as any).isTraceNotification;
 }
 
 export function markSystemNotificationShown(threadId: string): void {
@@ -234,6 +277,7 @@ function isWithinWeeklyAlertWindow(): boolean {
 
 /** Idempotent. Called by the collab-messages root once the user is known (post-login). */
 export async function initNotifications(): Promise<void> {
+	applyNotificationTraceFromStorage();
 	// Presence owner: this function (post-login). Not listenToThreadEvents —
 	// being online is "logged in"; receiving push is "permission granted".
 	startPresenceHeartbeat();
@@ -297,18 +341,19 @@ export async function listenToThreadEvents() {
 
 		navigator.serviceWorker.addEventListener('message', async (event) => {
 
-			if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Received`)
-			if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] Data`, event?.data)
+			const incomingReference = event.data?.data?.reference as string | undefined;
+			traceNotification('push.received', { reference: incomingReference });
 
 			if (event.data?.type === 'system-notification-shown') {
 				const threadId = event.data.data?.threadId || String(event.data.data?.reference || '').split(':')[0];
 				if (threadId) markSystemNotificationShown(threadId);
+				traceNotification('push.shown', { reference: incomingReference, threadId });
 				return;
 			}
 
 			const id = event.data?.id;
 			if (id) {
-				if ((window as any).isTraceNotification) console.info(`[NOTIFICATION] : sendACK id: ${id}`);
+				traceNotification('push.ack', { reference: incomingReference, id });
 				await environment.notifications.sendACK(id);
 			}
 
@@ -405,6 +450,7 @@ async function beatOnce(): Promise<void> {
 }
 
 function enqueueThreadForSync(reference: string) {
+	traceNotification('sync.enqueued', { reference });
 	threadSyncMap.set(reference, true);
 	return scheduleNextSync();
 }
@@ -739,13 +785,23 @@ async function showThreadNotificationIfNeeded(target: NotificationTarget) {
 
 	const audioEnabled = loadNotificationPreferencesAudio();
 	const skipSound = consumeSystemNotificationShown(threadId);
+	const soundReference = target.sourceThreadId;
 	if (shouldPlayPageNotificationSound({
 		audioEnabled,
 		hasSound: !!notificationSound,
 		systemNotificationShown: skipSound,
 	}) && notificationSound) {
 		notificationSound.currentTime = 0;
-		notificationSound.play().catch(err => console.warn('Erro on play notification audio:', err));
+		notificationSound.play()
+			.then(() => { traceNotification('sound.played', { reference: soundReference, threadId }); })
+			.catch(err => {
+				traceNotification('sound.blocked', { reference: soundReference, threadId, reason: 'play-failed' });
+				console.warn('Erro on play notification audio:', err);
+			});
+	} else if (skipSound) {
+		traceNotification('sound.blocked', { reference: soundReference, threadId, reason: 'system-shown' });
+	} else if (!audioEnabled) {
+		traceNotification('sound.blocked', { reference: soundReference, threadId, reason: 'audio-disabled' });
 	}
 }
 

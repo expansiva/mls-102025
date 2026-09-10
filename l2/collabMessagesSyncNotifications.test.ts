@@ -19,6 +19,7 @@ import {
     consumeSystemNotificationShown,
     dismissNotificationOffer,
     getNotificationOffer,
+    applyNotificationTraceFromStorage,
     initNotifications,
     listenToThreadEvents,
     markSystemNotificationShown,
@@ -527,6 +528,27 @@ test('T6: page does not play sound when the system notification was shown', () =
         assert.match(source, /system-notification-shown/);
         assert.match(source, /consumeSystemNotificationShown/);
     } finally {
+        resetNotificationSession();
+    }
+});
+
+test('T7: localStorage.collabTraceNotification = true enables trace without rebuild', async () => {
+    const { sw } = setup();
+    try {
+        await withPushCapability(async () => {
+            await withPermission('denied', async () => {
+                assert.notEqual((window as { isTraceNotification?: boolean }).isTraceNotification, true);
+                localStorage.setItem('collabTraceNotification', 'true');
+                assert.equal(applyNotificationTraceFromStorage(), true);
+                assert.equal((window as { isTraceNotification?: boolean }).isTraceNotification, true);
+                delete (window as { isTraceNotification?: boolean }).isTraceNotification;
+                await initNotifications();
+                assert.equal((window as { isTraceNotification?: boolean }).isTraceNotification, true);
+            });
+        });
+    } finally {
+        sw.restore();
+        setEnvironment({});
         resetNotificationSession();
     }
 });
