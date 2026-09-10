@@ -42,7 +42,7 @@ async function getPushSubscriptionForBackend(): Promise<PushSubscriptionData | n
 }
 
 async function getNotifySoundUrl(): Promise<string | null> {
-    return './l3/_100529_/audio/collabNotification.mp3';
+    return '/_102025_/l3/assets/collabNotification.wav';
 }
 
 async function sendRequestMissed(): Promise<void> {

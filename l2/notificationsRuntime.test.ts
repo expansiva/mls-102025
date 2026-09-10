@@ -37,6 +37,15 @@ test('without mls.events, notificationsRuntime returns unavailable and does not 
     });
 });
 
+test('T6: getNotifySoundUrl returns the absolute l3 assets path, never l2/audio or a relative studio url', async () => {
+    const url = await notificationsRuntime.getNotifySoundUrl();
+    assert.equal(url, '/_102025_/l3/assets/collabNotification.wav');
+    assert.equal(url?.startsWith('/'), true);
+    assert.match(url ?? '', /\/l3\/assets\//);
+    assert.doesNotMatch(url ?? '', /l2\/audio/);
+    assert.doesNotMatch(url ?? '', /(?:^\.\/)|(?:\/l3\/_100529_)/);
+});
+
 test('with mls.events.getPushSubscriptionForBackend, notificationsRuntime forwards the subscription', async () => {
     const subscription = { endpoint: 'https://push.example/ep', keys: { p256dh: 'p', auth: 'a' } };
     const acks: string[] = [];
