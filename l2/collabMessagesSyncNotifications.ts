@@ -80,6 +80,9 @@ export const threadSyncMap = new Map<string, boolean>();
 let hasNotificationMessages: boolean = false;
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 let notificationSound: HTMLAudioElement | null = null;
+let soundLoadAttempted = false;
+const SOUND_UNLOCK_EVENTS = ['click', 'keydown', 'touchstart'] as const;
+let soundUnlockHandler: ((event: Event) => void) | null = null;
 const pendingNotificationThreads = new Set<string>();
 /** Counts of OS notifications the SW already showed, keyed by threadId. One aviso per message. */
 const systemNotificationShownByThread = new Map<string, number>();
@@ -233,7 +236,65 @@ export function resetNotificationSession(): void {
 	notificationOffer = 'none';
 	systemNotificationShownByThread.clear();
 	stopPresenceHeartbeat();
+	unbindSoundUnlock();
+	notificationSound = null;
+	soundLoadAttempted = false;
 	if (typeof window !== 'undefined') delete (window as any).isTraceNotification;
+}
+
+function unbindSoundUnlock(): void {
+	if (!soundUnlockHandler || typeof document === 'undefined' || typeof document.removeEventListener !== 'function') {
+		soundUnlockHandler = null;
+		return;
+	}
+	const opts: AddEventListenerOptions = { capture: true };
+	for (const type of SOUND_UNLOCK_EVENTS) {
+		document.removeEventListener(type, soundUnlockHandler, opts);
+	}
+	soundUnlockHandler = null;
+}
+
+function tryUnlockNotificationSound(): void {
+	const el = notificationSound;
+	if (!el) return;
+	try {
+		el.muted = true;
+		const playing = el.play();
+		el.pause();
+		el.currentTime = 0;
+		el.muted = false;
+		void playing.catch(() => undefined);
+	} catch {
+		// gesture unlock is best-effort
+	}
+}
+
+/** Idempotent. Binds click/keydown/touchstart once so later programmatic play() is allowed. */
+export function unlockNotificationSound(): void {
+	if (soundUnlockHandler) return;
+	if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+	const handler = () => { tryUnlockNotificationSound(); };
+	soundUnlockHandler = handler;
+	const opts: AddEventListenerOptions = { once: true, capture: true };
+	for (const type of SOUND_UNLOCK_EVENTS) {
+		document.addEventListener(type, handler, opts);
+	}
+}
+
+export function setNotificationSoundForTests(el: HTMLAudioElement | null): void {
+	notificationSound = el;
+}
+
+export function startPageNotificationSound(threadId: string, reference: string): void {
+	if (!notificationSound) return;
+	notificationSound.currentTime = 0;
+	notificationSound.play()
+		.then(() => { traceNotification('sound.played', { reference, threadId }); })
+		.catch((err: unknown) => {
+			const name = err instanceof Error ? err.name : undefined;
+			traceNotification('sound.blocked', { reference, threadId, reason: 'play-failed', name });
+			console.warn('Erro on play notification audio:', err);
+		});
 }
 
 export function markSystemNotificationShown(threadId: string): void {
@@ -275,12 +336,24 @@ function isWithinWeeklyAlertWindow(): boolean {
 	return (Date.now() - lastShown) <= ONE_WEEK_MS;
 }
 
+async function ensureNotificationSound(): Promise<void> {
+	if (notificationSound || soundLoadAttempted) return;
+	soundLoadAttempted = true;
+	try {
+		notificationSound = await getNotificationSound();
+	} catch {
+		notificationSound = null;
+	}
+}
+
 /** Idempotent. Called by the collab-messages root once the user is known (post-login). */
 export async function initNotifications(): Promise<void> {
 	applyNotificationTraceFromStorage();
 	// Presence owner: this function (post-login). Not listenToThreadEvents —
 	// being online is "logged in"; receiving push is "permission granted".
 	startPresenceHeartbeat();
+	await ensureNotificationSound();
+	unlockNotificationSound();
 	if (sessionChecked) return;
 	if (inFlight) return inFlight;
 	inFlight = initNotificationsOnce();
@@ -337,7 +410,8 @@ export async function listenToThreadEvents() {
 	listeningToThreadEvents = true;
 
 	try {
-		notificationSound = await getNotificationSound();
+		await ensureNotificationSound();
+		unlockNotificationSound();
 
 		navigator.serviceWorker.addEventListener('message', async (event) => {
 
@@ -791,13 +865,7 @@ async function showThreadNotificationIfNeeded(target: NotificationTarget) {
 		hasSound: !!notificationSound,
 		systemNotificationShown: skipSound,
 	}) && notificationSound) {
-		notificationSound.currentTime = 0;
-		notificationSound.play()
-			.then(() => { traceNotification('sound.played', { reference: soundReference, threadId }); })
-			.catch(err => {
-				traceNotification('sound.blocked', { reference: soundReference, threadId, reason: 'play-failed' });
-				console.warn('Erro on play notification audio:', err);
-			});
+		startPageNotificationSound(threadId, soundReference);
 	} else if (skipSound) {
 		traceNotification('sound.blocked', { reference: soundReference, threadId, reason: 'system-shown' });
 	} else if (!audioEnabled) {

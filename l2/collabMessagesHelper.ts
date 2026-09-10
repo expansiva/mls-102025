@@ -657,53 +657,85 @@ export function generateAgentAvatar(name: string): string {
     return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="${bgColor}"/><text x="40" y="40" font-family="Arial" font-size="28" fill="white" text-anchor="middle" dy=".35em">${initials}</text></svg>`)}`;
 }
 
+function isCrossOriginIconSrc(src: string): boolean {
+    if (!src || src.startsWith('data:') || src.startsWith('/')) return false;
+    try {
+        const origin = typeof location !== 'undefined' ? location.origin : '';
+        if (!origin) return false;
+        return new URL(src, origin).origin !== origin;
+    } catch {
+        return false;
+    }
+}
+
+function traceBadge(event: string, fields?: Record<string, unknown>): void {
+    try {
+        const enabled = (typeof window !== 'undefined' && (window as { isTraceNotification?: boolean }).isTraceNotification)
+            || (typeof localStorage !== 'undefined' && localStorage.getItem('collabTraceNotification') === 'true');
+        if (!enabled) return;
+        console.info(`[NOTIFICATION] ${event}`, fields ?? '');
+    } catch {
+        // private mode / missing storage
+    }
+}
+
 export async function changeFavIcon(notification: boolean) {
+    try {
+        const link: HTMLLinkElement | null = document.querySelector("[rel~='icon']");
+        if (!link) {
+            traceBadge('badge.skipped', { reason: 'no-icon-link' });
+            return;
+        }
 
-    const link: HTMLLinkElement | null = document.querySelector("[rel~='icon']");
-    if (!link) return;
+        if (!notification) {
+            link.href = link.dataset.original || link.href;
+            return;
+        }
 
-    if (!notification) {
-        link.href = link.dataset.original || link.href;
-        return;
+        if (!link.dataset.original) {
+            link.dataset.original = link.href;
+        }
+
+        const img = new Image();
+        const src = link.dataset.original;
+        if (isCrossOriginIconSrc(src)) img.crossOrigin = 'anonymous';
+
+        await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('favicon-load-failed'));
+            img.src = src;
+        });
+
+        const size = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.drawImage(img, 0, 0, size, size);
+        const radius = size * 0.2;
+
+        ctx.beginPath();
+        ctx.arc(size - radius, radius, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#FF0000';
+        ctx.fill();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#FFF';
+        ctx.stroke();
+
+        try {
+            link.href = canvas.toDataURL('image/png');
+        } catch (err) {
+            const name = err instanceof Error ? err.name : undefined;
+            traceBadge('badge.blocked', { reason: 'canvas-tainted', name });
+        }
+    } catch (err) {
+        const name = err instanceof Error ? err.name : undefined;
+        traceBadge('badge.blocked', { name });
     }
-
-    if (!link.dataset.original) {
-        link.dataset.original = link.href;
-    }
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-
-    img.src = link.dataset.original;
-
-    await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-    });
-
-    const size = 64;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.drawImage(img, 0, 0, size, size);
-    const radius = size * 0.2;
-
-    ctx.beginPath();
-    ctx.arc(size - radius, radius, radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#FF0000";
-    ctx.fill();
-
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#FFF";
-    ctx.stroke();
-
-    const newIcon = canvas.toDataURL("image/png");
-
-    link.href = newIcon;
 }
 
 

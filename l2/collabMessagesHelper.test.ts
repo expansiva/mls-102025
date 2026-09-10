@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { setEnvironment } from '/_102036_/l2/environmentContract.js';
 import {
     addMessage,
+    changeFavIcon,
     loadNotificationDeviceId,
     loadNotificationPreferences,
     registerToken,
@@ -202,6 +203,91 @@ test('T5: addMessage body carries senderDeviceId equal to loadNotificationDevice
     } finally {
         if (original) globalThis.fetch = original;
         else delete (globalThis as { fetch?: typeof fetch }).fetch;
+    }
+});
+
+test('not25 T4: changeFavIcon without icon link traces badge.skipped and returns', async () => {
+    installMemoryStorage();
+    if (!(globalThis as { window?: unknown }).window) {
+        (globalThis as { window?: unknown }).window = globalThis;
+    }
+    (window as { isTraceNotification?: boolean }).isTraceNotification = true;
+    const doc = globalThis.document as unknown as { querySelector?: typeof document.querySelector };
+    const prevQuery = doc.querySelector;
+    doc.querySelector = (() => null) as typeof document.querySelector;
+    const logs: unknown[][] = [];
+    const origInfo = console.info;
+    console.info = ((...args: unknown[]) => { logs.push(args); }) as typeof console.info;
+    try {
+        await changeFavIcon(true);
+        const skipped = logs.find((row) => String(row[0]).includes('badge.skipped'));
+        assert.ok(skipped, `expected badge.skipped in ${JSON.stringify(logs)}`);
+        assert.equal((skipped[1] as { reason?: string }).reason, 'no-icon-link');
+    } finally {
+        console.info = origInfo;
+        delete (window as { isTraceNotification?: boolean }).isTraceNotification;
+        if (prevQuery) doc.querySelector = prevQuery;
+        else delete doc.querySelector;
+    }
+});
+
+test('not25 T5: changeFavIcon(true) writes data:image/png and false restores original', async () => {
+    const originalHref = '/assets/favicon.png';
+    const link = {
+        href: originalHref,
+        dataset: {} as Record<string, string>,
+    };
+    const doc = globalThis.document as unknown as {
+        querySelector?: typeof document.querySelector;
+        createElement?: typeof document.createElement;
+    };
+    const prevQuery = doc.querySelector;
+    const prevCreate = doc.createElement;
+    doc.querySelector = ((selector: string) => {
+        if (selector.includes('icon')) return link as unknown as HTMLLinkElement;
+        return null;
+    }) as typeof document.querySelector;
+    doc.createElement = ((tag: string) => {
+        if (tag === 'canvas') {
+            return {
+                width: 0,
+                height: 0,
+                getContext: () => ({
+                    drawImage: () => undefined,
+                    beginPath: () => undefined,
+                    arc: () => undefined,
+                    fill: () => undefined,
+                    stroke: () => undefined,
+                    fillStyle: '',
+                    strokeStyle: '',
+                    lineWidth: 0,
+                }),
+                toDataURL: () => 'data:image/png;base64,AAA',
+            } as unknown as HTMLCanvasElement;
+        }
+        return {} as HTMLElement;
+    }) as typeof document.createElement;
+    class FakeImage {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        crossOrigin = '';
+        set src(_value: string) { queueMicrotask(() => this.onload?.()); }
+    }
+    const prevImage = (globalThis as { Image?: typeof Image }).Image;
+    (globalThis as { Image: typeof Image }).Image = FakeImage as unknown as typeof Image;
+    try {
+        await changeFavIcon(true);
+        assert.equal(link.href, 'data:image/png;base64,AAA');
+        assert.equal(link.dataset.original, originalHref);
+        await changeFavIcon(false);
+        assert.equal(link.href, originalHref);
+    } finally {
+        if (prevImage) (globalThis as { Image: typeof Image }).Image = prevImage;
+        else delete (globalThis as { Image?: typeof Image }).Image;
+        if (prevQuery) doc.querySelector = prevQuery;
+        else delete doc.querySelector;
+        if (prevCreate) doc.createElement = prevCreate;
+        else delete doc.createElement;
     }
 });
 

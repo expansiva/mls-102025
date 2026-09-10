@@ -24,7 +24,10 @@ import {
     listenToThreadEvents,
     markSystemNotificationShown,
     resetNotificationSession,
+    setNotificationSoundForTests,
     shouldPlayPageNotificationSound,
+    startPageNotificationSound,
+    unlockNotificationSound,
 } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -528,6 +531,107 @@ test('T6: page does not play sound when the system notification was shown', () =
         assert.match(source, /system-notification-shown/);
         assert.match(source, /consumeSystemNotificationShown/);
     } finally {
+        resetNotificationSession();
+    }
+});
+
+test('not25 T1: unlockNotificationSound twice binds click/keydown/touchstart once', () => {
+    resetNotificationSession();
+    const bound: Array<{ type: string; opts: AddEventListenerOptions | boolean | undefined }> = [];
+    const doc = globalThis.document as unknown as {
+        addEventListener?: typeof document.addEventListener;
+        removeEventListener?: typeof document.removeEventListener;
+    };
+    const prevAdd = doc.addEventListener;
+    const prevRemove = doc.removeEventListener;
+    doc.addEventListener = ((type: string, _handler: EventListenerOrEventListenerObject, opts?: AddEventListenerOptions | boolean) => {
+        bound.push({ type, opts: opts as AddEventListenerOptions });
+    }) as typeof document.addEventListener;
+    doc.removeEventListener = (() => undefined) as typeof document.removeEventListener;
+    try {
+        unlockNotificationSound();
+        unlockNotificationSound();
+        assert.deepEqual(bound.map((row) => row.type), ['click', 'keydown', 'touchstart']);
+        for (const row of bound) {
+            assert.equal((row.opts as AddEventListenerOptions).once, true);
+            assert.equal((row.opts as AddEventListenerOptions).capture, true);
+        }
+    } finally {
+        resetNotificationSession();
+        if (prevAdd) doc.addEventListener = prevAdd;
+        else delete doc.addEventListener;
+        if (prevRemove) doc.removeEventListener = prevRemove;
+        else delete doc.removeEventListener;
+    }
+});
+
+test('not25 T2: after the gesture, play() runs on the sound element', async () => {
+    resetNotificationSession();
+    const calls: string[] = [];
+    const fake = {
+        muted: false,
+        currentTime: 1,
+        play: async () => { calls.push('play'); },
+        pause: () => { calls.push('pause'); },
+    } as unknown as HTMLAudioElement;
+    setNotificationSoundForTests(fake);
+    let gesture: EventListener | undefined;
+    const doc = globalThis.document as unknown as {
+        addEventListener?: typeof document.addEventListener;
+        removeEventListener?: typeof document.removeEventListener;
+    };
+    const prevAdd = doc.addEventListener;
+    const prevRemove = doc.removeEventListener;
+    doc.addEventListener = ((type: string, handler: EventListenerOrEventListenerObject) => {
+        if (type === 'click') gesture = handler as EventListener;
+    }) as typeof document.addEventListener;
+    doc.removeEventListener = (() => undefined) as typeof document.removeEventListener;
+    try {
+        unlockNotificationSound();
+        assert.ok(gesture);
+        gesture!(new Event('click'));
+        assert.ok(calls.includes('play'));
+        assert.ok(calls.includes('pause'));
+        assert.equal(fake.currentTime, 0);
+    } finally {
+        resetNotificationSession();
+        if (prevAdd) doc.addEventListener = prevAdd;
+        else delete doc.addEventListener;
+        if (prevRemove) doc.removeEventListener = prevRemove;
+        else delete doc.removeEventListener;
+    }
+});
+
+test('not25 T3: play() NotAllowedError traces sound.blocked without throwing', async () => {
+    resetNotificationSession();
+    if (!(globalThis as { window?: unknown }).window) {
+        (globalThis as { window?: unknown }).window = globalThis;
+    }
+    (window as { isTraceNotification?: boolean }).isTraceNotification = true;
+    const err = Object.assign(new Error('play() failed because the user didn\'t interact with the document first'), {
+        name: 'NotAllowedError',
+    });
+    const fake = {
+        currentTime: 0,
+        play: async () => { throw err; },
+    } as unknown as HTMLAudioElement;
+    setNotificationSoundForTests(fake);
+    const logs: unknown[][] = [];
+    const origInfo = console.info;
+    const origWarn = console.warn;
+    console.info = ((...args: unknown[]) => { logs.push(args); }) as typeof console.info;
+    console.warn = (() => undefined) as typeof console.warn;
+    try {
+        startPageNotificationSound('thread-1', 'thread-1:msg');
+        await Promise.resolve();
+        await Promise.resolve();
+        const blocked = logs.find((row) => String(row[0]).includes('sound.blocked'));
+        assert.ok(blocked, `expected sound.blocked in ${JSON.stringify(logs)}`);
+        const fields = blocked.find((item) => item && typeof item === 'object' && 'name' in (item as object)) as { name?: string };
+        assert.equal(fields?.name, 'NotAllowedError');
+    } finally {
+        console.info = origInfo;
+        console.warn = origWarn;
         resetNotificationSession();
     }
 });
