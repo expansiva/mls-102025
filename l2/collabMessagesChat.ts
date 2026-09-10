@@ -2377,7 +2377,8 @@ export class CollabMessagesChat extends StateLitElement {
                 threadId: this.actualThread.thread.threadId,
                 userId: this.userId,
                 ...(replyTo ? { replyTo } : {}),
-                ...(contextToBot ? { contextToBot } : {})
+                ...(contextToBot ? { contextToBot } : {}),
+                senderDeviceId: loadNotificationDeviceId() || undefined
             });
 
             if (!result.success || !result.response?.message) {
@@ -2999,7 +3000,8 @@ export class CollabMessagesChat extends StateLitElement {
             const result = await msgAddMessage({
                 userId: this.userId,
                 threadId: targetThread.threadId,
-                content
+                content,
+                senderDeviceId: loadNotificationDeviceId() || undefined
             });
             if (!result.success || !result.response?.message) {
                 throw new Error(result.error || 'Failed to forward message');

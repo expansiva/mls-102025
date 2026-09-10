@@ -2,15 +2,17 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setEnvironment } from '/_102036_/l2/environmentContract.js';
 import {
+    addMessage,
     loadNotificationDeviceId,
     loadNotificationPreferences,
     registerToken,
     saveNotificationDeviceId,
+    saveUserId,
 } from '/_102025_/l2/collabMessagesHelper.js';
 import { notificationsRuntime } from '/_102025_/l2/notificationsRuntime.js';
 
@@ -145,6 +147,61 @@ test('T5: registerToken called twice reuses the persisted deviceId', async () =>
         if (original) globalThis.fetch = original;
         else delete (globalThis as { fetch?: typeof fetch }).fetch;
         setEnvironment({});
+    }
+});
+
+function walkTs(dir: string): string[] {
+    const out: string[] = [];
+    for (const ent of readdirSync(dir, { withFileTypes: true })) {
+        if (ent.name.endsWith('.test.ts')) continue;
+        const p = join(dir, ent.name);
+        if (ent.isDirectory()) out.push(...walkTs(p));
+        else if (ent.name.endsWith('.ts')) out.push(p);
+    }
+    return out;
+}
+
+test('T5: every msgAddMessage in 102025 l2 sends senderDeviceId from loadNotificationDeviceId', () => {
+    const dir = dirname(fileURLToPath(import.meta.url));
+    let calls = 0;
+    for (const file of walkTs(dir)) {
+        const src = readFileSync(file, 'utf8');
+        const matches = src.split('msgAddMessage(').length - 1;
+        if (matches === 0) continue;
+        calls += matches;
+        assert.match(
+            src,
+            /senderDeviceId:\s*loadNotificationDeviceId\(\)/,
+            `${file} calls msgAddMessage without senderDeviceId: loadNotificationDeviceId()`,
+        );
+    }
+    assert.ok(calls >= 4, `expected at least 4 msgAddMessage calls, got ${calls}`);
+});
+
+test('T5: addMessage body carries senderDeviceId equal to loadNotificationDeviceId()', async () => {
+    installMemoryStorage();
+    saveUserId('u1');
+    saveNotificationDeviceId('device-from-ls');
+    let captured: { action?: string; senderDeviceId?: string } | undefined;
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+        captured = JSON.parse(String(init?.body));
+        return {
+            status: 200,
+            json: async () => ({
+                statusCode: 200,
+                message: { threadId: 't1', createAt: '1', content: 'hi', senderId: 'u1' },
+            }),
+        } as Response;
+    }) as typeof fetch;
+    try {
+        await addMessage('t1', 'hello').catch(() => undefined);
+        assert.equal(captured?.action, 'addMessage');
+        assert.equal(captured?.senderDeviceId, loadNotificationDeviceId());
+        assert.equal(captured?.senderDeviceId, 'device-from-ls');
+    } finally {
+        if (original) globalThis.fetch = original;
+        else delete (globalThis as { fetch?: typeof fetch }).fetch;
     }
 });
 

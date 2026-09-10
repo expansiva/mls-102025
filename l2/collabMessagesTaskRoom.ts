@@ -305,7 +305,8 @@ export class CollabMessagesTaskRoom extends StateLitElement {
             userId,
             threadId: this.roomThread.threadId,
             content,
-            replyTo: options.replyTo
+            replyTo: options.replyTo,
+            senderDeviceId: loadNotificationDeviceId() || undefined
         });
 
         if (!result.success || !result.response) {

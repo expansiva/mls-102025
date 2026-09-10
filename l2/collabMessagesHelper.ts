@@ -155,7 +155,8 @@ export async function addMessage(threadId: string, messageContent: string, conte
             content: messageContent,
             threadId,
             userId,
-            contextToBot
+            contextToBot,
+            senderDeviceId: loadNotificationDeviceId() || undefined
         });
 
         if (!result.success || !result.response?.message) {
