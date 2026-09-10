@@ -81,6 +81,7 @@ let hasNotificationMessages: boolean = false;
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 let notificationSound: HTMLAudioElement | null = null;
 let soundLoadAttempted = false;
+let notificationSoundUnlocked = false;
 const SOUND_UNLOCK_EVENTS = ['click', 'keydown', 'touchstart'] as const;
 let soundUnlockHandler: ((event: Event) => void) | null = null;
 const pendingNotificationThreads = new Set<string>();
@@ -239,6 +240,7 @@ export function resetNotificationSession(): void {
 	unbindSoundUnlock();
 	notificationSound = null;
 	soundLoadAttempted = false;
+	notificationSoundUnlocked = false;
 	if (typeof window !== 'undefined') delete (window as any).isTraceNotification;
 }
 
@@ -263,7 +265,7 @@ function tryUnlockNotificationSound(): void {
 		el.pause();
 		el.currentTime = 0;
 		el.muted = false;
-		void playing.catch(() => undefined);
+		void playing.then(() => { notificationSoundUnlocked = true; }).catch(() => undefined);
 	} catch {
 		// gesture unlock is best-effort
 	}
@@ -283,6 +285,99 @@ export function unlockNotificationSound(): void {
 
 export function setNotificationSoundForTests(el: HTMLAudioElement | null): void {
 	notificationSound = el;
+}
+
+export function isTestplayCommand(value: string): boolean {
+	const t = value.trim();
+	return t === '/testplay' || t.startsWith('/testplay ');
+}
+
+export function isNotificationSoundUnlocked(): boolean {
+	return notificationSoundUnlocked;
+}
+
+async function playTestplaySound(): Promise<string> {
+	await ensureNotificationSound();
+	const el = notificationSound;
+	if (!el) return 'sound: blocked (no-sound)';
+	try {
+		el.currentTime = 0;
+	} catch {
+		// some test fakes have no currentTime setter
+	}
+	try {
+		await el.play();
+		traceNotification('sound.played', { reference: 'testplay' });
+		return 'sound: played';
+	} catch (err: unknown) {
+		const name = err instanceof Error ? err.name : 'Error';
+		traceNotification('sound.blocked', { reference: 'testplay', reason: 'play-failed', name });
+		return `sound: blocked (${name})`;
+	}
+}
+
+async function reportTestplayBadge(): Promise<string> {
+	const link = typeof document !== 'undefined' ? document.querySelector("[rel~='icon']") : null;
+	await changeFavIcon(true);
+	return link ? 'badge: on' : 'badge: skipped (no-icon-link)';
+}
+
+async function reportTestplayNotification(): Promise<string> {
+	if (typeof Notification === 'undefined' || Notification.permission === 'default') {
+		return 'notification: permission default';
+	}
+	if (Notification.permission === 'denied') {
+		return 'notification: permission denied';
+	}
+	const sw = (globalThis as { navigator?: Navigator }).navigator?.serviceWorker;
+	if (!sw || typeof sw.ready?.then !== 'function') {
+		return 'notification: no service worker';
+	}
+	try {
+		const reg = await sw.ready;
+		if (!reg || typeof reg.showNotification !== 'function') {
+			return 'notification: no service worker';
+		}
+		await reg.showNotification('collab-messages', { body: '/testplay', tag: 'collab-testplay' });
+		return 'notification: shown';
+	} catch {
+		return 'notification: no service worker';
+	}
+}
+
+async function reportTestplaySoundFile(): Promise<string> {
+	const url = await environment.notifications.getNotifySoundUrl();
+	if (!url) return 'sound-file: (none)';
+	const probe = async (method: string) => {
+		const res = await fetch(url, { method });
+		const contentType = res.headers?.get?.('content-type') || '';
+		return { status: res.status, contentType };
+	};
+	try {
+		const head = await probe('HEAD');
+		return `sound-file: ${url} status ${head.status} content-type ${head.contentType || '(none)'}`;
+	} catch {
+		try {
+			const get = await probe('GET');
+			return `sound-file: ${url} status ${get.status} content-type ${get.contentType || '(none)'}`;
+		} catch (err: unknown) {
+			const name = err instanceof Error ? err.name : 'Error';
+			return `sound-file: ${url} status ${name} content-type (none)`;
+		}
+	}
+}
+
+/** Local diagnostic: sound + badge + OS notification, no network, no addMessage. */
+export async function runNotificationTestplay(): Promise<string> {
+	const lines = [
+		`unlocked: ${notificationSoundUnlocked ? 'true' : 'false'}`,
+		await playTestplaySound(),
+		await reportTestplayBadge(),
+		await reportTestplayNotification(),
+		await reportTestplaySoundFile(),
+		'both: sound and notification (explicit /testplay)',
+	];
+	return lines.join('\n');
 }
 
 export function startPageNotificationSound(threadId: string, reference: string): void {

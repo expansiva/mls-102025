@@ -20,7 +20,7 @@ import {
     collab_xmark
 } from '/_102025_/l2/collabMessagesIcons.js';
 
-import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally, isTestplayCommand, runNotificationTestplay } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 
 import {
@@ -2291,6 +2291,21 @@ export class CollabMessagesChat extends StateLitElement {
             attachments?: File[]
         }
     ) {
+        if (isTestplayCommand(value)) {
+            const report = await runNotificationTestplay();
+            if (this.actualThread) {
+                const message = await this.createTempMessage(
+                    report,
+                    'system',
+                    this.actualThread.thread.threadId,
+                    undefined,
+                );
+                message.isLoading = false;
+                this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+                this.requestUpdate();
+            }
+            return;
+        }
         if (!this.canWriteCurrentThread()) {
             throw new Error(this.msg.readOnlyThread);
         }
