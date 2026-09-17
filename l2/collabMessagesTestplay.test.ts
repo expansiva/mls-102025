@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import { setEnvironment } from '/_102036_/l2/environmentContract.js';
 import {
+    isHelpCommand,
     isTestplayCommand,
     resetNotificationSession,
     runNotificationTestplay,
@@ -71,7 +72,13 @@ function stubFetch(status: number, contentType: string): () => void {
     };
 }
 
-test('T1: /testplay does not call msgAddMessage', () => {
+test('T1: local commands do not call msgAddMessage', () => {
+    assert.equal(isHelpCommand('/help'), true);
+    assert.equal(isHelpCommand('  /help  '), true);
+    assert.equal(isHelpCommand('/help extra'), true);
+    assert.equal(isHelpCommand('hello'), false);
+    assert.equal(isHelpCommand('/helper'), false);
+
     assert.equal(isTestplayCommand('/testplay'), true);
     assert.equal(isTestplayCommand('  /testplay  '), true);
     assert.equal(isTestplayCommand('/testplay extra'), true);
@@ -83,13 +90,18 @@ test('T1: /testplay does not call msgAddMessage', () => {
     const end = src.indexOf('private handlePromptResize');
     assert.ok(start >= 0 && end > start, 'handleSend not found');
     const body = src.slice(start, end);
+    assert.match(body, /isHelpCommand\(/);
+    assert.match(body, /localCommandsHelp/);
     assert.match(body, /isTestplayCommand\(/);
     assert.match(body, /runNotificationTestplay\(/);
     assert.doesNotMatch(body, /msgAddMessage/);
-    const intercept = body.indexOf('isTestplayCommand');
+    const helpIntercept = body.indexOf('isHelpCommand');
+    const testplayIntercept = body.indexOf('isTestplayCommand');
     const send = body.indexOf('this.addMessage');
-    assert.ok(intercept >= 0 && send > intercept, 'testplay must return before addMessage');
-    assert.match(body.slice(intercept, send), /return;/);
+    assert.ok(helpIntercept >= 0 && send > helpIntercept, 'help must return before addMessage');
+    assert.ok(testplayIntercept >= 0 && send > testplayIntercept, 'testplay must return before addMessage');
+    assert.match(body.slice(helpIntercept, testplayIntercept), /return;/);
+    assert.match(body.slice(testplayIntercept, send), /return;/);
 });
 
 test('T2: play() resolving reports sound: played; NotAllowedError reports blocked', async () => {

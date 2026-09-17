@@ -20,7 +20,7 @@ import {
     collab_xmark
 } from '/_102025_/l2/collabMessagesIcons.js';
 
-import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally, isTestplayCommand, runNotificationTestplay } from '/_102025_/l2/collabMessagesSyncNotifications.js';
+import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally, isHelpCommand, isTestplayCommand, runNotificationTestplay } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 
 import {
@@ -139,6 +139,7 @@ const message_pt = {
     forwardSelectDestination: 'Selecione um destino',
     forwardPrefix: 'Mensagem encaminhada',
     taskTitlePrompt: 'Título da task',
+    localCommandsHelp: 'Comandos disponíveis:\n/help — mostra esta ajuda\n/testplay — testa som, badge e notificação do sistema',
 }
 
 const message_en = {
@@ -190,6 +191,7 @@ const message_en = {
     forwardSelectDestination: 'Select a destination',
     forwardPrefix: 'Forwarded message',
     taskTitlePrompt: 'Task title',
+    localCommandsHelp: 'Available commands:\n/help — shows this help\n/testplay — tests sound, badge, and system notification',
 }
 
 type MessageType = typeof message_en;
@@ -2283,6 +2285,19 @@ export class CollabMessagesChat extends StateLitElement {
         this.activeScenerie = 'threadAdd';
     }
 
+    private async showLocalSystemMessage(content: string) {
+        if (!this.actualThread) return;
+        const message = await this.createTempMessage(
+            content,
+            'system',
+            this.actualThread.thread.threadId,
+            undefined,
+        );
+        message.isLoading = false;
+        this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+        this.requestUpdate();
+    }
+
     private async handleSend(value: string,
         opt: {
             isSpecialMention: boolean,
@@ -2291,19 +2306,13 @@ export class CollabMessagesChat extends StateLitElement {
             attachments?: File[]
         }
     ) {
+        if (isHelpCommand(value)) {
+            await this.showLocalSystemMessage(this.msg.localCommandsHelp);
+            return;
+        }
         if (isTestplayCommand(value)) {
             const report = await runNotificationTestplay();
-            if (this.actualThread) {
-                const message = await this.createTempMessage(
-                    report,
-                    'system',
-                    this.actualThread.thread.threadId,
-                    undefined,
-                );
-                message.isLoading = false;
-                this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
-                this.requestUpdate();
-            }
+            await this.showLocalSystemMessage(report);
             return;
         }
         if (!this.canWriteCurrentThread()) {

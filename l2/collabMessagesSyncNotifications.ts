@@ -292,6 +292,11 @@ export function isTestplayCommand(value: string): boolean {
 	return t === '/testplay' || t.startsWith('/testplay ');
 }
 
+export function isHelpCommand(value: string): boolean {
+	const t = value.trim();
+	return t === '/help' || t.startsWith('/help ');
+}
+
 export function isNotificationSoundUnlocked(): boolean {
 	return notificationSoundUnlocked;
 }
