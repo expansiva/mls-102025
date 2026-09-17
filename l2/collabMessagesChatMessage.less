@@ -163,6 +163,11 @@ collab-messages-chat-message-102025 {
                     /* TODO-FINAL-028: failed-task reason styling */
                     &.task-failed {
                         color: var(--cm-danger, #b91c1c);
+                        background: var(--cm-panel-bg, #ffffff);
+                        border: 1px solid color-mix(in srgb, var(--cm-danger, #b91c1c) 32%, transparent);
+                        border-radius: 7px;
+                        padding: .5rem .6rem;
+                        box-sizing: border-box;
                         white-space: pre-wrap;
                         flex-direction: column;
 

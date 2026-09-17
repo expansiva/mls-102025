@@ -230,6 +230,8 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private readonly documentScrollHandler = () => this.closeLocalPopups();
 
     private readonly reactionEmojis: Record<string, string> = {
+        running: '🏃',
+        thinking: '🤔',
         thumbs_up: '👍',
         laugh: '😂',
         heart: '❤️',
