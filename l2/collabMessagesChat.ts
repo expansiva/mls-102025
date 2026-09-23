@@ -81,6 +81,7 @@ import '/_102025_/l2/collabMessagesFilter.js';
 import '/_102025_/l2/collabMessagesAdd.js';
 import '/_102025_/l2/collabMessagesChatMessage.js';
 import '/_102025_/l2/collabMessagesRichPreviewText.js';
+import '/_102025_/l2/collabMessagesE01Memory.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { IMessage, IThreadInfo, AGENTDEFAULT } from '/_102025_/l2/collabMessagesHelper.js';
@@ -140,6 +141,8 @@ const message_pt = {
     forwardPrefix: 'Mensagem encaminhada',
     taskTitlePrompt: 'Título da task',
     localCommandsHelp: 'Comandos disponíveis:\n/help — mostra esta ajuda\n/testplay — testa som, badge e notificação do sistema',
+    personalMemory: 'Minha memória',
+    backToConversation: 'Voltar para a conversa',
 }
 
 const message_en = {
@@ -192,6 +195,8 @@ const message_en = {
     forwardPrefix: 'Forwarded message',
     taskTitlePrompt: 'Task title',
     localCommandsHelp: 'Available commands:\n/help — shows this help\n/testplay — tests sound, badge, and system notification',
+    personalMemory: 'My memory',
+    backToConversation: 'Back to conversation',
 }
 
 type MessageType = typeof message_en;
@@ -228,6 +233,7 @@ export class CollabMessagesChat extends StateLitElement {
     @property() threadToOpen: string | undefined;
     @property() taskToOpen: string | undefined;
     @property() userDeviceId: string | undefined;
+    @property() e01RootSessionKey = '';
     @property() activeScenerie: IScenery = 'list';
     @property() actualThread: IThreadInfo | undefined;
     @property() actualTask: msg.TaskData | undefined;
@@ -251,6 +257,8 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private toolbarNavigationFailedKind?: ToolbarItemKind;
     @state() private toolbarNavigationError: string = '';
     @state() private cachedToolbarMessages: IMessage[] = [];
+    @state() private showPersonalMemory = false;
+    @state() private e01SessionEpoch = 0;
 
     private isSystemChangeScroll: boolean = false;
     private savedScrollTop = 0;
@@ -263,10 +271,15 @@ export class CollabMessagesChat extends StateLitElement {
     private ignoreToolbarScrollClearUntil = 0;
     private isToolbarAutoScroll = false;
     private toolbarAutoScrollTimer?: ReturnType<typeof setTimeout>;
+    private personalMemoryTrigger?: HTMLElement;
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
 
         super.updated(changedProperties);
+
+        if (changedProperties.has('userId') || changedProperties.has('e01RootSessionKey') || changedProperties.has('actualThread')) {
+            this.e01SessionEpoch++;
+        }
 
 
         if (changedProperties.has('activeScenerie') && (this.activeScenerie === 'list')) {
@@ -354,6 +367,9 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private renderHeader() {
+        if (this.showPersonalMemory) {
+            return html`<div class="header"><button class="personal-memory-back" @click=${this.onTitleClick} aria-label=${this.msg.backToConversation}>${collab_chevron_left}<span class="header-title">${this.msg.personalMemory}</span></button></div>`;
+        }
         switch (this.activeScenerie) {
             case 'task':
                 return html`
@@ -366,6 +382,7 @@ export class CollabMessagesChat extends StateLitElement {
                         <span @click=${this.onTitleClick}>${collab_chevron_left} <span class="header-title">Thread: ${this.getThreadName(this.actualThread)}</span></span>
                         ${this.actualThread?.thread.status !== 'deleted' ? html`
                             <div class="header-actions">
+                                ${this.isJohnE01Thread() ? html`<button class="personal-memory-entry" @click=${this.openPersonalMemory} aria-label=${this.msg.personalMemory}>${this.msg.personalMemory}</button>` : nothing}
                                 <span @click=${this.onThreadDetailsClick}>${collab_gear}</span>
                             </div>
                         `: ''}                        
@@ -403,6 +420,9 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private renderContent() {
+        if (this.showPersonalMemory && this.actualThread && this.userId) {
+            return html`<collab-messages-e01-memory-102025 .userId=${this.userId} .threadId=${this.actualThread.thread.threadId} .sessionKey=${this.getE01SessionKey()} @e01-open-source=${this.onE01OpenSource}></collab-messages-e01-memory-102025>`;
+        }
         switch (this.activeScenerie) {
             case 'list':
                 return this.renderListThreads();
@@ -481,6 +501,7 @@ export class CollabMessagesChat extends StateLitElement {
                                     .currentUser=${this.getCurrentUser()}
                                     .toolbarHighlighted=${this.isMessageHighlightedByToolbar(message)}
                                     .userId=${this.userId}
+                                    .e01SessionKey=${this.getE01SessionKey()}
                                     .onTaskClick=${this.onTaskClick.bind(this)}
                                     @reply-preview-click=${this.onReplyPreviewClick}
                                     @reply-message=${this.onReplyMessageClick}
@@ -492,6 +513,7 @@ export class CollabMessagesChat extends StateLitElement {
                                     @mark-unread-message=${this.onMarkUnreadMessageClick}
                                     @forward-message=${this.onForwardMessageClick}
                                     @delete-attachment-message=${this.onDeleteAttachmentMessage}
+                                    @e01-open-source=${this.onE01OpenSource}
                                 ></collab-messages-chat-message-102025>`
             })}`
         })}
@@ -919,7 +941,13 @@ export class CollabMessagesChat extends StateLitElement {
         ].find(user => user.userId === this.userId);
     }
 
-    private async navigateToMessageId(messageId: string, kind: ToolbarItemKind) {
+    private async navigateToMessageId(
+        messageId: string,
+        kind: ToolbarItemKind,
+        isCurrent: () => boolean = () => true,
+        options: { persist?: boolean; forceServer?: boolean } = {},
+    ) {
+        if (!isCurrent()) return;
         const normalizedMessageId = this.normalizeToolbarMessageId(messageId);
         if (!normalizedMessageId) return;
 
@@ -928,28 +956,39 @@ export class CollabMessagesChat extends StateLitElement {
         this.toolbarNavigationError = '';
 
         try {
-            if (this.scrollToMessageId(normalizedMessageId)) return;
+            if (!isCurrent()) return;
+            if (!options.forceServer && this.scrollToMessageId(normalizedMessageId)) return;
 
-            const localMessage = await this.getLocalMessageById(normalizedMessageId);
-            if (localMessage) {
-                await this.renderMessageWindowFromLocalCache(localMessage);
+            if (options.forceServer) {
+                await this.renderMessageWindowFromServer(normalizedMessageId, isCurrent, options.persist !== false);
             } else {
-                await this.renderMessageWindowFromServer(normalizedMessageId);
+                const localMessage = await this.getLocalMessageById(normalizedMessageId);
+                if (!isCurrent()) return;
+                if (localMessage) {
+                    await this.renderMessageWindowFromLocalCache(localMessage, isCurrent);
+                } else {
+                    await this.renderMessageWindowFromServer(normalizedMessageId, isCurrent, options.persist !== false);
+                }
             }
 
             await this.updateComplete;
+            if (!isCurrent()) return;
             await this.waitingForRenderCodesWebComponents();
+            if (!isCurrent()) return;
             await this.nextFrame();
+            if (!isCurrent()) return;
             await this.nextFrame();
+            if (!isCurrent()) return;
 
             if (!this.scrollToMessageId(normalizedMessageId)) {
                 throw new Error(this.msg.toolbarNavigationError);
             }
         } catch (err: any) {
+            if (!isCurrent()) return;
             this.toolbarNavigationFailedKind = kind;
             this.toolbarNavigationError = err?.message || this.msg.toolbarNavigationError;
         } finally {
-            this.toolbarNavigationKind = undefined;
+            if (isCurrent()) this.toolbarNavigationKind = undefined;
         }
     }
 
@@ -973,14 +1012,17 @@ export class CollabMessagesChat extends StateLitElement {
         ) as IMessage | undefined;
     }
 
-    private async renderMessageWindowFromLocalCache(targetMessage: IMessage) {
+    private async renderMessageWindowFromLocalCache(targetMessage: IMessage, isCurrent: () => boolean = () => true) {
         const allMessages = await getAllMessagesByThreadId(targetMessage.threadId);
+        if (!isCurrent()) return;
         const messageWindow = this.buildMessageWindowFromTarget(allMessages, targetMessage);
+        if (!isCurrent()) return;
         this.applyToolbarMessageWindow(messageWindow);
-        await this.refreshCachedToolbarMessages();
+        await this.refreshCachedToolbarMessages(isCurrent);
     }
 
-    private async renderMessageWindowFromServer(messageId: string) {
+    private async renderMessageWindowFromServer(messageId: string, isCurrent: () => boolean = () => true, persist = true) {
+        if (!isCurrent()) return;
         if (!this.userId || !this.actualThread) throw new Error(this.msg.toolbarNavigationError);
 
         const { threadId } = this.parseMessageId(messageId);
@@ -991,6 +1033,7 @@ export class CollabMessagesChat extends StateLitElement {
             messageId,
             userId: this.userId
         });
+        if (!isCurrent()) return;
 
         if (!messageResult.success || !messageResult.response?.message) {
             throw new Error(messageResult.error || this.msg.toolbarNavigationError);
@@ -1001,14 +1044,19 @@ export class CollabMessagesChat extends StateLitElement {
             this.actualThread.thread,
             targetMessage.orderAt || targetMessage.createAt
         );
+        if (!isCurrent()) return;
         const messages = [targetMessage, ...(afterResponse?.data || [])]
             .slice(0, this.messagesLimit)
             .map(message => ({ ...message, footers: [] }));
 
-        await addMessages(messages);
+        if (persist) {
+            if (!isCurrent()) return;
+            await addMessages(messages);
+            if (!isCurrent()) return;
+        }
         this.hasMoreMessagesBefore = true;
         this.applyToolbarMessageWindow(messages);
-        await this.refreshCachedToolbarMessages();
+        await this.refreshCachedToolbarMessages(isCurrent);
     }
 
     private buildMessageWindowFromTarget(
@@ -2004,6 +2052,7 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     private async onThreadClick(threadInfo: IThreadInfo) {
+        this.showPersonalMemory = false;
 
         this.welcomeMessage = '';
         this.activeScenerie = 'loading';
@@ -2136,16 +2185,18 @@ export class CollabMessagesChat extends StateLitElement {
         this.welcomeMessage = thread.welcomeMessage;
     }
 
-    private async refreshCachedToolbarMessages() {
+    private async refreshCachedToolbarMessages(isCurrent: () => boolean = () => true) {
         const threadId = this.actualThread?.thread.threadId;
         if (!threadId) {
-            this.cachedToolbarMessages = [];
+            if (isCurrent()) this.cachedToolbarMessages = [];
             return;
         }
 
         try {
-            this.cachedToolbarMessages = await getAllMessagesByThreadId(threadId) as IMessage[];
+            const messages = await getAllMessagesByThreadId(threadId) as IMessage[];
+            if (isCurrent()) this.cachedToolbarMessages = messages;
         } catch (err) {
+            if (!isCurrent()) return;
             console.warn('Failed to refresh toolbar messages from cache:', err);
             this.cachedToolbarMessages = [];
         }
@@ -2253,6 +2304,10 @@ export class CollabMessagesChat extends StateLitElement {
 
     private async onTitleClick() {
         await this.updateComplete;
+        if (this.showPersonalMemory) {
+            await this.closePersonalMemory(true);
+            return;
+        }
         if (this.activeScenerie === 'task') {
             this.activeScenerie = 'details';
             return;
@@ -2279,6 +2334,47 @@ export class CollabMessagesChat extends StateLitElement {
     private onThreadDetailsClick() {
         this.saveScrollPosition();
         this.activeScenerie = 'threadDetails';
+    }
+
+    private openPersonalMemory = async (event: Event) => {
+        event.stopPropagation();
+        if (!this.isJohnE01Thread()) return;
+        this.personalMemoryTrigger = event.currentTarget as HTMLElement;
+        this.showPersonalMemory = true;
+        await this.updateComplete;
+        (this.querySelector('.personal-memory-back') as HTMLElement | null)?.focus();
+    };
+
+    private isJohnE01Thread(): boolean {
+        const thread = this.actualThread?.thread as msg.Thread & { agentDm?: { agentId?: string; agentUserId?: string; configRef?: string } };
+        const binding = thread?.agentDm;
+        return !!this.userId && thread?.visibility === 'private' && thread.users.length === 2
+            && thread.users.some(item => item.userId === this.userId)
+            && thread.users.some(item => item.userId === binding?.agentUserId)
+            && binding?.agentId === 'john' && binding.configRef === 'pma/john/e01-c0';
+    }
+
+    private onE01OpenSource = async (event: CustomEvent<{ messageId: string }>) => {
+        const ref = event.detail?.messageId;
+        const threadId = this.actualThread?.thread.threadId;
+        const sessionKey = this.getE01SessionKey();
+        const isCurrent = () => this.getE01SessionKey() === sessionKey && this.actualThread?.thread.threadId === threadId;
+        if (!ref || !threadId || !ref.startsWith(`${threadId}/`) || !isCurrent()) return;
+        await this.closePersonalMemory(false);
+        if (!isCurrent()) return;
+        await this.navigateToMessageId(ref, 'agent', isCurrent, { persist: false, forceServer: true });
+    };
+
+    private async closePersonalMemory(restoreFocus: boolean) {
+        const trigger = this.personalMemoryTrigger;
+        this.showPersonalMemory = false;
+        await this.updateComplete;
+        if (restoreFocus && trigger?.isConnected) trigger.focus();
+        this.personalMemoryTrigger = undefined;
+    }
+
+    private getE01SessionKey(): string {
+        return `${this.e01RootSessionKey}:${this.e01SessionEpoch}:${this.userId || ''}:${this.actualThread?.thread.threadId || ''}`;
     }
 
     private onThreadAddClick() {

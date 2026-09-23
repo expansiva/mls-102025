@@ -1,0 +1,19 @@
+/// <mls fileReference="_102025_/l2/collabMessagesE01Memory.less" enhancement="_102027_/l2/enhancementStyle" />
+
+collab-messages-e01-memory-102025 {
+  display: block; flex: 1; min-height: 0; overflow: auto; padding: 1rem; color: var(--cm-text, #111827); background: var(--cm-panel-bg, #fff);
+  .e01-memory-state, .e01-memory-empty, .e01-memory-legacy, .e01-memory-notice { padding: .8rem; border-radius: 8px; background: var(--cm-panel-muted, #f3f7f4); }
+  .e01-memory-legacy .e01-memory-section { background: var(--cm-panel-bg, #fff); }
+  .e01-memory-state.error { color: var(--cm-danger, #b91c1c); }
+  .e01-memory-version { color: var(--cm-text-muted, #5b635f); font-size: 12px; margin-bottom: .6rem; }
+  .e01-memory-section, .e01-memory-proposal { border: 1px solid var(--cm-border, #e2e7e3); border-radius: 10px; padding: .75rem; margin: .7rem 0; }
+  h2, h3 { margin: 0 0 .5rem; } h2 { font-size: 16px; } h3 { font-size: 14px; }
+  pre { margin: .2rem 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+  textarea { box-sizing: border-box; width: 100%; min-height: 88px; padding: .55rem; border: 1px solid var(--cm-border, #d1d5db); border-radius: 6px; color: inherit; background: inherit; }
+  button { min-height: 34px; border: 1px solid var(--cm-green, #008f4c); border-radius: 6px; padding: .35rem .65rem; color: var(--cm-green-dark, #007a3d); background: var(--cm-panel-bg, #fff); cursor: pointer; }
+  button:focus-visible { outline: 3px solid var(--focus-ring, #2563eb); outline-offset: 2px; } button:disabled { opacity: .55; cursor: wait; } button.danger { border-color: var(--cm-danger, #b91c1c); color: var(--cm-danger, #b91c1c); }
+  .e01-memory-actions, .e01-memory-sources { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; align-items: center; }
+  .e01-memory-sources { font-size: 11px; color: var(--cm-text-muted, #5b635f); } .e01-memory-sources button { min-height: 28px; padding: .2rem .45rem; }
+  .e01-memory-diff { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; } .e01-memory-diff strong { grid-column: 1 / -1; }
+  @media (max-width: 420px) { padding: .65rem; .e01-memory-diff { grid-template-columns: 1fr; } .e01-memory-diff strong { grid-column: auto; } }
+}

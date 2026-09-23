@@ -37,6 +37,7 @@ import { deserializeUserMentions, serializeUserMentions } from '/_102025_/l2/col
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { IChatPreferences, IMessage, IThreadInfo } from '/_102025_/l2/collabMessagesHelper.js';
+import '/_102025_/l2/collabMessagesE01Context.js';
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -204,6 +205,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @property() usersAvaliables: msg.User[] = [];
     @property() currentUser: msg.User | undefined;
     @property() userId: string | undefined;
+    @property() e01SessionKey = '';
     @property({ type: Boolean }) toolbarHighlighted: boolean = false;
     @property({ attribute: false }) openedReactionMessageId?: string;
     @property({ attribute: false }) reactionPickerTarget?: HTMLElement;
@@ -335,6 +337,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             ${!isMessageContentHidden ? this.renderMessageFooterResult(message) : nothing}
                             ${!isMessageContentHidden ? this.renderReactions(message) : nothing}
                             ${!isMessageContentHidden ? this.renderReactionPicker(message) : nothing}
+                            ${!isMessageContentHidden ? this.renderE01Context(message) : nothing}
                             ${this.renderEditHistory(message)}
                             <div class="message-footer">
                                 ${this.renderHistoryToggle(message)}
@@ -349,6 +352,27 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             </div>
 
          `;
+    }
+
+    private renderE01Context(message: msg.Message) {
+        if (!this.userId || !this.actualThread) return nothing;
+        const thread = this.actualThread.thread as msg.Thread & { agentDm?: { agentId?: string; agentUserId?: string; configRef?: string } };
+        const binding = thread.agentDm;
+        if (thread.visibility !== 'private' || thread.users.length !== 2
+            || !thread.users.some(item => item.userId === this.userId)
+            || !thread.users.some(item => item.userId === binding?.agentUserId)
+            || binding?.agentId !== 'john' || binding.configRef !== 'pma/john/e01-c0') return nothing;
+        const isResponse = message.senderId === binding.agentUserId && !!message.replyTo;
+        const isSource = message.senderId === this.userId;
+        if (!isResponse && !isSource) return nothing;
+        const sourceMessageId = `${message.threadId}/${isResponse ? message.replyTo : (message.orderAt || message.createAt)}`;
+        return html`<collab-messages-e01-context-102025
+            .userId=${this.userId}
+            .threadId=${message.threadId}
+            .sourceMessageId=${sourceMessageId}
+            .sessionKey=${this.e01SessionKey}
+            .variant=${isResponse ? 'response' : 'source'}
+        ></collab-messages-e01-context-102025>`;
     }
 
     private renderMessageByLanguage(message: msg.Message) {

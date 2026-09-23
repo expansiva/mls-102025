@@ -81,6 +81,20 @@ collab-messages-chat-102025 {
                     background: rgba(255, 255, 255, .12);
                 }
             }
+
+            .personal-memory-entry {
+                min-height: 32px;
+                border: 1px solid rgba(255, 255, 255, .55);
+                border-radius: var(--cm-radius-pill, 9999px);
+                padding: .25rem .55rem;
+                background: transparent;
+                color: inherit;
+                font: inherit;
+                font-size: 12px;
+                cursor: pointer;
+
+                &:focus-visible { outline: 3px solid var(--focus-ring, #ffffff); outline-offset: 2px; }
+            }
         }
 
         >span {
@@ -89,6 +103,22 @@ collab-messages-chat-102025 {
             gap: 0.5rem;
             flex: 1;
             justify-content: center;
+        }
+
+        .personal-memory-back {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            flex: 1;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+
+            svg { fill: currentColor; }
+            &:focus-visible { outline: 3px solid var(--focus-ring, #ffffff); outline-offset: 2px; }
         }
     }
 

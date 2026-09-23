@@ -105,6 +105,7 @@ export class CollabMessages extends CollabLitElement {
     @state() taskToOpen: string = '';
     @state() lastLevel: number = -1;
     @state() modeMenu: string = 'default';
+    @state() private e01RootSessionKey = this.newE01RootSessionKey();
 
     private groupSelected: ITabType = 'CRM';
     private hashOpenConsumed = false;
@@ -130,6 +131,10 @@ export class CollabMessages extends CollabLitElement {
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
         super.updated(changedProperties);
+
+        if (changedProperties.has('userPerfil')) {
+            this.e01RootSessionKey = this.newE01RootSessionKey();
+        }
 
         if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT'].includes(this.activeTab)) {
 
@@ -333,6 +338,7 @@ export class CollabMessages extends CollabLitElement {
             .allThreads=${Object.keys(this.userThreads).map((key) => this.userThreads[key].thread)}
             
             userId=${this.userPerfil?.userId} 
+            .e01RootSessionKey=${this.e01RootSessionKey}
         ></collab-messages-chat-102025>`
     }
 
@@ -380,7 +386,12 @@ export class CollabMessages extends CollabLitElement {
             taskToOpen=${ifDefined(this.taskToOpen || undefined)}
 
             userId=${this.userPerfil?.userId} 
+            .e01RootSessionKey=${this.e01RootSessionKey}
         ></collab-messages-chat-102025>`
+    }
+
+    private newE01RootSessionKey(): string {
+        return `e01-root-${crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`}`;
     }
 
     private async getUser(): Promise<msg.User> {
