@@ -14,14 +14,16 @@ type Context = {
 };
 type Execution = {
   executionId: string; sourceMessageId?: string; status: 'admitted' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
-  attempts: number; terminalReason?: string; cost: { amount: number | null; currency: string; reconciliationPending: boolean };
-  limits: { maxOutputTokens: number; deadlineMs: number; maxCost: { amount: number; currency: string } }; delivery?: { status: string; error?: string }; context?: Context;
+  attempts: number; localRequests?: number; providerAttempts?: number | null; executionMode?: 'bounded' | 'legacy-supervised-pilot'; terminalReason?: string; cost: { amount: number | null; currency: string; reconciliationPending: boolean };
+  limits: { maxOutputTokens: number; deadlineMs: number; maxCost?: { amount: number; currency: string } };
+  pilot?: { mode: 'legacy-supervised-pilot'; pilotId: string; expiresAt: string; operationalBudgetUsd: number; localRequestLimit: number; localRequests: number; providerAttempts: number | null; observedSpendUsd: number | null; reconciliationPending: boolean };
+  delivery?: { status: string; error?: string }; context?: Context;
 };
 type Response = { statusCode: number; execution: Execution };
 
 const text = {
-  en: { open: 'Context sent', close: 'Hide context', openExecution: 'Execution status', closeExecution: 'Hide execution', loading: 'Loading execution context…', unavailable: 'Context is unavailable.', sourceUnavailable: 'That source is no longer available.', refresh: 'Refresh', cancel: 'Cancel execution', status: 'Status', reason: 'Interruption reason', cost: 'Observed cost', pendingCost: 'to be determined', memory: 'Memory', version: 'version', promptVersion: 'Prompt version', templateVersion: 'Context template', none: 'none', sections: 'Sections', history: 'History window', omissions: 'Omissions', sources: 'Sources', limits: 'Limits', bytes: 'Envelope bytes', disclosure: 'This shows the context sent to the model, not its internal reasoning.' },
-  pt: { open: 'Contexto enviado', close: 'Ocultar contexto', openExecution: 'Status da execução', closeExecution: 'Ocultar execução', loading: 'Carregando contexto da execução…', unavailable: 'O contexto não está disponível.', sourceUnavailable: 'Essa fonte não está mais disponível.', refresh: 'Atualizar', cancel: 'Cancelar execução', status: 'Status', reason: 'Motivo da interrupção', cost: 'Custo observado', pendingCost: 'a apurar', memory: 'Memória', version: 'versão', promptVersion: 'Versão do prompt', templateVersion: 'Template de contexto', none: 'nenhuma', sections: 'Seções', history: 'Janela de histórico', omissions: 'Omissões', sources: 'Fontes', limits: 'Limites', bytes: 'Bytes do envelope', disclosure: 'Isto mostra o contexto enviado ao modelo, não seu raciocínio interno.' },
+  en: { open: 'Context sent', close: 'Hide context', openExecution: 'Execution status', closeExecution: 'Hide execution', loading: 'Loading execution context…', unavailable: 'Context is unavailable.', sourceUnavailable: 'That source is no longer available.', refresh: 'Refresh', cancel: 'Cancel execution', status: 'Status', reason: 'Interruption reason', cost: 'Observed cost', pendingCost: 'to be determined', memory: 'Memory', version: 'version', promptVersion: 'Prompt version', templateVersion: 'Context template', none: 'none', sections: 'Sections', history: 'History window', omissions: 'Omissions', sources: 'Sources', limits: 'Limits', bytes: 'Envelope bytes', disclosure: 'This shows the context sent to the model, not its internal reasoning.', pilot: 'Supervised pilot', requests: 'Local requests / provider attempts' },
+  pt: { open: 'Contexto enviado', close: 'Ocultar contexto', openExecution: 'Status da execução', closeExecution: 'Ocultar execução', loading: 'Carregando contexto da execução…', unavailable: 'O contexto não está disponível.', sourceUnavailable: 'Essa fonte não está mais disponível.', refresh: 'Atualizar', cancel: 'Cancelar execução', status: 'Status', reason: 'Motivo da interrupção', cost: 'Custo observado', pendingCost: 'a apurar', memory: 'Memória', version: 'versão', promptVersion: 'Versão do prompt', templateVersion: 'Template de contexto', none: 'nenhuma', sections: 'Seções', history: 'Janela de histórico', omissions: 'Omissões', sources: 'Fontes', limits: 'Limites', bytes: 'Bytes do envelope', disclosure: 'Isto mostra o contexto enviado ao modelo, não seu raciocínio interno.', pilot: 'Piloto supervisionado', requests: 'Requisições locais / tentativas do provider' },
 };
 
 @customElement('collab-messages-e01-context-102025')
@@ -61,13 +63,17 @@ export class CollabMessagesE01Context extends StateLitElement {
     if (this.phase === 'loading') return html`<div class="e01-context-panel" role="status">${t.loading}</div>`;
     if (this.phase === 'error' || !this.execution) return html`<div class="e01-context-panel error" role="alert">${this.error || t.unavailable}<button @click=${this.load}>${t.refresh}</button></div>`;
     const e = this.execution; const c = e.context; const active = ['admitted', 'queued', 'running'].includes(e.status);
+    const pilotCost = e.pilot
+      ? `${e.pilot.observedSpendUsd === null ? t.pendingCost : `${e.pilot.observedSpendUsd} USD`}${e.pilot.reconciliationPending && e.pilot.observedSpendUsd !== null ? ` + ${t.pendingCost}` : ''}`
+      : null;
     return html`<section class="e01-context-panel" aria-label=${this.variant === 'source' ? t.openExecution : t.open}>
       ${this.variant === 'response' ? html`<p class="e01-context-disclosure">${t.disclosure}</p>` : nothing}
       ${this.feedback ? html`<p class="e01-context-feedback" role="status">${this.feedback}</p>` : nothing}
       <dl><dt>${t.status}</dt><dd class="status ${e.status}">${this.statusLabel(e.status)}</dd>
         ${e.terminalReason ? html`<dt>${t.reason}</dt><dd>${this.reasonLabel(e.terminalReason)}</dd>` : nothing}
-        <dt>${t.cost}</dt><dd>${e.cost.amount === null ? t.pendingCost : `${e.cost.amount} ${e.cost.currency}`}</dd>
-        <dt>${t.limits}</dt><dd>${e.limits.maxOutputTokens} tokens · ${Math.round(e.limits.deadlineMs / 1000)}s · ${e.limits.maxCost.amount} ${e.limits.maxCost.currency}</dd>
+        <dt>${t.cost}</dt><dd>${pilotCost ?? (e.cost.amount === null ? t.pendingCost : `${e.cost.amount} ${e.cost.currency}`)}</dd>
+        ${e.pilot ? html`<dt>${t.pilot}</dt><dd>${e.pilot.pilotId} · ${e.pilot.operationalBudgetUsd} USD</dd><dt>${t.requests}</dt><dd>${e.pilot.localRequests}/${e.pilot.localRequestLimit} · ${e.pilot.providerAttempts ?? t.pendingCost}</dd>` : nothing}
+        <dt>${t.limits}</dt><dd>${e.limits.maxOutputTokens} tokens · ${Math.round(e.limits.deadlineMs / 1000)}s${e.limits.maxCost ? ` · ${e.limits.maxCost.amount} ${e.limits.maxCost.currency}` : ''}</dd>
       </dl>
       ${this.variant === 'response' && c ? html`
         <dl><dt>${t.promptVersion}</dt><dd>${c.promptVersion}</dd><dt>${t.templateVersion}</dt><dd>${c.templateVersion}</dd><dt>${t.memory}</dt><dd>${c.memory.status === 'included' ? `${t.version} ${c.memory.version}` : t.none}</dd><dt>${t.sections}</dt><dd>${c.memory.sectionsIncluded.join(', ') || t.none}</dd><dt>${t.history}</dt><dd>${c.historyIds.length}</dd><dt>${t.bytes}</dt><dd>${c.bytes.envelope}</dd></dl>
