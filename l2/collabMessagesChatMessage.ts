@@ -38,6 +38,7 @@ import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { IChatPreferences, IMessage, IThreadInfo } from '/_102025_/l2/collabMessagesHelper.js';
 import '/_102025_/l2/collabMessagesE01Context.js';
+import '/_102025_/l2/collabMessagesE02Audio.js';
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -566,6 +567,23 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         }
 
         const canDelete = this.canDeleteAttachment(attachment);
+        if (attachment.kind === 'audio' && this.isJohnAudioThread()) {
+            return html`
+                <div class="message-attachment audio">
+                    <collab-messages-e02-audio-102025
+                        .userId=${this.userId || ''}
+                        .threadId=${message.threadId}
+                        .messageId=${message.orderAt || message.createAt}
+                        .attachmentId=${attachment.attachmentId}
+                        .fileName=${attachment.fileName}
+                        .sizeBytes=${attachment.sizeBytes}
+                        .contentType=${attachment.contentType}
+                        .sessionKey=${this.e01SessionKey}
+                    ></collab-messages-e02-audio-102025>
+                    ${canDelete ? this.renderDeleteAttachmentButton(message, attachment) : nothing}
+                </div>
+            `;
+        }
         if (attachment.kind === 'image') {
             return html`
                 <div class="message-attachment image">
@@ -608,6 +626,16 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 ${canDelete ? this.renderDeleteAttachmentButton(message, attachment) : nothing}
             </div>
         `;
+    }
+
+    private isJohnAudioThread(): boolean {
+        if (!this.userId || !this.actualThread) return false;
+        const thread = this.actualThread.thread as msg.Thread & { agentDm?: { agentId?: string; agentUserId?: string; configRef?: string } };
+        const binding = thread.agentDm;
+        return thread.visibility === 'private' && thread.users.length === 2
+            && thread.users.some(item => item.userId === this.userId)
+            && thread.users.some(item => item.userId === binding?.agentUserId)
+            && binding?.agentId === 'john' && binding.configRef === 'pma/john/e01-c0';
     }
 
     private renderDeleteAttachmentButton(message: msg.Message, attachment: msg.MessageAttachment) {
