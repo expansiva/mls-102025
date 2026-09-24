@@ -48,6 +48,10 @@ export interface E02AudioProcessingProjection {
   error: { code: string; phase: 'validation' | 'transcription' | 'interpretation'; retryable: boolean } | null;
 }
 
+export type E02GetAudioProcessingRequest =
+  | { action: 'getAudioProcessing'; userId: string; processingId: string; source?: never }
+  | { action: 'getAudioProcessing'; userId: string; source: { threadId: string; messageId: string; attachmentId: string }; processingId?: never };
+
 type ProcessingResponse = { statusCode: number; processing: E02AudioProcessingProjection };
 type Copy = typeof copy.en;
 
@@ -68,6 +72,7 @@ const copy = {
     usedRevision: 'Transcript revision', usedContext: 'Confirmed context', sources: 'Sources', none: 'none', cost: 'Cost', limitations: 'Pilot limitation',
     limitationText: 'Interpretation is limited to the selected transcript revision and confirmed context. It performs no action and does not update memory.',
     sourceUnavailable: 'The source or access is no longer available. Cached private content was cleared.', genericError: 'Audio processing is unavailable.',
+    noProcessing: 'No audio processing is available yet.',
   },
   pt: {
     loadAudio: 'Carregar áudio', openAudio: 'Abrir áudio', audioPlayer: 'Anexo de áudio', unavailable: 'A fonte do áudio não está disponível.',
@@ -85,6 +90,7 @@ const copy = {
     usedRevision: 'Revisão da transcrição', usedContext: 'Contexto confirmado', sources: 'Fontes', none: 'nenhuma', cost: 'Custo', limitations: 'Limitação do piloto',
     limitationText: 'A interpretação se limita à revisão selecionada e ao contexto confirmado. Ela não executa ações nem atualiza a memória.',
     sourceUnavailable: 'A fonte ou o acesso não está mais disponível. O conteúdo privado em cache foi limpo.', genericError: 'O processamento de áudio não está disponível.',
+    noProcessing: 'Ainda não há processamento disponível para este áudio.',
   },
 };
 
@@ -111,6 +117,7 @@ export class CollabMessagesE02Audio extends StateLitElement {
   @state() private busy: 'load' | 'transcribe' | 'correct' | 'interpret' | 'cancel' | '' = '';
   @state() private error = '';
   @state() private feedback = '';
+  @state() private noProcessing = false;
   @state() private correctionDraft = '';
   @state() private interpretationRequest = '';
   @state() private selectedVersion: number | null = null;
@@ -119,13 +126,15 @@ export class CollabMessagesE02Audio extends StateLitElement {
   private identity = '';
   private pollingSession?: E02AudioPollingSession;
   private loadGeneration = 0;
+  private readGeneration = 0;
+  private discovering = false;
   private readonly idempotencyKeys = new Map<string, string>();
 
   connectedCallback() {
     super.connectedCallback();
     this.identity = this.identityToken();
     if (this.fixture) this.applyProcessing(this.fixture, false);
-    else if (this.processingId) void this.loadProcessing();
+    else if (this.userId && this.threadId && this.messageId && this.attachmentId) void this.loadProcessing();
   }
 
   disconnectedCallback() {
@@ -139,7 +148,7 @@ export class CollabMessagesE02Audio extends StateLitElement {
       const next = this.identityToken();
       if (this.identity && next !== this.identity) this.clearPrivateState();
       this.identity = next;
-      if (!this.fixture && this.processingId) void this.loadProcessing();
+      if (!this.fixture && this.userId && this.threadId && this.messageId && this.attachmentId) void this.loadProcessing();
     }
     if (changed.has('processingId') && !this.fixture && this.processingId && this.processingId !== this.processing?.processingId) void this.loadProcessing();
     if (changed.has('fixture') && this.fixture) this.applyProcessing(this.fixture, false);
@@ -168,6 +177,7 @@ export class CollabMessagesE02Audio extends StateLitElement {
       </div>
       ${this.error ? html`<p class="error" role="alert">${this.error}</p>` : nothing}
       ${this.feedback ? html`<p class="feedback" role="status">${this.feedback}</p>` : nothing}
+      ${this.noProcessing ? html`<p class="notice" role="status">${t.noProcessing}</p>` : nothing}
       ${this.processing ? this.renderProcessing(this.processing, t) : nothing}
     </section>`;
   }
@@ -244,8 +254,8 @@ export class CollabMessagesE02Audio extends StateLitElement {
         throw error;
       }
       this.audioUrl = result.response.url;
-    } catch (error) { if (identity === this.identityToken() && !this.clearRevokedAccess(error)) this.error = this.safeError(error); }
-    finally { if (identity === this.identityToken()) this.busy = ''; }
+    } catch (error) { if (this.isConnected && generation === this.loadGeneration && identity === this.identityToken() && !this.clearRevokedAccess(error)) this.error = this.safeError(error); }
+    finally { if (this.isConnected && generation === this.loadGeneration && identity === this.identityToken()) this.busy = ''; }
   }
 
   private openAudio = () => { if (this.audioUrl) window.open(this.audioUrl, '_blank', 'noopener,noreferrer'); };
@@ -289,31 +299,40 @@ export class CollabMessagesE02Audio extends StateLitElement {
   }
 
   private async perform(kind: 'transcribe' | 'correct' | 'interpret' | 'cancel', body: Record<string, unknown>) {
-    const identity = this.identityToken(); this.busy = kind; this.error = ''; this.feedback = '';
+    const identity = this.identityToken(); const generation = ++this.readGeneration; this.discovering = false; this.busy = kind; this.error = ''; this.feedback = ''; this.noProcessing = false;
     try {
       const response = await post<ProcessingResponse>({ ...body, userId: this.userId } as never);
-      if (identity !== this.identityToken()) return;
+      if (!this.isConnected || identity !== this.identityToken() || generation !== this.readGeneration) return;
       this.applyProcessing(response.processing, kind !== 'correct'); this.startPolling(true);
     } catch (error) {
-      if (identity !== this.identityToken()) return;
+      if (!this.isConnected || identity !== this.identityToken() || generation !== this.readGeneration) return;
       if ((error as { statusCode?: number }).statusCode === 409 && kind === 'correct') throw error;
       if (!this.clearRevokedAccess(error)) this.error = this.safeError(error);
-    } finally { if (identity === this.identityToken()) this.busy = ''; }
+    } finally { if (this.isConnected && identity === this.identityToken() && generation === this.readGeneration) this.busy = ''; }
   }
 
   private loadProcessing = async (showError = true) => {
     if (this.fixture) { this.applyProcessing(this.fixture, false); return; }
     const id = this.processing?.processingId || this.processingId;
-    if (!id || !this.userId) return;
-    const identity = this.identityToken();
+    if (!this.userId || !this.threadId || !this.messageId || !this.attachmentId || this.busy) return;
+    const discovery = !id;
+    if (discovery && this.discovering) return;
+    if (discovery) this.discovering = true;
+    const identity = this.identityToken(); const generation = ++this.readGeneration;
     try {
-      const response = await post<ProcessingResponse>({ action: 'getAudioProcessing', userId: this.userId, processingId: id } as never);
-      if (identity !== this.identityToken()) return;
+      const request: E02GetAudioProcessingRequest = id
+        ? { action: 'getAudioProcessing', userId: this.userId, processingId: id }
+        : { action: 'getAudioProcessing', userId: this.userId, source: { threadId: this.threadId, messageId: this.messageId, attachmentId: this.attachmentId } };
+      const response = await post<ProcessingResponse>(request as never);
+      if (!this.isConnected || identity !== this.identityToken() || generation !== this.readGeneration) return;
+      this.noProcessing = false;
       this.applyProcessing(response.processing, false); if (this.hasActivePhase(response.processing)) this.startPolling();
     } catch (error) {
-      if (identity !== this.identityToken()) return;
-      if (!this.clearRevokedAccess(error) && showError) this.error = this.safeError(error);
-    }
+      if (!this.isConnected || identity !== this.identityToken() || generation !== this.readGeneration) return;
+      if (discovery && !this.processing && (error as { statusCode?: number }).statusCode === 404) {
+        this.noProcessing = true;
+      } else if (!this.clearRevokedAccess(error) && showError) this.error = this.safeError(error);
+    } finally { if (discovery && generation === this.readGeneration) this.discovering = false; }
   };
 
   private applyProcessing(processing: E02AudioProcessingProjection, resetDraft: boolean) {
@@ -322,6 +341,7 @@ export class CollabMessagesE02Audio extends StateLitElement {
       return;
     }
     this.processing = processing; this.processingId = processing.processingId;
+    this.noProcessing = false;
     const selected = processing.review.selectedVersion ?? processing.review.versions[processing.review.versions.length - 1]?.version ?? null;
     this.selectedVersion = selected;
     if (resetDraft || !this.correctionDraft) this.correctionDraft = processing.review.versions.find(item => item.version === selected)?.text || processing.transcription.result?.text || '';
@@ -366,7 +386,7 @@ export class CollabMessagesE02Audio extends StateLitElement {
       selectedVersion: this.selectedVersion, feedback: this.feedback,
     });
     if (!result.revoked) return false;
-    this.stopPolling(); this.loadGeneration++;
+    this.stopPolling(); this.loadGeneration++; this.readGeneration++; this.discovering = false; this.noProcessing = false; this.busy = '';
     this.audioUrl = result.cache.audioUrl; this.processingId = result.cache.processingId;
     this.processing = result.cache.processing; this.correctionDraft = result.cache.correctionDraft;
     this.interpretationRequest = result.cache.interpretationRequest;
@@ -375,5 +395,5 @@ export class CollabMessagesE02Audio extends StateLitElement {
     this.error = this.copy().sourceUnavailable;
     return true;
   }
-  private clearPrivateState() { this.stopPolling(); this.revokeAudioUrl(); this.processingId = ''; this.processing = undefined; this.error = ''; this.feedback = ''; this.correctionDraft = ''; this.interpretationRequest = ''; this.selectedVersion = null; this.idempotencyKeys.clear(); }
+  private clearPrivateState() { this.readGeneration++; this.discovering = false; this.noProcessing = false; this.busy = ''; this.stopPolling(); this.revokeAudioUrl(); this.processingId = ''; this.processing = undefined; this.error = ''; this.feedback = ''; this.correctionDraft = ''; this.interpretationRequest = ''; this.selectedVersion = null; this.idempotencyKeys.clear(); }
 }

@@ -1,6 +1,11 @@
 /// <mls fileReference="_102025_/l2/collabMessagesE02AudioFixtures.ts" enhancement="_blank" />
 
-import type { E02AudioProcessingProjection } from '/_102025_/l2/collabMessagesE02Audio.js';
+import type { E02AudioProcessingProjection, E02GetAudioProcessingRequest } from '/_102025_/l2/collabMessagesE02Audio.js';
+
+export const E02_GET_AUDIO_FIXTURES: readonly E02GetAudioProcessingRequest[] = [
+  { action: 'getAudioProcessing', userId: 'owner-a', processingId: 'audio-p1' },
+  { action: 'getAudioProcessing', userId: 'owner-a', source: { threadId: 'dm-john-u1', messageId: '20260923120000.001', attachmentId: 'att-a1' } },
+];
 
 const receipt = { localRequests: 1 as const, providerAttempts: 1, costChargedUsd: 0.0042, resolvedModel: 'audio-fixture', reconciliationPending: false };
 const base: E02AudioProcessingProjection = {
