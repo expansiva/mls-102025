@@ -22,6 +22,7 @@ import {
 
 import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally, isHelpCommand, isTestplayCommand, runNotificationTestplay } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
+import { johnSendErrorMessage } from '/_102025_/l2/collabMessagesJohnSendError.js';
 
 import {
     addOrUpdateTask,
@@ -2532,7 +2533,8 @@ export class CollabMessagesChat extends StateLitElement {
 
         } catch (err: any) {
             message.isFailed = true;
-            message.isFailedError = err?.message || 'Failed to send message';
+            message.isFailedError = johnSendErrorMessage(
+                err?.message || 'Failed to send message', this.getMessageKey(messages));
             message.isLoading = false;
 
             this.actualMessagesParsed = this.parseMessages(
