@@ -27,7 +27,8 @@ export interface E02AudioReceipt {
 
 export interface E02TranscriptVersion {
   version: number;
-  origin: 'model' | 'human';
+  origin: 'model' | 'human' | 'deterministic';
+  detectorVersion?: 'wav-pcm16-zero.v1';
   text: string;
   createdAt: string;
   status?: E02TranscriptStatus;
@@ -38,7 +39,7 @@ export interface E02AudioProcessingProjection {
   contractVersion: 'john-audio.v1';
   processingId: string;
   sourceAvailable: boolean;
-  transcription: { state: E02PhaseState; receipt: E02AudioReceipt | null; result?: { status: E02TranscriptStatus; text: string; uncertainties: Array<{ excerpt: string; reason: string }> } };
+  transcription: { state: E02PhaseState; receipt: E02AudioReceipt | null; result?: { status: E02TranscriptStatus; text: string; uncertainties: Array<{ excerpt: string; reason: string }>; origin?: 'model' | 'deterministic'; detectorVersion?: 'wav-pcm16-zero.v1' } };
   review: { state: 'not_available' | 'awaiting_review' | 'reviewed'; selectedVersion: number | null; versions: E02TranscriptVersion[] };
   interpretation: {
     state: E02PhaseState; transcriptVersion: number | null; contextVersion: string | null;
@@ -61,8 +62,8 @@ const copy = {
     transcribe: 'Transcribe', transcribing: 'Requesting…', limits: 'Transcription accepts MP3/WAV, up to 60 seconds and 512 KiB.',
     uploadNotice: 'An allowed upload is not necessarily eligible for transcription.', tooLarge: 'This file is larger than the transcription limit.',
     formatUnsupported: 'Only MP3 and WAV can be transcribed.', durationTooLong: 'This audio is longer than 60 seconds.', durationUnknown: 'The duration could not be verified in this browser. The server will verify it.',
-    original: 'Automatic transcript', review: 'Human review', interpretation: 'Contextual interpretation', version: 'version', originModel: 'automatic', originHuman: 'human',
-    noSpeech: 'No speech detected.', unintelligible: 'Speech was unintelligible.', uncertain: 'Uncertain passages', correction: 'Correct transcript',
+    original: 'Automatic transcript', localResult: 'Local result', review: 'Human review', interpretation: 'Contextual interpretation', version: 'version', originModel: 'automatic', originHuman: 'human',
+    noSpeech: 'No speech detected.', digitalSilence: 'No speech: digital silence detected.', originDeterministic: 'local detector', unintelligible: 'Speech was unintelligible.', uncertain: 'Uncertain passages', correction: 'Correct transcript',
     save: 'Save correction', saving: 'Saving…', conflict: 'A newer version exists. Your edit was kept; review the new version before saving again.',
     interpretationRequest: 'What should John interpret using your confirmed context?', interpret: 'Interpret with my context', interpreting: 'Requesting…',
     reinterpretNotice: 'Saving does not start an interpretation. Reinterpreting does not transcribe the audio again.',
@@ -79,8 +80,8 @@ const copy = {
     transcribe: 'Transcrever', transcribing: 'Solicitando…', limits: 'A transcrição aceita MP3/WAV, até 60 segundos e 512 KiB.',
     uploadNotice: 'Um upload permitido não é necessariamente elegível para transcrição.', tooLarge: 'Este arquivo excede o limite da transcrição.',
     formatUnsupported: 'Somente MP3 e WAV podem ser transcritos.', durationTooLong: 'Este áudio tem mais de 60 segundos.', durationUnknown: 'Não foi possível verificar a duração neste navegador. O servidor fará a validação.',
-    original: 'Transcrição automática', review: 'Revisão humana', interpretation: 'Interpretação contextual', version: 'versão', originModel: 'automática', originHuman: 'humana',
-    noSpeech: 'Nenhuma fala foi detectada.', unintelligible: 'A fala estava ininteligível.', uncertain: 'Trechos incertos', correction: 'Corrigir transcrição',
+    original: 'Transcrição automática', localResult: 'Resultado local', review: 'Revisão humana', interpretation: 'Interpretação contextual', version: 'versão', originModel: 'automática', originHuman: 'humana',
+    noSpeech: 'Nenhuma fala foi detectada.', digitalSilence: 'Nenhuma fala: silêncio digital detectado.', originDeterministic: 'detector local', unintelligible: 'A fala estava ininteligível.', uncertain: 'Trechos incertos', correction: 'Corrigir transcrição',
     save: 'Salvar correção', saving: 'Salvando…', conflict: 'Existe uma versão mais nova. Sua edição foi mantida; revise a nova versão antes de salvar novamente.',
     interpretationRequest: 'O que John deve interpretar usando seu contexto confirmado?', interpret: 'Interpretar com meu contexto', interpreting: 'Solicitando…',
     reinterpretNotice: 'Salvar não inicia uma interpretação. Reinterpretar não transcreve o áudio novamente.',
@@ -196,23 +197,24 @@ export class CollabMessagesE02Audio extends StateLitElement {
   }
 
   private renderTranscript(p: E02AudioProcessingProjection, t: Copy) {
-    const automatic = p.review.versions.find(item => item.origin === 'model') || (p.transcription.result ? {
-      version: 1, origin: 'model' as const, text: p.transcription.result.text, createdAt: '', status: p.transcription.result.status, uncertainties: p.transcription.result.uncertainties,
+    const automatic = p.review.versions.find(item => item.origin === 'model' || item.origin === 'deterministic') || (p.transcription.result ? {
+      version: 1, origin: p.transcription.result.origin || 'model' as const, detectorVersion: p.transcription.result.detectorVersion,
+      text: p.transcription.result.text, createdAt: '', status: p.transcription.result.status, uncertainties: p.transcription.result.uncertainties,
     } : undefined);
     if (!automatic && p.review.state === 'not_available') return nothing;
     const selected = p.review.versions.find(item => item.version === this.selectedVersion) || p.review.versions[p.review.versions.length - 1] || automatic;
     return html`<section class="transcript-panel" aria-labelledby=${`${this.controlId}-transcript`}>
-      <h4 id=${`${this.controlId}-transcript`}>${t.original}</h4>
+      <h4 id=${`${this.controlId}-transcript`}>${automatic?.origin === 'deterministic' ? t.localResult : t.original}</h4>
       ${automatic ? this.renderTranscriptVersion(automatic, t) : nothing}
       ${p.review.versions.filter(item => item.origin === 'human').length ? html`<h4>${t.review}</h4><div class="version-list">${p.review.versions.filter(item => item.origin === 'human').map(item => html`
         <button class=${item.version === this.selectedVersion ? 'selected' : ''} @click=${() => this.selectVersion(item)} aria-pressed=${item.version === this.selectedVersion ? 'true' : 'false'}>${t.version} ${item.version} · ${t.originHuman}</button>`)}</div>
         ${selected?.origin === 'human' ? this.renderTranscriptVersion(selected, t) : nothing}` : nothing}
-      ${selected && selected.status !== 'no_speech' && selected.status !== 'unintelligible' ? html`
+      ${selected && (selected.origin === 'deterministic' || selected.status !== 'no_speech' && selected.status !== 'unintelligible') ? html`
         <label for=${`${this.controlId}-correction`}>${t.correction}</label>
         <textarea id=${`${this.controlId}-correction`} class="correction-input" .value=${this.correctionDraft} maxlength=${E02_AUDIO_UI_LIMITS.maxCorrectionChars} @input=${(event: Event) => this.correctionDraft = (event.currentTarget as HTMLTextAreaElement).value}></textarea>
         <button class="primary" @click=${this.saveCorrection} ?disabled=${this.busy === 'correct' || !this.correctionDraft.trim()}>${this.busy === 'correct' ? t.saving : t.save}</button>
       ` : nothing}
-      ${selected ? html`<div class="interpret-request"><p class="notice">${t.reinterpretNotice}</p><label for=${`${this.controlId}-interpretation-request`}>${t.interpretationRequest}</label>
+      ${selected?.text.trim() ? html`<div class="interpret-request"><p class="notice">${t.reinterpretNotice}</p><label for=${`${this.controlId}-interpretation-request`}>${t.interpretationRequest}</label>
         <textarea id=${`${this.controlId}-interpretation-request`} .value=${this.interpretationRequest} maxlength=${E02_AUDIO_UI_LIMITS.maxInterpretationRequestChars} @input=${(event: Event) => this.interpretationRequest = (event.currentTarget as HTMLTextAreaElement).value}></textarea>
         <button class="primary" @click=${this.requestInterpretation} ?disabled=${this.busy === 'interpret' || !this.interpretationRequest.trim()}>${this.busy === 'interpret' ? t.interpreting : t.interpret}</button></div>` : nothing}
     </section>`;
@@ -220,8 +222,8 @@ export class CollabMessagesE02Audio extends StateLitElement {
 
   private renderTranscriptVersion(version: E02TranscriptVersion, t: Copy) {
     const status = version.status || 'speech';
-    return html`<article class="transcript-version"><div class="version-meta">${t.version} ${version.version} · ${version.origin === 'model' ? t.originModel : t.originHuman}</div>
-      ${status === 'no_speech' ? html`<p>${t.noSpeech}</p>` : status === 'unintelligible' ? html`<p>${t.unintelligible}</p>` : html`<p class="transcript-text">${version.text}</p>`}
+    return html`<article class="transcript-version"><div class="version-meta">${t.version} ${version.version} · ${version.origin === 'model' ? t.originModel : version.origin === 'deterministic' ? t.originDeterministic : t.originHuman}</div>
+      ${status === 'no_speech' ? html`<p>${version.origin === 'deterministic' ? t.digitalSilence : t.noSpeech}</p>` : status === 'unintelligible' ? html`<p>${t.unintelligible}</p>` : html`<p class="transcript-text">${version.text}</p>`}
       ${version.uncertainties?.length ? html`<details><summary>${t.uncertain} (${version.uncertainties.length})</summary><ul>${version.uncertainties.map(item => html`<li><q>${item.excerpt}</q> — ${item.reason}</li>`)}</ul></details>` : nothing}
     </article>`;
   }
@@ -289,7 +291,7 @@ export class CollabMessagesE02Audio extends StateLitElement {
 
   private async requestInterpretation() {
     const p = this.processing; const version = this.selectedVersion;
-    if (!p || version === null || !this.interpretationRequest.trim() || this.busy) return;
+    if (!p || version === null || !p.review.versions.find(item => item.version === version)?.text.trim() || !this.interpretationRequest.trim() || this.busy) return;
     await this.perform('interpret', { action: 'requestAudioInterpretation', processingId: p.processingId, transcriptVersion: version, request: this.interpretationRequest.trim(), idempotencyKey: this.operationKey(`interpret:${version}:${this.interpretationRequest.trim()}`) });
   }
 
