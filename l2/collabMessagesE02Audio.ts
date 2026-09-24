@@ -88,8 +88,11 @@ const copy = {
   },
 };
 
+let nextAudioControlId = 0;
+
 @customElement('collab-messages-e02-audio-102025')
 export class CollabMessagesE02Audio extends StateLitElement {
+  private readonly controlId = `e02-audio-${++nextAudioControlId}`;
   @property() userId = '';
   @property() threadId = '';
   @property() messageId = '';
@@ -188,19 +191,19 @@ export class CollabMessagesE02Audio extends StateLitElement {
     } : undefined);
     if (!automatic && p.review.state === 'not_available') return nothing;
     const selected = p.review.versions.find(item => item.version === this.selectedVersion) || p.review.versions[p.review.versions.length - 1] || automatic;
-    return html`<section class="transcript-panel" aria-labelledby="e02-transcript-title">
-      <h4 id="e02-transcript-title">${t.original}</h4>
+    return html`<section class="transcript-panel" aria-labelledby=${`${this.controlId}-transcript`}>
+      <h4 id=${`${this.controlId}-transcript`}>${t.original}</h4>
       ${automatic ? this.renderTranscriptVersion(automatic, t) : nothing}
       ${p.review.versions.filter(item => item.origin === 'human').length ? html`<h4>${t.review}</h4><div class="version-list">${p.review.versions.filter(item => item.origin === 'human').map(item => html`
         <button class=${item.version === this.selectedVersion ? 'selected' : ''} @click=${() => this.selectVersion(item)} aria-pressed=${item.version === this.selectedVersion ? 'true' : 'false'}>${t.version} ${item.version} · ${t.originHuman}</button>`)}</div>
         ${selected?.origin === 'human' ? this.renderTranscriptVersion(selected, t) : nothing}` : nothing}
       ${selected && selected.status !== 'no_speech' && selected.status !== 'unintelligible' ? html`
-        <label for="e02-correction">${t.correction}</label>
-        <textarea id="e02-correction" class="correction-input" .value=${this.correctionDraft} maxlength=${E02_AUDIO_UI_LIMITS.maxCorrectionChars} @input=${(event: Event) => this.correctionDraft = (event.currentTarget as HTMLTextAreaElement).value}></textarea>
+        <label for=${`${this.controlId}-correction`}>${t.correction}</label>
+        <textarea id=${`${this.controlId}-correction`} class="correction-input" .value=${this.correctionDraft} maxlength=${E02_AUDIO_UI_LIMITS.maxCorrectionChars} @input=${(event: Event) => this.correctionDraft = (event.currentTarget as HTMLTextAreaElement).value}></textarea>
         <button class="primary" @click=${this.saveCorrection} ?disabled=${this.busy === 'correct' || !this.correctionDraft.trim()}>${this.busy === 'correct' ? t.saving : t.save}</button>
       ` : nothing}
-      ${selected ? html`<div class="interpret-request"><p class="notice">${t.reinterpretNotice}</p><label for="e02-interpretation-request">${t.interpretationRequest}</label>
-        <textarea id="e02-interpretation-request" .value=${this.interpretationRequest} maxlength=${E02_AUDIO_UI_LIMITS.maxInterpretationRequestChars} @input=${(event: Event) => this.interpretationRequest = (event.currentTarget as HTMLTextAreaElement).value}></textarea>
+      ${selected ? html`<div class="interpret-request"><p class="notice">${t.reinterpretNotice}</p><label for=${`${this.controlId}-interpretation-request`}>${t.interpretationRequest}</label>
+        <textarea id=${`${this.controlId}-interpretation-request`} .value=${this.interpretationRequest} maxlength=${E02_AUDIO_UI_LIMITS.maxInterpretationRequestChars} @input=${(event: Event) => this.interpretationRequest = (event.currentTarget as HTMLTextAreaElement).value}></textarea>
         <button class="primary" @click=${this.requestInterpretation} ?disabled=${this.busy === 'interpret' || !this.interpretationRequest.trim()}>${this.busy === 'interpret' ? t.interpreting : t.interpret}</button></div>` : nothing}
     </section>`;
   }
