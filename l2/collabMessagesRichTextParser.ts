@@ -487,16 +487,16 @@ export function parseInlineRichText(input: string, skipCodeBlock: boolean = fals
     }
 
     /* ───────────── FLUSH ───────────── */
-    if (buffer) {
-        if (state === 'INLINE_CODE') {
-            // Inline code não fechado - retorna como texto normal incluindo o backtick inicial
-            tokens.push({ type: 'text', value: '`' + buffer });
-        } else if (state === 'CODE_BLOCK') {
-            // Code block não fechado - retorna como texto normal
-            tokens.push({ type: 'text', value: codeBlockStart + buffer });
-        } else {
-            tokens.push({ type: 'text', value: buffer });
-        }
+    // Unclosed markers are returned even with an empty buffer: dropping them makes the
+    // rendered text shorter than the input (a lone backtick would vanish).
+    if (state === 'INLINE_CODE') {
+        // Inline code não fechado - retorna como texto normal incluindo o backtick inicial
+        tokens.push({ type: 'text', value: '`' + buffer });
+    } else if (state === 'CODE_BLOCK') {
+        // Code block não fechado - retorna como texto normal
+        tokens.push({ type: 'text', value: codeBlockStart + buffer });
+    } else if (buffer) {
+        tokens.push({ type: 'text', value: buffer });
     }
 
     return tokens;

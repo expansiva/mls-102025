@@ -76,6 +76,9 @@ collab-messages-prompt-102025 {
             min-width: 0;
             
             textarea {
+                // Block, not the default inline-block: an inline textarea leaves a line gap
+                // below it, making the container (and the overlay) taller than the textarea.
+                display: block;
                 padding: 9px 13px;
                 border: 1px solid transparent;
                 background-color: var(--cm-input-bg, #ffffff);
@@ -111,8 +114,12 @@ collab-messages-prompt-102025 {
             // ─────────────────────────────────────────────
             // Rich Preview Mode
             // ─────────────────────────────────────────────
+            // The caret belongs to the transparent textarea, the visible text to the overlay.
+            // Both must lay out the same characters with the same widths: nothing inside the
+            // overlay may change font weight/style/size, letter spacing or inline box sizes.
             &.rich-preview-enabled {
                 textarea {
+                    scrollbar-gutter: stable;
                     background: transparent;
                     color: transparent;
                     caret-color: var(--cm-text, #111827);
@@ -138,6 +145,7 @@ collab-messages-prompt-102025 {
                     pointer-events: none;
                     overflow-y: auto;
                     overflow-x: hidden;
+                    scrollbar-gutter: stable;
                     z-index: 1;
                     background-color: var(--cm-input-bg, #ffffff);
                     color: var(--cm-text, #111827);
@@ -152,13 +160,14 @@ collab-messages-prompt-102025 {
                     word-spacing: normal;
                     white-space: pre-wrap;
                     word-wrap: break-word;
-                    word-break: break-word;
                     -webkit-text-size-adjust: 100%;
                     text-rendering: auto;
-    
+
                     * {
                         font-family: inherit;
                         font-size: inherit;
+                        font-weight: inherit;
+                        font-style: inherit;
                         line-height: inherit;
                         letter-spacing: inherit;
                         word-spacing: inherit;
@@ -219,14 +228,15 @@ collab-messages-prompt-102025 {
                         color: var(--cm-text-muted, #5b635f);
                     }
                     
-                    // Bold -
+                    // Bold and italic are shown by color/background only: real bold or italic
+                    // glyphs are wider and push the caret away from the visible text.
                     strong {
-                        font-weight: bold;
                         color: var(--cm-text, #111827);
+                        background-color: var(--cm-soft-overlay, rgba(29, 28, 29, 0.07));
+                        border-radius: 2px;
                     }
-                    
+
                     em {
-                        font-style: italic;
                         color: #c2185b;
                         background-color: var(--cm-soft-overlay, rgba(29, 28, 29, 0.05));
                         border-radius: 2px;

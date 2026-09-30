@@ -16,13 +16,11 @@ import {
 } from '/_102025_/l2/collabMessagesHelper.js';
 import {
     acceptNotificationOffer,
-    consumeSystemNotificationShown,
     dismissNotificationOffer,
     getNotificationOffer,
     applyNotificationTraceFromStorage,
     initNotifications,
     listenToThreadEvents,
-    markSystemNotificationShown,
     resetNotificationSession,
     setNotificationSoundForTests,
     shouldPlayPageNotificationSound,
@@ -511,25 +509,16 @@ test('not16 T5: beatOnce does not call the heartbeat action without userId', asy
     }
 });
 
-test('T6: page does not play sound when the system notification was shown', () => {
+test('T6: page plays sound even when the system notification was shown', () => {
     resetNotificationSession();
     try {
-        assert.equal(shouldPlayPageNotificationSound({
-            audioEnabled: true,
-            hasSound: true,
-            systemNotificationShown: false,
-        }), true);
-        markSystemNotificationShown('thread-1');
-        assert.equal(shouldPlayPageNotificationSound({
-            audioEnabled: true,
-            hasSound: true,
-            systemNotificationShown: consumeSystemNotificationShown('thread-1'),
-        }), false);
-        assert.equal(consumeSystemNotificationShown('thread-1'), false);
+        assert.equal(shouldPlayPageNotificationSound({ audioEnabled: true, hasSound: true }), true);
+        assert.equal(shouldPlayPageNotificationSound({ audioEnabled: false, hasSound: true }), false);
+        assert.equal(shouldPlayPageNotificationSound({ audioEnabled: true, hasSound: false }), false);
         const source = readFileSync(join(here, 'collabMessagesSyncNotifications.ts'), 'utf8');
         assert.match(source, /shouldPlayPageNotificationSound/);
         assert.match(source, /system-notification-shown/);
-        assert.match(source, /consumeSystemNotificationShown/);
+        assert.doesNotMatch(source, /reason: 'system-shown'/);
     } finally {
         resetNotificationSession();
     }

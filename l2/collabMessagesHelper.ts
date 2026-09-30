@@ -259,7 +259,7 @@ export function saveNotificationPreferencesAudio(enable: boolean) {
 
 export function loadNotificationPreferencesAudio(): boolean {
     const lsData = loadLocalStorage();
-    if (lsData && lsData.notificationAudio) return lsData.notificationAudio;
+    if (lsData && typeof lsData.notificationAudio === 'boolean') return lsData.notificationAudio;
     return true;
 }
 

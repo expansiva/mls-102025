@@ -85,8 +85,6 @@ let notificationSoundUnlocked = false;
 const SOUND_UNLOCK_EVENTS = ['click', 'keydown', 'touchstart'] as const;
 let soundUnlockHandler: ((event: Event) => void) | null = null;
 const pendingNotificationThreads = new Set<string>();
-/** Counts of OS notifications the SW already showed, keyed by threadId. One aviso per message. */
-const systemNotificationShownByThread = new Map<string, number>();
 const pendingTaskRoomNotifications = new Set<string>();
 const pendingTaskRoomParentThreads = new Map<string, string>();
 
@@ -235,7 +233,6 @@ export function resetNotificationSession(): void {
 	acceptedThisSession = false;
 	listeningToThreadEvents = false;
 	notificationOffer = 'none';
-	systemNotificationShownByThread.clear();
 	stopPresenceHeartbeat();
 	unbindSoundUnlock();
 	notificationSound = null;
@@ -397,26 +394,12 @@ export function startPageNotificationSound(threadId: string, reference: string):
 		});
 }
 
-export function markSystemNotificationShown(threadId: string): void {
-	if (!threadId) return;
-	systemNotificationShownByThread.set(threadId, (systemNotificationShownByThread.get(threadId) ?? 0) + 1);
-}
-
-export function consumeSystemNotificationShown(threadId: string): boolean {
-	const n = systemNotificationShownByThread.get(threadId) ?? 0;
-	if (n <= 0) return false;
-	if (n === 1) systemNotificationShownByThread.delete(threadId);
-	else systemNotificationShownByThread.set(threadId, n - 1);
-	return true;
-}
-
-/** One aviso per message: if the SW showed the OS notification, the page does not play too. */
+/** The page is the only sound source: the OS notification never silences it. */
 export function shouldPlayPageNotificationSound(opts: {
 	audioEnabled: boolean;
 	hasSound: boolean;
-	systemNotificationShown: boolean;
 }): boolean {
-	return opts.audioEnabled && opts.hasSound && !opts.systemNotificationShown;
+	return opts.audioEnabled && opts.hasSound;
 }
 
 async function waitForPushCapability(): Promise<boolean> {
@@ -520,7 +503,6 @@ export async function listenToThreadEvents() {
 
 			if (event.data?.type === 'system-notification-shown') {
 				const threadId = event.data.data?.threadId || String(event.data.data?.reference || '').split(':')[0];
-				if (threadId) markSystemNotificationShown(threadId);
 				traceNotification('push.shown', { reference: incomingReference, threadId });
 				return;
 			}
@@ -958,18 +940,16 @@ async function showThreadNotificationIfNeeded(target: NotificationTarget) {
 	notifyThreadNotification(true);
 
 	const audioEnabled = loadNotificationPreferencesAudio();
-	const skipSound = consumeSystemNotificationShown(threadId);
 	const soundReference = target.sourceThreadId;
 	if (shouldPlayPageNotificationSound({
 		audioEnabled,
 		hasSound: !!notificationSound,
-		systemNotificationShown: skipSound,
 	}) && notificationSound) {
 		startPageNotificationSound(threadId, soundReference);
-	} else if (skipSound) {
-		traceNotification('sound.blocked', { reference: soundReference, threadId, reason: 'system-shown' });
 	} else if (!audioEnabled) {
 		traceNotification('sound.blocked', { reference: soundReference, threadId, reason: 'audio-disabled' });
+	} else {
+		traceNotification('sound.blocked', { reference: soundReference, threadId, reason: 'no-sound' });
 	}
 }
 

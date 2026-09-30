@@ -12,8 +12,12 @@ import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 import '/_102025_/l2/collabMessagesAvatar.js';
-import { parseInlineRichText } from '/_102025_/l2/collabMessagesRichTextParser.js';
-import type { RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
+import {
+    buildOverlaySegments,
+    needsTrailingSentinel,
+    OVERLAY_TRAILING_SENTINEL,
+} from '/_102025_/l2/collabMessagesPromptOverlay.js';
+import type { OverlaySegment } from '/_102025_/l2/collabMessagesPromptOverlay.js';
 import {
     applySmartNewline,
     indentSelection,
@@ -283,14 +287,6 @@ export class CollabMessagesPrompt extends StateLitElement {
         if (this.textArea) {
             const prevHeight = this.textArea.offsetHeight;
 
-            if (!this.text || this.text.trim() === '') {
-                this.textArea.style.height = `${minHeight}px`;
-            } else {
-                this.textArea.style.height = 'auto';
-                const newCalculatedHeight = Math.max(minHeight, Math.min(this.textArea.scrollHeight, maxHeight));
-                this.textArea.style.height = `${newCalculatedHeight}px`;
-            }
-
             this.textArea.style.height = 'auto';
 
             const newCalculatedHeight = Math.max(minHeight, Math.min(this.textArea.scrollHeight, maxHeight));
@@ -321,51 +317,37 @@ export class CollabMessagesPrompt extends StateLitElement {
     // Rich preview rendering (usa parser compartilhado)
     // ─────────────────────────────────────────────────────────────
 
-    private renderRichToken(token: RichToken): ReturnType<typeof html> {
-        const marker = (m?: string) => m ? html`<span class="marker">${m}</span>` : nothing;
-
-        switch (token.type) {
-            case 'text':
-                return html`${token.value.split('\n').map((part, idx) =>
-                    idx === 0 ? html`${part}` : html`<br />${part}`
-                )}`;
+    // Each segment is drawn with its text untouched; the overlay CSS must not change glyph widths.
+    private renderOverlaySegment(segment: OverlaySegment): ReturnType<typeof html> {
+        switch (segment.kind) {
+            case 'newline':
+                return html`<br />`;
+            case 'marker':
+                return html`<span class="marker">${segment.text}</span>`;
             case 'bold':
-                return html`${marker(token.markerStart)}<strong>${token.value}</strong>${marker(token.markerEnd)}`;
+                return html`<strong>${segment.text}</strong>`;
             case 'italic':
-                return html`${marker(token.markerStart)}<em>${token.value}</em>${marker(token.markerEnd)}`;
+                return html`<em>${segment.text}</em>`;
             case 'strike':
-                return html`${marker(token.markerStart)}<del>${token.value}</del>${marker(token.markerEnd)}`;
+                return html`<del>${segment.text}</del>`;
             case 'inline-code':
-                return html`${marker(token.markerStart)}<code class="inline-code">${token.value}</code>${marker(token.markerEnd)}`;
-            case 'mention':
-                return html`<span class="mention-preview">@${token.value}</span>`;
-            case 'agent':
-                return html`<span class="agent-preview">@@${token.value}</span>`;
-            case 'channel':
-                return html`<span class="channel-preview">#${token.value}</span>`;
-            case 'command':
-                return html`<span class="command-preview">/${token.value}</span>`;
-            case 'help':
-                return html`<span class="help-preview">?${token.value}</span>`;
-            case 'link':
-                return html`<span class="link-preview">[${token.text}](${token.url})</span>`;
-            case 'raw-link':
-                return html`<span class="link-preview">${token.url}</span>`;
+                return html`<code class="inline-code">${segment.text}</code>`;
             case 'code-block':
-                return html`${marker(token.markerStart)}<span class="code-block-preview">${token.value}</span>${marker(token.markerEnd)}`;
-            case 'blockquote':
-                return html`${token.lines.map((line, index) => html`${index > 0 ? html`<br />` : nothing}<span class="blockquote-marker-preview">&gt; </span>${line.map(child => this.renderRichToken(child))}`)}`;
-            case 'list':
-                return html`${token.items.map((item, index) => html`${index > 0 ? html`<br />` : nothing}<span class="list-marker-preview">${item.marker} </span>${item.children.map(child => this.renderRichToken(child))}`)}`;
+                return html`<span class="code-block-preview">${segment.text}</span>`;
+            case 'mention':
+            case 'agent':
+            case 'channel':
+            case 'command':
+            case 'help':
+            case 'link':
+                return html`<span class="${segment.kind}-preview">${segment.text}</span>`;
             default:
-                return html``;
+                return html`${segment.text}`;
         }
     }
 
     private renderRichOverlay() {
-        const lines = this.text.split(/\r?\n/);
-
-        return html`${lines.map((line, index) => html`${index > 0 ? html`<br />` : nothing}${parseInlineRichText(line, true).map(token => this.renderRichToken(token))}`)}`;
+        return html`${buildOverlaySegments(this.text).map(segment => this.renderOverlaySegment(segment))}${needsTrailingSentinel(this.text) ? OVERLAY_TRAILING_SENTINEL : nothing}`;
     }
 
 
@@ -375,7 +357,6 @@ export class CollabMessagesPrompt extends StateLitElement {
         this.msg = messages[lang];
 
         return html`
-            </div>
                 ${this.renderReply()}
                 ${this.renderToolbar()}
 
