@@ -15,6 +15,7 @@ import {
 } from '/_102025_/l2/collabMessagesEvents.js';
 
 import { addThread, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { msgEnsureHumanDm } from '/_102025_/l2/collabMessagesHumanDmApi.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
 import {
     isNotificationPermissionDenied,
@@ -495,6 +496,22 @@ export async function createThreadDM(
         console.error(err);
         throw new Error(err.message || 'Failed to create DM thread');
     }
+}
+
+/** DM humana idempotente. Só grava cache depois do ok; falha não persiste nada. */
+export async function ensureHumanDmThread(
+    userId: string,
+    recipientUserId: string,
+    group: msg.ThreadGroup
+): Promise<msg.ThreadPerformanceCache> {
+    const result = await msgEnsureHumanDm({ userId, recipientUserId, group });
+    if (!result.ok) {
+        throw new Error(result.message);
+    }
+
+    const thr = await addThread(result.thread as msg.Thread);
+    notifyThreadCreate(thr);
+    return thr;
 }
 
 export function formatTimestamp(timestamp: string) {

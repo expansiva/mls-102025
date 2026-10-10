@@ -2,7 +2,7 @@
 
 import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { createThreadDM, getDmThreadByUsers } from '/_102025_/l2/collabMessagesHelper.js';
+import { ensureHumanDmThread } from '/_102025_/l2/collabMessagesHelper.js';
 import { dispatchThreadOpen } from '/_102025_/l2/collabMessagesEvents.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
@@ -113,15 +113,12 @@ export class CollabMessagesUserModal extends StateLitElement {
         if (!this.actualUserId || !this.user) return;
         this.isLoading = true;
         try {
-            let thread = await getDmThreadByUsers(this.actualUserId, this.user.userId);
-            if (!thread) {
-                const threadName = `@${this.user.name}`;
-                thread = await createThreadDM(threadName, this.user.userId, 'CONNECT');
-            }
+            const thread = await ensureHumanDmThread(this.actualUserId, this.user.userId, 'CONNECT');
             this.destroy();
-            if (thread) dispatchThreadOpen(thread?.threadId);
+            dispatchThreadOpen(thread.threadId);
 
         } catch (err: any) {
+            console.error(err);
             this.errorMessage = err.message;
         } finally {
             this.isLoading = false;

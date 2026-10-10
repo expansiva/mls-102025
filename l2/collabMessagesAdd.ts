@@ -6,9 +6,9 @@ import { notifyThreadChange, notifyThreadCreate } from '/_102025_/l2/collabMessa
 import { addThread, updateThread, getUser } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import {
     getUserId,
-    getDmThreadByUsers,
     addMessage,
     createThreadDM,
+    ensureHumanDmThread,
     findAgentInIntegrationsByUserId
 } from '/_102025_/l2/collabMessagesHelper.js';
 
@@ -483,18 +483,13 @@ export class CollabMessagesAdd extends StateLitElement {
 
             try {
 
-                const alreadyExistThread = await getDmThreadByUsers(this.userId, this.dmUser);
-                if (alreadyExistThread) {
-                    this.labelError = this.msg.threadDmAlreadyExist;
-                    this.isLoading = false;
-                    return;
-                }
-
                 const infoDm = await findAgentInIntegrationsByUserId(this.dmUser);
-                let isDmToAgent: boolean = !!infoDm;
+                const isDmToAgent: boolean = !!infoDm;
 
-                
-                const thread = await createThreadDM(threadName, this.dmUser, this.group);
+                const thread = isDmToAgent
+                    ? await createThreadDM(threadName, this.dmUser, this.group)
+                    : await ensureHumanDmThread(this.userId, this.dmUser, this.group);
+
                 if (isDmToAgent && infoDm) {
 
                     const params: msg.RequestAddOrUpdateThreadOpenClawAgent = {
