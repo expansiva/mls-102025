@@ -1,9 +1,160 @@
-/// <mls fileReference="_102025_/l2/collabMessagesMoments.less" enhancement="_102027_/l2/enhancementStyle" />
+/// <mls fileReference="_102025_/l2/collabMessagesMoments.less" enhancement="enhancementStyle"/>
 
 collab-messages-moments-102025 {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
 
-// Here your less
+    .moments-shell {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
 
- }
+    .moments-top {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 0.5rem 0.75rem;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: @surface-bg;
 
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
 
+            svg {
+                width: 18px;
+                height: 18px;
+                fill: currentColor;
+                stroke: currentColor;
+            }
+        }
+    }
+
+    .moments-new {
+        display: block;
+        margin: 0 auto 0.5rem;
+        padding: 0.35rem 0.8rem;
+        border: 0;
+        border-radius: 999px;
+        background: @surface-alt-bg;
+        cursor: pointer;
+    }
+
+    .moments-feed {
+        flex: 1;
+        min-height: 0;
+        height: 100%;
+        overflow-y: auto;
+        scroll-snap-type: y mandatory;
+    }
+
+    .moment-card,
+    .moment-end {
+        scroll-snap-align: start;
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    .moment-card {
+        display: flex;
+        flex-direction: column;
+        padding: 1rem 1.25rem 1.5rem;
+    }
+
+    .moment-head {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .moment-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: @surface-alt-bg;
+        display: inline-block;
+    }
+
+    .moment-name {
+        font-weight: 600;
+    }
+
+    .moment-date {
+        margin-left: auto;
+        opacity: 0.7;
+        font-size: 0.85rem;
+    }
+
+    .moment-body {
+        flex: 1;
+        overflow: auto;
+        padding: 1rem 0;
+    }
+
+    .moment-foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .moment-reaction,
+    .moment-reach {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        background: @surface-alt-bg;
+
+        svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+    }
+
+    .moment-end {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        text-align: center;
+
+        button {
+            border: 0;
+            border-radius: 8px;
+            padding: 0.45rem 0.9rem;
+            cursor: pointer;
+        }
+    }
+
+    .moments-status,
+    .moments-placeholder {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+}
