@@ -95,6 +95,32 @@ collab-messages-102025 {
         }
     }
 
+    .no-access {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        color: var(--cm-text);
+
+        p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        button.no-access-action {
+            align-self: flex-start;
+            padding: 0.35rem 0.75rem;
+            width: fit-content;
+            background: var(--cm-green);
+            color: var(--cm-text-on-green);
+            border: none;
+            border-radius: var(--cm-radius-sm);
+            font-size: 13px;
+            cursor: pointer;
+        }
+    }
+
 }
 
 [data-theme="dark"] collab-messages-102025,

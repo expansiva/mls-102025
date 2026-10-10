@@ -60,7 +60,11 @@ const message_pt = {
     offerEnable: 'Ativar',
     moments: 'Moments',
     apps: 'Apps',
-    settings: 'Configurações'
+    settings: 'Configurações',
+    noAccess: 'O e-mail {email} não tem acesso às mensagens desta organização. Peça acesso ao administrador.',
+    signOut: 'Sair',
+    userLoadError: 'Não foi possível carregar o usuário.',
+    retry: 'tentar de novo'
 }
 
 const message_en = {
@@ -76,7 +80,11 @@ const message_en = {
     offerEnable: 'Enable',
     moments: 'Moments',
     apps: 'Apps',
-    settings: 'Settings'
+    settings: 'Settings',
+    noAccess: 'The e-mail {email} has no access to this organization\'s messages. Ask your administrator.',
+    signOut: 'Sign out',
+    userLoadError: 'Could not load the user.',
+    retry: 'try again'
 }
 
 type MessageType = typeof message_en;
@@ -97,6 +105,8 @@ export class CollabMessages extends CollabLitElement {
 
     @state() isLoadingThread: boolean = false;
     @state() userPerfil: msg.User | undefined;
+    @state() noAccessEmail: string = '';
+    @state() userLoadError: string = '';
     @state() userThreads: IThreadData = {}
     @state() showNotificationAlert: boolean = false;
     @state() notificationAlertKind: 'offer' | 'blocked' = 'blocked';
@@ -137,23 +147,7 @@ export class CollabMessages extends CollabLitElement {
         }
 
         if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT'].includes(this.activeTab)) {
-
-            if (!this.userPerfil) {
-                this.userPerfil = await this.getUser();
-                saveUserId(this.userPerfil.userId);
-                await cleanupThreads(this.userPerfil.threads);
-                void initNotifications().then(() => {
-                    if (getNotificationOffer() === 'offer') {
-                        this.notificationAlertKind = 'offer';
-                        this.showNotificationAlert = true;
-                        this.requestUpdate();
-                    }
-                });
-            }
-
-            await this.getThreadFromLocalDB();
-            this.updateThreads();
-            void this.tryOpenFromHash();
+            await this.loadUserAndThreads();
         }
 
         if (changedProperties.has('dataLocal')) {
@@ -272,6 +266,27 @@ export class CollabMessages extends CollabLitElement {
     }
 
     renderTabs() {
+        if (this.noAccessEmail) {
+            const text = this.msg.noAccess.replace('{email}', this.noAccessEmail);
+            const showSignOut = this.hasRuntimeSession();
+            return html`
+                <div class="no-access">
+                    <p>${text}</p>
+                    ${showSignOut ? html`<button class="no-access-action" @click=${this.onSignOut}>${this.msg.signOut}</button>` : nothing}
+                </div>
+            `;
+        }
+        if (this.userLoadError) {
+            return html`
+                <div class="no-access">
+                    <p>${this.msg.userLoadError}</p>
+                    <button class="no-access-action" @click=${this.onRetryUserLoad}>${this.msg.retry}</button>
+                </div>
+            `;
+        }
+        if (['CRM', 'TASK', 'DOCS', 'CONNECT'].includes(this.activeTab) && !this.userPerfil) {
+            return html`${this.msg.loading}`;
+        }
         switch (this.activeTab) {
             case 'CRM':
                 return this.renderCRM();
@@ -392,6 +407,64 @@ export class CollabMessages extends CollabLitElement {
 
     private newE01RootSessionKey(): string {
         return `e01-root-${crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`}`;
+    }
+
+    private async loadUserAndThreads() {
+        if (!this.userPerfil) {
+            if (this.noAccessEmail || this.userLoadError) return;
+            try {
+                this.userPerfil = await this.getUser();
+                saveUserId(this.userPerfil.userId);
+                await cleanupThreads(this.userPerfil.threads);
+                void initNotifications().then(() => {
+                    if (getNotificationOffer() === 'offer') {
+                        this.notificationAlertKind = 'offer';
+                        this.showNotificationAlert = true;
+                        this.requestUpdate();
+                    }
+                });
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                console.error(message, err);
+                if (message.includes('no collab-messages user')) {
+                    const fromCookie = this.readLoginUserCookie();
+                    this.noAccessEmail = (fromCookie && fromCookie !== 'anonymous')
+                        ? fromCookie
+                        : this.emailFromNoAccessMessage(message);
+                    return;
+                }
+                this.userLoadError = message;
+                return;
+            }
+        }
+
+        await this.getThreadFromLocalDB();
+        this.updateThreads();
+        void this.tryOpenFromHash();
+    }
+
+    private readLoginUserCookie(): string {
+        const match = document.cookie.match(/(?:^|;\s*)loginUser=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    private hasRuntimeSession(): boolean {
+        const loginUser = this.readLoginUserCookie();
+        return !!loginUser && loginUser !== 'anonymous';
+    }
+
+    private emailFromNoAccessMessage(message: string): string {
+        const match = message.match(/no collab-messages user for id\s+(\S+)/i);
+        return match ? match[1] : '';
+    }
+
+    private onSignOut() {
+        window.location.assign('/exec/logout');
+    }
+
+    private onRetryUserLoad() {
+        this.userLoadError = '';
+        void this.loadUserAndThreads();
     }
 
     private async getUser(): Promise<msg.User> {
