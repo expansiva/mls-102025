@@ -5,16 +5,20 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import {
     msgGetMomentsFeed,
+    msgGetMomentsStats,
     msgMarkMomentSeen,
     momentsStartIndex,
     type MomentsFeedItem,
     type MomentsSeenItem,
+    type MomentsStatsPost,
 } from '/_102025_/l2/collabMessagesMomentsApi.js';
 import { collab_eye, collab_gear, collab_plus, collab_signal } from '/_102025_/l2/collabMessagesIcons.js';
 import { REACTION_EMOJIS } from '/_102025_/l2/collabMessagesReactions.js';
 import { msgUpdateMessage } from '/_102025_/l2/shared/api.js';
 
 import '/_102025_/l2/collabMessagesRichPreviewText.js';
+import '/_102025_/l2/collabMessagesMomentsNew.js';
+import '/_102025_/l2/collabMessagesSettingsMoments.js';
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -28,6 +32,8 @@ const message_pt = {
     retry: 'tentar de novo',
     networkError: 'Não foi possível carregar os moments.',
     reach: 'alcance',
+    reachOf: 'Alcance: {reach} de {audience}',
+    reactions: 'reações',
 }
 
 const message_en = {
@@ -41,6 +47,8 @@ const message_en = {
     retry: 'try again',
     networkError: 'Could not load moments.',
     reach: 'reach',
+    reachOf: 'Reach: {reach} of {audience}',
+    reactions: 'reactions',
 }
 
 type MessageType = typeof message_en;
@@ -71,6 +79,10 @@ export class CollabMessagesMoments102025 extends StateLitElement {
     @state() private loading = false;
     @state() private error = '';
     @state() private hasNewMoments = false;
+    @state() private statsPosts: MomentsStatsPost[] = [];
+    @state() private audience = 0;
+    @state() private statsError = '';
+    @state() private statsLoading = false;
 
     private seenQueue: MomentsSeenItem[] = [];
     private seenKeys = new Set<string>();
@@ -116,6 +128,7 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         if (uid && uid !== this.loadedFor && (changed.has('userId') || changed.has('userPerfil') || !this.loadedFor)) {
             void this.loadFeed();
         }
+        if (changed.has('view') && this.view === 'stats') void this.loadStats();
         if (this.view === 'feed') {
             if (this.pendingScroll) this.scrollToStart();
             this.bindObserver();
@@ -320,14 +333,86 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         `;
     }
 
+    private async loadStats() {
+        const userId = this.currentUserId();
+        if (!userId) return;
+        this.statsLoading = true;
+        this.statsError = '';
+        try {
+            const result = await msgGetMomentsStats({ userId });
+            if (!result.ok) {
+                console.error(result.error);
+                this.statsError = result.error || this.msg.networkError;
+                this.statsPosts = [];
+                return;
+            }
+            this.audience = result.response.audience ?? 0;
+            this.statsPosts = result.response.posts ?? [];
+        } catch (err) {
+            console.error(err);
+            this.statsError = err instanceof Error ? err.message : this.msg.networkError;
+            this.statsPosts = [];
+        } finally {
+            this.statsLoading = false;
+        }
+    }
+
+    private onPublished = () => {
+        this.view = 'feed';
+        void this.loadFeed();
+    };
+
     override render() {
         const lang = this.getMessageKey(messages);
         this.msg = messages[lang];
         return html`
             <div class="moments-shell">
                 ${this.renderTop()}
-                ${this.view !== 'feed' ? html`<div class="moments-placeholder"></div>` : this.renderFeed()}
+                ${this.renderBody()}
             </div>
+        `;
+    }
+
+    private renderBody() {
+        const userId = this.currentUserId();
+        if (this.view === 'new') {
+            return html`
+                <collab-messages-moments-new-102025
+                    .userId=${userId}
+                    @moments-published=${this.onPublished}
+                ></collab-messages-moments-new-102025>
+            `;
+        }
+        if (this.view === 'stats') return this.renderStats();
+        if (this.view === 'publishers') {
+            return html`<collab-messages-settings-moments-102025></collab-messages-settings-moments-102025>`;
+        }
+        return this.renderFeed();
+    }
+
+    private renderStats() {
+        if (this.statsLoading && this.statsPosts.length === 0 && !this.statsError) {
+            return html`<p class="moments-status">${this.msg.loading}</p>`;
+        }
+        if (this.statsError) {
+            return html`
+                <div class="moments-status">
+                    <p>${this.statsError}</p>
+                    <button type="button" @click=${() => { void this.loadStats(); }}>${this.msg.retry}</button>
+                </div>
+            `;
+        }
+        return html`
+            <ul class="moments-stats">
+                ${this.statsPosts.map((post) => html`
+                    <li>
+                        <p>${this.msg.reachOf.replace('{reach}', String(post.reach)).replace('{audience}', String(this.audience))}</p>
+                        <p>${post.preview}</p>
+                        <time>${this.formatWhen(post.createAt)}</time>
+                        <span>${post.reactions} ${this.msg.reactions}</span>
+                    </li>
+                `)}
+            </ul>
         `;
     }
 

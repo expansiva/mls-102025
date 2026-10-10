@@ -1,0 +1,54 @@
+/// <mls fileReference="_102025_/l2/collabMessagesMomentsNew.less" enhancement="enhancementStyle"/>
+
+collab-messages-moments-new-102025 {
+    display: block;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    box-sizing: border-box;
+
+    .moments-new-editor,
+    .moments-new-status {
+        padding: 0.75rem 1rem 1.5rem;
+    }
+
+    .moments-new-error {
+        color: @text-color;
+    }
+
+    .moments-readers {
+        margin-top: 1rem;
+
+        ul {
+            list-style: none;
+            margin: 0.5rem 0;
+            padding: 0;
+        }
+
+        li + li {
+            margin-top: 0.35rem;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        img {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        button {
+            border: 0;
+            border-radius: 8px;
+            padding: 0.4rem 0.8rem;
+            background: @surface-alt-bg;
+            color: inherit;
+            cursor: pointer;
+        }
+    }
+}
