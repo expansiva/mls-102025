@@ -146,7 +146,7 @@ export class CollabMessages extends CollabLitElement {
             this.e01RootSessionKey = this.newE01RootSessionKey();
         }
 
-        if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT'].includes(this.activeTab)) {
+        if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT', 'MOMENTS'].includes(this.activeTab)) {
             await this.loadUserAndThreads();
         }
 
@@ -284,7 +284,7 @@ export class CollabMessages extends CollabLitElement {
                 </div>
             `;
         }
-        if (['CRM', 'TASK', 'DOCS', 'CONNECT'].includes(this.activeTab) && !this.userPerfil) {
+        if (['CRM', 'TASK', 'DOCS', 'CONNECT', 'MOMENTS'].includes(this.activeTab) && !this.userPerfil) {
             return html`${this.msg.loading}`;
         }
         switch (this.activeTab) {
@@ -366,7 +366,10 @@ export class CollabMessages extends CollabLitElement {
     renderMoments() {
         this.groupSelected = 'MOMENTS';
         // this.execCoachMarks('Moments');
-        return html`<collab-messages-moments-102025 ></collab-messages-moments-102025>`
+        return html`<collab-messages-moments-102025
+            .userId=${this.userPerfil?.userId}
+            .userPerfil=${this.userPerfil}
+        ></collab-messages-moments-102025>`
     }
 
     renderApps() {
