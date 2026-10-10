@@ -8,10 +8,11 @@ import '/_102025_/l2/collabMessagesSettingsOpenClaw.js';
 import '/_102025_/l2/collabMessagesSettingsChatPreferences.js';
 import '/_102025_/l2/collabMessagesSettingsUser.js';
 import '/_102025_/l2/collabMessagesSettingsNotificationPreferences.js';
+import '/_102025_/l2/collabMessagesSettingsMoments.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { msgGetUserUpdate } from '/_102025_/l2/shared/api.js';
 
-type ViewMode = 'all' | 'user' | 'chat' | 'notification' | 'openclaw';
+type ViewMode = 'all' | 'user' | 'chat' | 'notification' | 'openclaw' | 'moments';
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -71,7 +72,15 @@ export class CollabMessagesSettingsGeral102025 extends StateLitElement {
         <section style=${this.show('openclaw') ? 'display:block' : 'display:none'}>
             ${this.renderOpenClawConnectors()}
         </section>
+
+        <section style=${this.show('moments') ? 'display:block' : 'display:none'}>
+            ${this.renderMoments()}
+        </section>
     `;
+    }
+
+    private renderMoments() {
+        return html`<collab-messages-settings-moments-102025></collab-messages-settings-moments-102025>`;
     }
 
     private renderUser() {
