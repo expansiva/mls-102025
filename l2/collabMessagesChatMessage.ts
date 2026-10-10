@@ -37,6 +37,7 @@ import { deserializeUserMentions, serializeUserMentions } from '/_102025_/l2/col
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import { IChatPreferences, IMessage, IThreadInfo } from '/_102025_/l2/collabMessagesHelper.js';
+import { REACTION_EMOJIS } from '/_102025_/l2/collabMessagesReactions.js';
 import '/_102025_/l2/collabMessagesE01Context.js';
 import '/_102025_/l2/collabMessagesE02Audio.js';
 
@@ -232,16 +233,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     private readonly documentClickHandler = (ev: MouseEvent) => this.onDocumentClick(ev);
     private readonly documentScrollHandler = () => this.closeLocalPopups();
 
-    private readonly reactionEmojis: Record<string, string> = {
-        running: '🏃',
-        thinking: '🤔',
-        thumbs_up: '👍',
-        laugh: '😂',
-        heart: '❤️',
-        wow: '😮',
-        sad: '😢',
-        angry: '😡'
-    } as const;
+    private readonly reactionEmojis = REACTION_EMOJIS;
 
     connectedCallback() {
         super.connectedCallback();

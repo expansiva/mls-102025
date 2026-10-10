@@ -11,6 +11,8 @@ import {
     type MomentsSeenItem,
 } from '/_102025_/l2/collabMessagesMomentsApi.js';
 import { collab_eye, collab_gear, collab_plus, collab_signal } from '/_102025_/l2/collabMessagesIcons.js';
+import { REACTION_EMOJIS } from '/_102025_/l2/collabMessagesReactions.js';
+import { msgUpdateMessage } from '/_102025_/l2/shared/api.js';
 
 import '/_102025_/l2/collabMessagesRichPreviewText.js';
 
@@ -246,8 +248,43 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         `;
     }
 
+    private async toggleReaction(item: MomentsFeedItem, reaction: string) {
+        const userId = this.currentUserId();
+        if (!userId) return;
+        const previous = item.message.reactions;
+        const current = previous ?? {};
+        const next: Record<string, string[]> = {};
+        for (const [name, users] of Object.entries(current)) {
+            const filtered = users.filter((id) => id !== userId);
+            if (filtered.length) next[name] = filtered;
+        }
+        if (!current[reaction]?.includes(userId)) {
+            next[reaction] = [...(next[reaction] ?? []), userId];
+        }
+        const apply = (reactions: MomentsFeedItem['message']['reactions']) => {
+            item.message = { ...item.message, reactions };
+            this.items = this.items.map((row) => row === item ? { ...row, message: item.message } : row);
+        };
+        apply(Object.keys(next).length ? next : undefined);
+        try {
+            const result = await msgUpdateMessage({
+                messageId: item.message.orderAt,
+                threadId: item.threadId,
+                userId,
+                reaction,
+            });
+            if (!result.success || !result.response?.message) {
+                throw new Error(result.error || 'Failed to update message reaction');
+            }
+        } catch (err) {
+            console.error(err);
+            apply(previous);
+        }
+    }
+
     private renderCard(item: MomentsFeedItem, index: number) {
-        const reactions = Object.entries(item.message.reactions ?? {});
+        const userId = this.currentUserId();
+        const reactions = item.message.reactions ?? {};
         return html`
             <article class="moment-card" data-index=${index}>
                 <header class="moment-head">
@@ -261,7 +298,13 @@ export class CollabMessagesMoments102025 extends StateLitElement {
                     <collab-messages-rich-preview-text-102025 .text=${item.message.content}></collab-messages-rich-preview-text-102025>
                 </div>
                 <footer class="moment-foot">
-                    ${reactions.map(([emoji, users]) => html`<span class="moment-reaction">${emoji} ${users.length}</span>`)}
+                    ${Object.entries(REACTION_EMOJIS).map(([name, emoji]) => html`
+                        <button
+                            type="button"
+                            class="moment-reaction ${reactions[name]?.includes(userId) ? 'is-mine' : ''}"
+                            @click=${() => { void this.toggleReaction(item, name); }}
+                        >${emoji} ${reactions[name]?.length ?? 0}</button>
+                    `)}
                     ${this.isOwn(item) ? html`<span class="moment-reach">${collab_eye} ${item.reach ?? 0}</span>` : nothing}
                 </footer>
             </article>
