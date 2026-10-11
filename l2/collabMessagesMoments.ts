@@ -12,7 +12,7 @@ import {
     type MomentsSeenItem,
     type MomentsStatsPost,
 } from '/_102025_/l2/collabMessagesMomentsApi.js';
-import { collab_eye, collab_gear, collab_plus, collab_signal } from '/_102025_/l2/collabMessagesIcons.js';
+import { collab_chevron_left, collab_eye, collab_gear, collab_plus, collab_signal } from '/_102025_/l2/collabMessagesIcons.js';
 import { REACTION_EMOJIS } from '/_102025_/l2/collabMessagesReactions.js';
 import { msgUpdateMessage } from '/_102025_/l2/shared/api.js';
 
@@ -31,6 +31,7 @@ const message_pt = {
     newMoments: 'Novos moments',
     retry: 'tentar de novo',
     networkError: 'Não foi possível carregar os moments.',
+    back: 'Voltar',
     reach: 'alcance',
     reachOf: 'Alcance: {reach} de {audience}',
     reactions: 'reações',
@@ -46,6 +47,7 @@ const message_en = {
     newMoments: 'New moments',
     retry: 'try again',
     networkError: 'Could not load moments.',
+    back: 'Back',
     reach: 'reach',
     reachOf: 'Reach: {reach} of {audience}',
     reactions: 'reactions',
@@ -243,6 +245,11 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         this.dispatchEvent(new CustomEvent('moments-action', { detail: action, bubbles: true }));
     }
 
+    private backToFeed() {
+        this.view = 'feed';
+        void this.loadFeed();
+    }
+
     private formatWhen(value: string): string {
         if (!/^\d{14}/.test(value)) return value;
         return `${value.slice(6, 8)}/${value.slice(4, 6)}/${value.slice(0, 4)} ${value.slice(8, 10)}:${value.slice(10, 12)}`;
@@ -251,6 +258,9 @@ export class CollabMessagesMoments102025 extends StateLitElement {
     private renderTop() {
         return html`
             <header class="moments-top">
+                ${this.view === 'feed' ? nothing : html`
+                    <button type="button" class="moments-back" title=${this.msg.back} @click=${() => this.backToFeed()}>${collab_chevron_left}</button>
+                `}
                 <button type="button" title=${this.msg.newMoment} @click=${() => this.openView('new')}>${collab_plus}</button>
                 <button type="button" title=${this.msg.stats} @click=${() => this.openView('stats')}>${collab_signal}</button>
                 <button type="button" title=${this.msg.publishers} @click=${() => this.openView('publishers')}>${collab_gear}</button>
@@ -405,10 +415,10 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         return html`
             <ul class="moments-stats">
                 ${this.statsPosts.map((post) => html`
-                    <li>
-                        <p>${this.msg.reachOf.replace('{reach}', String(post.reach)).replace('{audience}', String(this.audience))}</p>
-                        <p>${post.preview}</p>
+                    <li class="moments-stats-card">
                         <time>${this.formatWhen(post.createAt)}</time>
+                        <collab-messages-rich-preview-text-102025 .text=${post.preview}></collab-messages-rich-preview-text-102025>
+                        <p>${this.msg.reachOf.replace('{reach}', String(post.reach)).replace('{audience}', String(this.audience))}</p>
                         <span>${post.reactions} ${this.msg.reactions}</span>
                     </li>
                 `)}
