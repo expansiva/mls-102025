@@ -41,10 +41,19 @@ export interface RequestEnsureMomentsRoom extends RequestBase {
 	userId: string;
 }
 
+export type MomentsAudience = 'all' | 'selected';
+
+export interface MomentsUserOption {
+	userId: string;
+	name: string;
+	isAgent?: boolean;
+}
+
 export interface ResponseEnsureMomentsRoom {
 	statusCode: number;
 	msg?: string;
 	thread: Thread;
+	audience: MomentsAudience;
 }
 
 export interface RequestSetMomentsReaders extends RequestBase {
@@ -58,6 +67,19 @@ export interface ResponseSetMomentsReaders {
 	statusCode: number;
 	msg?: string;
 	thread: Thread;
+}
+
+export interface RequestSetMomentsAudience extends RequestBase {
+	action: 'setMomentsAudience';
+	userId: string;
+	audience: MomentsAudience;
+}
+
+export interface ResponseSetMomentsAudience {
+	statusCode: number;
+	msg?: string;
+	thread: Thread;
+	audience: MomentsAudience;
 }
 
 export interface RequestGetMomentsFeed extends RequestBase {
@@ -153,6 +175,10 @@ export function msgEnsureMomentsRoom(args: Omit<RequestEnsureMomentsRoom, 'actio
 
 export function msgSetMomentsReaders(args: Omit<RequestSetMomentsReaders, 'action'>) {
 	return call<ResponseSetMomentsReaders>({ action: 'setMomentsReaders', ...args });
+}
+
+export function msgSetMomentsAudience(args: Omit<RequestSetMomentsAudience, 'action'>) {
+	return call<ResponseSetMomentsAudience>({ action: 'setMomentsAudience', ...args });
 }
 
 export function msgGetMomentsFeed(args: Omit<RequestGetMomentsFeed, 'action'>) {
