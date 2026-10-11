@@ -102,7 +102,7 @@ export class CollabMessagesMomentsNew102025 extends StateLitElement {
                 this.users = [];
             } else {
                 const listed = people.response.users as MomentsUserOption[];
-                this.users = listed.filter((user) => user.userId !== userId && !user.isAgent);
+                this.users = listed.filter((user) => user.isHuman === true && user.userId !== userId);
             }
         } catch (err) {
             console.error(err);

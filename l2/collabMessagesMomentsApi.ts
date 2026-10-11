@@ -47,6 +47,7 @@ export interface MomentsUserOption {
 	userId: string;
 	name: string;
 	isAgent?: boolean;
+	isHuman?: boolean;
 }
 
 export interface ResponseEnsureMomentsRoom {
