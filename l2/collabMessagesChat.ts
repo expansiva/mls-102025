@@ -2236,6 +2236,24 @@ export class CollabMessagesChat extends StateLitElement {
 
         const lastMessages = newMessages[newMessages.length - 1] || this.actualMessages[0];
         await addMessages(newMessages);
+        let maxOrderAt = '';
+        for (const message of newMessages) {
+            const orderAt = message.orderAt || '';
+            if (orderAt > maxOrderAt) maxOrderAt = orderAt;
+        }
+        const currentLastSync = threadInfo.thread.lastSync || '';
+        if (maxOrderAt > currentLastSync) {
+            threadInfo.thread.lastSync = maxOrderAt;
+            const savedThread = await updateThread(
+                threadInfo.thread.threadId,
+                threadInfo.thread,
+                undefined,
+                undefined,
+                undefined,
+                maxOrderAt
+            );
+            threadInfo.thread = savedThread;
+        }
         const preserveUnreadMarker = this.shouldPreserveUnreadMarker(threadInfo.thread.threadId);
         if (lastMessages && this.actualThread && !preserveUnreadMarker) this.actualThread.thread = await updateLastMessageReadTime(threadInfo.thread.threadId, lastMessages.createAt);
         this.actualMessages = this.mergeMessages(this.actualMessages, newMessages);

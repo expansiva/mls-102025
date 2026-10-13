@@ -790,15 +790,6 @@ async function updateThreadInBackground(
 
 		const lastMessageText = `${lastMessage.senderId}:${lastMessage.content}`;
 
-		const thread = await updateThread(
-			threadId,
-			response.thread,
-			lastMessageText,
-			lastMessage.createAt,
-			isNotificationTargetVisible ? 0 : newMessagesFiltered.length + lastUnreadCount,
-			lastMessage.createAt
-		);
-
 		const newMessages: msg.MessagePerformanceCache[] = [];
 
 		for await (let mm of response.messages) {
@@ -814,6 +805,23 @@ async function updateThreadInBackground(
 		}
 
 		await addMessages(newMessages);
+
+		let maxOrderAt = '';
+		for (const message of response.messages) {
+			const orderAt = message.orderAt || '';
+			if (orderAt > maxOrderAt) maxOrderAt = orderAt;
+		}
+		const currentLastSync = threadDB?.lastSync || '';
+		const lastSync = maxOrderAt > currentLastSync ? maxOrderAt : undefined;
+
+		const thread = await updateThread(
+			threadId,
+			response.thread,
+			lastMessageText,
+			lastMessage.createAt,
+			isNotificationTargetVisible ? 0 : newMessagesFiltered.length + lastUnreadCount,
+			lastSync
+		);
 
 		if (isNotificationTargetVisible) {
 			await markThreadReadLocally(threadId, lastMessage.createAt, notificationTarget);
