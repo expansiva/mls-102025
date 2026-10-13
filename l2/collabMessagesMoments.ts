@@ -4,6 +4,7 @@ import { html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import {
+    formatMomentDate,
     msgGetMomentsFeed,
     msgGetMomentsStats,
     msgMarkMomentSeen,
@@ -250,11 +251,6 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         void this.loadFeed();
     }
 
-    private formatWhen(value: string): string {
-        if (!/^\d{14}/.test(value)) return value;
-        return `${value.slice(6, 8)}/${value.slice(4, 6)}/${value.slice(0, 4)} ${value.slice(8, 10)}:${value.slice(10, 12)}`;
-    }
-
     private renderTop() {
         return html`
             <header class="moments-top">
@@ -315,7 +311,7 @@ export class CollabMessagesMoments102025 extends StateLitElement {
                         ? html`<img class="moment-avatar" src=${item.publisher.avatar_url} alt="">`
                         : html`<span class="moment-avatar"></span>`}
                     <span class="moment-name">${item.publisher.name}</span>
-                    <time class="moment-date">${this.formatWhen(item.message.createAt)}</time>
+                    <time class="moment-date">${formatMomentDate(item.message.createAt, this.getMessageKey(messages))}</time>
                 </header>
                 <div class="moment-body">
                     <collab-messages-rich-preview-text-102025 .text=${item.message.content}></collab-messages-rich-preview-text-102025>
@@ -416,7 +412,7 @@ export class CollabMessagesMoments102025 extends StateLitElement {
             <ul class="moments-stats">
                 ${this.statsPosts.map((post) => html`
                     <li class="moments-stats-card">
-                        <time>${this.formatWhen(post.createAt)}</time>
+                        <time>${formatMomentDate(post.createAt, this.getMessageKey(messages))}</time>
                         <collab-messages-rich-preview-text-102025 .text=${post.preview}></collab-messages-rich-preview-text-102025>
                         <p>${this.msg.reachOf.replace('{reach}', String(post.reach)).replace('{audience}', String(this.audience))}</p>
                         <span>${post.reactions} ${this.msg.reactions}</span>

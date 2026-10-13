@@ -202,6 +202,22 @@ export function msgGetMomentsStats(args: Omit<RequestGetMomentsStats, 'action'>)
 	return call<ResponseGetMomentsStats>({ action: 'getMomentsStats', ...args });
 }
 
+/** `createAt` compacto em UTC → data e hora no fuso e idioma pedidos. Fora de `yyyyMMddHHmmss`, devolve como veio. */
+export function formatMomentDate(createAtUtc: string, lang: string, timeZone?: string): string {
+	if (!/^\d{14}/.test(createAtUtc)) return createAtUtc;
+	const utcDate = new Date(Date.UTC(
+		Number(createAtUtc.slice(0, 4)),
+		Number(createAtUtc.slice(4, 6)) - 1,
+		Number(createAtUtc.slice(6, 8)),
+		Number(createAtUtc.slice(8, 10)),
+		Number(createAtUtc.slice(10, 12)),
+		Number(createAtUtc.slice(12, 14)),
+	));
+	const options: Intl.DateTimeFormatOptions = { dateStyle: 'short', timeStyle: 'short' };
+	if (timeZone) options.timeZone = timeZone;
+	return new Intl.DateTimeFormat(lang, options).format(utcDate);
+}
+
 /** Índice do primeiro item não visto; se todos vistos, o comprimento (card de fim). */
 export function momentsStartIndex(items: Array<{ seen: boolean }>): number {
 	const index = items.findIndex((item) => item.seen === false);
