@@ -36,6 +36,7 @@ import {
 } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { msgGetUserUpdate, msgGetThreadUpdates } from '/_102025_/l2/shared/api.js';
 import { ICollabMessageEvent, threadOpenFromHash } from '/_102025_/l2/collabMessagesEvents.js';
+import { OPEN_TAB_EVENT, markMomentsSeen } from '/_102025_/l2/collabMessagesMomentsUnread.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
 import { collab_crm, collab_tasks, collab_connect, collab_moments, collab_apps, collab_gear, collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons.js';
 import '/_102025_/l2/collabMessagesAdd.js';
@@ -150,6 +151,10 @@ export class CollabMessages extends CollabLitElement {
             await this.loadUserAndThreads();
         }
 
+        if (changedProperties.has('activeTab') && this.activeTab === 'MOMENTS') {
+            void markMomentsSeen();
+        }
+
         if (changedProperties.has('dataLocal')) {
             if (this.activeTab !== 'Loading') this.activeTab = this.dataLocal.lastTab;
         }
@@ -238,10 +243,22 @@ export class CollabMessages extends CollabLitElement {
 
     }
 
+    private onOpenTab = (e: Event) => {
+        const tab = (e as CustomEvent).detail?.tab;
+        if (!tab) return;
+        this.activeTab = tab as ITabType;
+        saveLastTab(this.activeTab);
+    }
+
+    private eventWindow(): Window {
+        return window.top ? window.top : window;
+    }
+
     private setEvents() {
         window.addEventListener('thread-change', this.onThreadChange.bind(this));
         window.addEventListener('thread-create', this.onThreadCreate);
         window.addEventListener('thread-open', this.onThreadOpen.bind(this));
+        this.eventWindow().addEventListener(OPEN_TAB_EVENT, this.onOpenTab);
 
     }
 
@@ -249,6 +266,7 @@ export class CollabMessages extends CollabLitElement {
         window.removeEventListener('thread-create', this.onThreadCreate);
         window.removeEventListener('thread-change', this.onThreadChange.bind(this));
         window.removeEventListener('thread-open', this.onThreadOpen.bind(this));
+        this.eventWindow().removeEventListener(OPEN_TAB_EVENT, this.onOpenTab);
 
     }
 
