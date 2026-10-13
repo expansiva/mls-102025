@@ -21,6 +21,11 @@ import '/_102025_/l2/collabMessagesRichPreviewText.js';
 import '/_102025_/l2/collabMessagesMomentsNew.js';
 import '/_102025_/l2/collabMessagesSettingsMoments.js';
 
+function publisherInitials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('');
+}
+
 /// **collab_i18n_start**
 const message_pt = {
     loading: 'Carregando...',
@@ -306,26 +311,30 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         const reactions = item.message.reactions ?? {};
         return html`
             <article class="moment-card" data-index=${index}>
-                <header class="moment-head">
-                    ${item.publisher.avatar_url
-                        ? html`<img class="moment-avatar" src=${item.publisher.avatar_url} alt="">`
-                        : html`<span class="moment-avatar"></span>`}
-                    <span class="moment-name">${item.publisher.name}</span>
-                    <time class="moment-date">${formatMomentDate(item.message.createAt, this.getMessageKey(messages))}</time>
-                </header>
-                <div class="moment-body">
-                    <collab-messages-rich-preview-text-102025 .text=${item.message.content}></collab-messages-rich-preview-text-102025>
+                <div class="moment-surface">
+                    <header class="moment-head">
+                        ${item.publisher.avatar_url
+                            ? html`<img class="moment-avatar" src=${item.publisher.avatar_url} alt="">`
+                            : html`<span class="moment-avatar" aria-hidden="true">${publisherInitials(item.publisher.name)}</span>`}
+                        <div class="moment-who">
+                            <span class="moment-name">${item.publisher.name}</span>
+                            <time class="moment-date">${formatMomentDate(item.message.createAt, this.getMessageKey(messages))}</time>
+                        </div>
+                    </header>
+                    <div class="moment-body">
+                        <collab-messages-rich-preview-text-102025 .text=${item.message.content}></collab-messages-rich-preview-text-102025>
+                    </div>
+                    <footer class="moment-foot">
+                        ${Object.entries(REACTION_EMOJIS).map(([name, emoji]) => html`
+                            <button
+                                type="button"
+                                class="moment-reaction ${reactions[name]?.includes(userId) ? 'is-mine' : ''}"
+                                @click=${() => { void this.toggleReaction(item, name); }}
+                            >${emoji} ${reactions[name]?.length ?? 0}</button>
+                        `)}
+                        ${this.isOwn(item) ? html`<span class="moment-reach">${collab_eye} ${item.reach ?? 0}</span>` : nothing}
+                    </footer>
                 </div>
-                <footer class="moment-foot">
-                    ${Object.entries(REACTION_EMOJIS).map(([name, emoji]) => html`
-                        <button
-                            type="button"
-                            class="moment-reaction ${reactions[name]?.includes(userId) ? 'is-mine' : ''}"
-                            @click=${() => { void this.toggleReaction(item, name); }}
-                        >${emoji} ${reactions[name]?.length ?? 0}</button>
-                    `)}
-                    ${this.isOwn(item) ? html`<span class="moment-reach">${collab_eye} ${item.reach ?? 0}</span>` : nothing}
-                </footer>
             </article>
         `;
     }
@@ -333,8 +342,10 @@ export class CollabMessagesMoments102025 extends StateLitElement {
     private renderEnd() {
         return html`
             <section class="moment-end">
-                <p>${this.msg.caughtUp}</p>
-                <button type="button" @click=${() => { void this.loadFeed(); }}>${this.msg.refresh}</button>
+                <div class="moment-surface">
+                    <p>${this.msg.caughtUp}</p>
+                    <button type="button" @click=${() => { void this.loadFeed(); }}>${this.msg.refresh}</button>
+                </div>
             </section>
         `;
     }

@@ -73,18 +73,31 @@ collab-messages-moments-102025 {
         scroll-snap-align: start;
         height: 100%;
         box-sizing: border-box;
-    }
-
-    .moment-card {
+        padding: 12px;
         display: flex;
         flex-direction: column;
-        padding: 1rem 1.25rem 1.5rem;
+    }
+
+    .moment-surface {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        padding: 20px;
+        background: @surface-bg;
+        border: 1px solid @border-subtle;
+        border-radius: 16px;
+        box-shadow: @shadow-small;
+        color: @text-default;
+        font-family: @font-family-primary;
     }
 
     .moment-head {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: 0.75rem;
+        flex-shrink: 0;
     }
 
     .moment-avatar {
@@ -93,23 +106,86 @@ collab-messages-moments-102025 {
         border-radius: 50%;
         object-fit: cover;
         background: @surface-alt-bg;
-        display: inline-block;
+        color: @text-default;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: @font-size-12;
+        font-weight: @font-weight-bold;
+    }
+
+    .moment-who {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
     }
 
     .moment-name {
-        font-weight: 600;
+        font-weight: @font-weight-bold;
+        color: @text-default;
     }
 
     .moment-date {
-        margin-left: auto;
-        opacity: 0.7;
-        font-size: 0.85rem;
+        color: @text-muted;
+        font-size: @font-size-12;
     }
 
     .moment-body {
         flex: 1;
+        min-height: 0;
         overflow: auto;
-        padding: 1rem 0;
+        max-width: 65ch;
+        margin: 0.75rem 0;
+        line-height: 1.6;
+        color: @text-default;
+
+        h1, h2, h3, h4, p, ul, ol, blockquote {
+            margin: 0.6em 0;
+        }
+
+        h1 { font-size: @font-size-24; }
+        h2 { font-size: @font-size-20; }
+        h3, h4 { font-size: @font-size-16; }
+
+        ul, ol {
+            padding-left: 1.25rem;
+        }
+
+        li + li {
+            margin-top: 0.25em;
+        }
+
+        blockquote {
+            padding-left: 0.75rem;
+            border-left: 3px solid @border-default;
+            color: @text-muted;
+        }
+
+        a {
+            color: @button-primary-bg;
+        }
+
+        img {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        .inline-code,
+        .collab-md-codeblock-card,
+        pre {
+            background: @surface-alt-bg;
+            border-radius: 8px;
+        }
+
+        .collab-md-codeblock-card,
+        pre {
+            overflow-x: auto;
+        }
+
+        .inline-code {
+            padding: 0.1em 0.35em;
+        }
     }
 
     .moment-foot {
@@ -117,6 +193,7 @@ collab-messages-moments-102025 {
         flex-wrap: wrap;
         gap: 0.5rem;
         align-items: center;
+        flex-shrink: 0;
     }
 
     .moment-reaction,
@@ -124,9 +201,12 @@ collab-messages-moments-102025 {
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        padding: 0.2rem 0.55rem;
+        min-height: 36px;
+        padding: 0.2rem 0.75rem;
         border-radius: 999px;
         background: @surface-alt-bg;
+        color: @text-default;
+        border: 1px solid transparent;
 
         svg {
             width: 16px;
@@ -135,18 +215,41 @@ collab-messages-moments-102025 {
         }
     }
 
+    .moment-reaction {
+        cursor: pointer;
+        font-family: @font-family-primary;
+    }
+
+    .moment-reaction.is-mine {
+        border-color: @selected-border;
+        color: @selected-text;
+    }
+
+    .moment-reach {
+        margin-left: auto;
+    }
+
     .moment-end {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-        text-align: center;
+        .moment-surface {
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-align: center;
+            color: @text-muted;
+        }
+
+        p {
+            margin: 0;
+        }
 
         button {
+            min-height: 36px;
             border: 0;
             border-radius: 8px;
             padding: 0.45rem 0.9rem;
+            background: @button-primary-bg;
+            color: @button-primary-text;
+            font-family: @font-family-primary;
             cursor: pointer;
         }
     }
