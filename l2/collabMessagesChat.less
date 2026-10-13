@@ -516,6 +516,40 @@ collab-messages-chat-102025 {
         }
     }
 
+    .moments-new-card {
+        display: flex;
+        align-items: center;
+        gap: @space-8;
+        width: calc(100% - @space-16);
+        margin: @space-8 @space-8 0;
+        padding: @space-8 @space-16;
+        border: 1px solid @border-default;
+        border-radius: @radius-medium;
+        background: @surface-bg;
+        color: @text-strong;
+        font-family: @font-family-primary;
+        font-size: @font-size-16;
+        font-weight: @font-weight-bold;
+        text-align: left;
+        cursor: pointer;
+
+        svg {
+            width: 24px;
+            height: 24px;
+            flex: 0 0 auto;
+            fill: currentColor;
+        }
+
+        &:hover {
+            background: @surface-bg-hover;
+        }
+
+        &:focus-visible {
+            outline: 3px solid @link-text;
+            outline-offset: 2px;
+        }
+    }
+
     .thread-list {
         list-style: none;
         margin: 0;

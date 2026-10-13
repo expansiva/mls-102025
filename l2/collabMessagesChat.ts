@@ -17,8 +17,10 @@ import {
     collab_circle_exclamation,
     collab_robot,
     collab_message,
-    collab_xmark
+    collab_xmark,
+    collab_moments
 } from '/_102025_/l2/collabMessagesIcons.js';
+import { hasUnreadMoments, markMomentsSeen, requestOpenTab } from '/_102025_/l2/collabMessagesMomentsUnread.js';
 
 import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally, isHelpCommand, isTestplayCommand, runNotificationTestplay } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
@@ -145,6 +147,7 @@ const message_pt = {
     localCommandsHelp: 'Comandos disponíveis:\n/help — mostra esta ajuda\n/testplay — testa som, badge e notificação do sistema',
     personalMemory: 'Minha memória',
     backToConversation: 'Voltar para a conversa',
+    newMoments: 'Você tem moments novos',
 }
 
 const message_en = {
@@ -199,6 +202,7 @@ const message_en = {
     localCommandsHelp: 'Available commands:\n/help — shows this help\n/testplay — tests sound, badge, and system notification',
     personalMemory: 'My memory',
     backToConversation: 'Back to conversation',
+    newMoments: 'You have new moments',
 }
 
 type MessageType = typeof message_en;
@@ -261,6 +265,7 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private cachedToolbarMessages: IMessage[] = [];
     @state() private showPersonalMemory = false;
     @state() private e01SessionEpoch = 0;
+    @state() private hasNewMoments = false;
 
     private isSystemChangeScroll: boolean = false;
     private savedScrollTop = 0;
@@ -286,6 +291,11 @@ export class CollabMessagesChat extends StateLitElement {
 
         if (changedProperties.has('activeScenerie') && (this.activeScenerie === 'list')) {
             this.usersAvaliables = await listUsers();
+            void this.refreshNewMoments();
+        }
+
+        if (changedProperties.has('group')) {
+            void this.refreshNewMoments();
         }
 
         if (changedProperties.has('threadToOpen')) {
@@ -357,6 +367,7 @@ export class CollabMessagesChat extends StateLitElement {
         window.addEventListener('message-change', this.onMessageChange);
         window.addEventListener('message-send', this.onMessageSend);
         document.addEventListener("visibilitychange", this.onVisibilityChange);
+        void this.refreshNewMoments();
     }
 
     render() {
@@ -1202,16 +1213,40 @@ export class CollabMessagesChat extends StateLitElement {
         this.threadErrorMsg = this.msg.readOnlyThread;
     }
 
+    private renderNewMomentsCard() {
+        if (this.group !== 'CONNECT' || !this.hasNewMoments) return nothing;
+        return html`<button type="button" class="moments-new-card" @click=${this.onNewMomentsClick}>${collab_moments}<span>${this.msg.newMoments}</span></button>`;
+    }
+
+    private onNewMomentsClick = async () => {
+        await markMomentsSeen();
+        this.hasNewMoments = false;
+        requestOpenTab('MOMENTS');
+    };
+
+    private async refreshNewMoments() {
+        if (this.group !== 'CONNECT') {
+            this.hasNewMoments = false;
+            return;
+        }
+        try {
+            this.hasNewMoments = await hasUnreadMoments();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     private renderListThreads() {
 
         if (!this.userThreads[this.group] || (this.userThreads[this.group].length === 0 && !this.isLoadingThread)) {
-            return html`<div style="padding:1rem;">${this.msg.noThreads}</div>`;
+            return html`${this.renderNewMomentsCard()}<div style="padding:1rem;">${this.msg.noThreads}</div>`;
         }
 
         const ordenedThreads = this.getOrdenedThreadsByStatus();
         this.filteredThreads = this.getFilteredThreads(ordenedThreads);
 
         return html`
+            ${this.renderNewMomentsCard()}
             ${this.renderThreadsByStatus2()}
             ${this.isLoadingThread ? html`<div>${this.msg.loading}</div>` : ''}
         `;
@@ -3471,6 +3506,9 @@ export class CollabMessagesChat extends StateLitElement {
         const customEvent = e as CustomEvent;
         await this.updateMessageAI(customEvent.detail, false);
         const thread = customEvent.detail as msg.Thread;
+        if (this.group === 'CONNECT' && (thread.group as string) === 'MOMENTS') {
+            void this.refreshNewMoments();
+        }
         const threadUpdated = this.userThreads[this.group].find((th) => th.thread.threadId === thread.threadId);
 
         if (['deleted'].includes(thread.status)) {
