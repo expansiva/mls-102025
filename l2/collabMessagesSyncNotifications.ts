@@ -754,7 +754,7 @@ async function updateThreadInBackground(
 				'',
 				'',
 				isNotificationTargetVisible ? 0 : 1,
-				getCompactUTC()
+				undefined
 			);
 
 			notifyThreadChange(thread);
