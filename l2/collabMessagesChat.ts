@@ -23,6 +23,7 @@ import {
 import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally, isHelpCommand, isTestplayCommand, runNotificationTestplay } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 import { johnSendErrorMessage } from '/_102025_/l2/collabMessagesJohnSendError.js';
+import { shouldMarkOpenThreadRead } from '/_102025_/l2/collabMessagesReadState.js';
 
 import {
     addOrUpdateTask,
@@ -334,13 +335,16 @@ export class CollabMessagesChat extends StateLitElement {
     }
 
     disconnectedCallback() {
+        if (this.actualThread) {
+            void this.markOpenThreadReadIf('leave').catch((error) => console.error(error));
+        }
         super.disconnectedCallback();
         window.removeEventListener('task-change', this.onTaskChange);
         // window.removeEventListener('task-details-close', this.onTaskDetailsClose);
-        window.removeEventListener('thread-change', this.onThreadChange.bind(this));
-        window.removeEventListener('message-change', this.onMessageChange.bind(this));
+        window.removeEventListener('thread-change', this.onThreadChange);
+        window.removeEventListener('message-change', this.onMessageChange);
         window.removeEventListener('message-send', this.onMessageSend);
-        document.removeEventListener("visibilitychange", this.onVisibilityChange.bind(this));
+        document.removeEventListener("visibilitychange", this.onVisibilityChange);
         document.removeEventListener('click', this.onDocumentClick);
 
     }
@@ -349,10 +353,10 @@ export class CollabMessagesChat extends StateLitElement {
         super.firstUpdated(changedProperties);
         window.addEventListener('task-change', this.onTaskChange);
         // window.addEventListener('task-details-close', this.onTaskDetailsClose);
-        window.addEventListener('thread-change', this.onThreadChange.bind(this));
-        window.addEventListener('message-change', this.onMessageChange.bind(this));
+        window.addEventListener('thread-change', this.onThreadChange);
+        window.addEventListener('message-change', this.onMessageChange);
         window.addEventListener('message-send', this.onMessageSend);
-        document.addEventListener("visibilitychange", this.onVisibilityChange.bind(this));
+        document.addEventListener("visibilitychange", this.onVisibilityChange);
     }
 
     render() {
@@ -1706,6 +1710,12 @@ export class CollabMessagesChat extends StateLitElement {
 
         if (this.isSystemChangeScroll) {
             this.isSystemChangeScroll = false;
+            const systemContainer = e.target as HTMLElement;
+            const systemThreshold = 5;
+            const systemAtBottom = systemContainer.scrollTop + systemContainer.clientHeight >= systemContainer.scrollHeight - systemThreshold;
+            if (systemAtBottom) {
+                void this.markOpenThreadReadIf('systemScroll').catch((error) => console.error(error));
+            }
             return;
         }
 
@@ -2154,6 +2164,18 @@ export class CollabMessagesChat extends StateLitElement {
         this.lastMessageReaded = lastMessageReadTime || '';
     }
 
+    private async markOpenThreadReadIf(reason: 'message' | 'visible' | 'systemScroll' | 'leave'): Promise<void> {
+        // `leave` no disconnectedCallback corre com isConnected já false; os outros reasons vêm de listener.
+        if (!this.isConnected && reason !== 'leave') return;
+        if (!shouldMarkOpenThreadRead({
+            hasOpenThread: !!this.actualThread,
+            pageVisible: document.visibilityState === 'visible',
+            inDetails: this.activeScenerie === 'details',
+            reason,
+        })) return;
+        await this.clearUnreadMarkerForActualThread();
+    }
+
     private getLastKnownMessageCreateAt(): string | undefined {
         const lastMessage = [...this.actualMessages]
             .sort((a, b) => (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt))
@@ -2332,6 +2354,11 @@ export class CollabMessagesChat extends StateLitElement {
             return;
         }
         if (this.activeScenerie === 'details' || this.activeScenerie === 'threadAdd') {
+            try {
+                await this.markOpenThreadReadIf('leave');
+            } catch (error) {
+                console.error(error);
+            }
             this.actualThread = undefined;
             this.activeScenerie = 'list';
             return;
@@ -3468,6 +3495,11 @@ export class CollabMessagesChat extends StateLitElement {
                 this.actualMessages = messagesInDb;
                 this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
                 if (hasUnreadMessages) await this.updateLastMessage(this.actualThread);
+                try {
+                    await this.markOpenThreadReadIf('message');
+                } catch (error) {
+                    console.error(error);
+                }
             }
         }
 
@@ -3482,7 +3514,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.requestUpdate();
     };
 
-    private onMessageChange(e: Event) {
+    private onMessageChange = (e: Event) => {
 
         const customEvent = e as CustomEvent;
         const message: msg.Message = customEvent.detail;
@@ -3511,7 +3543,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.clearToolbarSelection();
         this.requestUpdate();
 
-    }
+    };
 
     private onMessageSend = async (e: Event) => {
         const customEvent = e as CustomEvent;
@@ -3522,11 +3554,14 @@ export class CollabMessagesChat extends StateLitElement {
         this.updateMessage2(false, true, { ...message, footers: [] }, message, outputs);
     };
 
-    private onVisibilityChange() {
+    private onVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+            void this.markOpenThreadReadIf('visible').catch((error) => console.error(error));
+        }
         if (this.activeScenerie === 'details') {
             this.checkNotificationsUnreadMessages();
         }
-    }
+    };
 
     private onDocumentClick = () => {
         const all = Array.from(this.querySelectorAll('collab-messages-chat-message-102025')) as CollabMessagesChatMessage102025[]
