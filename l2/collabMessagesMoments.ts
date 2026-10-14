@@ -6,10 +6,12 @@ import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import {
     formatMomentDate,
     mergeMural,
+    msgEnsureMomentsRoom,
     msgGetMomentsFeed,
     msgGetMomentsStats,
     msgMarkMomentSeen,
     oldestOrderAt,
+    type MomentsAudience,
     type MomentsFeedItem,
     type MomentsSeenItem,
     type MomentsStatsPost,
@@ -43,6 +45,8 @@ const message_pt = {
     reach: 'alcance',
     reachOf: 'Alcance: {reach} de {audience}',
     reactions: 'reações',
+    audienceAll: 'Público: todos',
+    audienceCount: 'Público: {n} pessoas',
 }
 
 const message_en = {
@@ -60,6 +64,8 @@ const message_en = {
     reach: 'reach',
     reachOf: 'Reach: {reach} of {audience}',
     reactions: 'reactions',
+    audienceAll: 'Audience: everyone',
+    audienceCount: 'Audience: {n} people',
 }
 
 type MessageType = typeof message_en;
@@ -96,6 +102,7 @@ export class CollabMessagesMoments102025 extends StateLitElement {
     @state() private hasNewMoments = false;
     @state() private statsPosts: MomentsStatsPost[] = [];
     @state() private audience = 0;
+    @state() private audienceMode: MomentsAudience | '' = '';
     @state() private statsError = '';
     @state() private statsLoading = false;
 
@@ -397,8 +404,17 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         if (!userId) return;
         this.statsLoading = true;
         this.statsError = '';
+        this.audienceMode = '';
         try {
-            const result = await msgGetMomentsStats({ userId });
+            const [result, room] = await Promise.all([
+                msgGetMomentsStats({ userId }),
+                msgEnsureMomentsRoom({ userId }),
+            ]);
+            if (room.ok && (room.response.audience === 'all' || room.response.audience === 'selected')) {
+                this.audienceMode = room.response.audience;
+            } else {
+                console.error(room.ok ? 'Moments room without audience' : room.error);
+            }
             if (!result.ok) {
                 console.error(result.error);
                 this.statsError = result.error || this.msg.networkError;
@@ -461,17 +477,34 @@ export class CollabMessagesMoments102025 extends StateLitElement {
                 </div>
             `;
         }
+        const audienceLabel = this.audienceMode === 'all'
+            ? this.msg.audienceAll
+            : this.msg.audienceCount.replace('{n}', String(this.audience));
+        const reachLabel = (reach: number) => this.msg.reachOf
+            .replace('{reach}', String(reach))
+            .replace('{audience}', String(this.audience));
         return html`
-            <ul class="moments-stats">
-                ${this.statsPosts.map((post) => html`
-                    <li class="moments-stats-card">
-                        <time>${formatMomentDate(post.createAt, this.getMessageKey(messages))}</time>
-                        <collab-messages-rich-preview-text-102025 .text=${post.preview}></collab-messages-rich-preview-text-102025>
-                        <p>${this.msg.reachOf.replace('{reach}', String(post.reach)).replace('{audience}', String(this.audience))}</p>
-                        <span>${post.reactions} ${this.msg.reactions}</span>
-                    </li>
-                `)}
-            </ul>
+            <div class="moments-stats">
+                <p class="moments-stats-summary">${audienceLabel}</p>
+                <ul class="moments-feed">
+                    ${this.statsPosts.map((post) => html`
+                        <li class="moment-card">
+                            <div class="moment-surface">
+                                <header class="moment-head">
+                                    <time class="moment-date">${formatMomentDate(post.createAt, this.getMessageKey(messages))}</time>
+                                </header>
+                                <div class="moment-body">
+                                    <collab-messages-rich-preview-text-102025 .text=${post.preview}></collab-messages-rich-preview-text-102025>
+                                </div>
+                                <footer class="moment-foot">
+                                    <span class="moment-reaction">${post.reactions} ${this.msg.reactions}</span>
+                                    <span class="moment-reach">${collab_eye} ${reachLabel(post.reach)}</span>
+                                </footer>
+                            </div>
+                        </li>
+                    `)}
+                </ul>
+            </div>
         `;
     }
 
