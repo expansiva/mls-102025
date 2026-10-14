@@ -67,11 +67,30 @@ collab-messages-settings-moments-102025 {
         min-width: 0;
     }
 
-    .mute {
+    .mute,
+    .everyone {
         display: flex;
         align-items: center;
         gap: 0.35rem;
         font-size: @font-size-12;
+    }
+
+    .mute {
         white-space: nowrap;
+    }
+
+    .everyone {
+        margin: 0 0 0.75rem;
+    }
+
+    .summary {
+        margin-left: auto;
+        font-size: @font-size-12;
+        font-weight: 600;
+        color: @text-muted;
+    }
+
+    .row-pending {
+        opacity: 0.55;
     }
 }
