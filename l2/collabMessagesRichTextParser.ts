@@ -336,6 +336,32 @@ export function parseInlineRichText(input: string, skipCodeBlock: boolean = fals
                 }
             }
 
+            // italic *
+            if (
+                input[i] === '*' &&
+                input[i + 1] !== '*' &&
+                isBoundary(input[i - 1]) &&
+                input[i + 1] &&
+                !/\s/.test(input[i + 1])
+            ) {
+                const end = input.indexOf('*', i + 1);
+                if (
+                    end !== -1 &&
+                    !/\s/.test(input[end - 1]) &&
+                    isBoundary(input[end + 1])
+                ) {
+                    flushText();
+                    tokens.push({
+                        type: 'italic',
+                        value: input.slice(i + 1, end),
+                        markerStart: '*',
+                        markerEnd: '*',
+                    });
+                    i = end + 1;
+                    continue;
+                }
+            }
+
             // strike ~~
             if (input.startsWith('~~', i) && isBoundary(input[i - 1])) {
                 const end = input.indexOf('~~', i + 2);

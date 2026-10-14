@@ -20,6 +20,7 @@ export const tests: ICANTest[] = [
     { functionName: 'testHashChannelIsNotHeading', params: [{}] },
     { functionName: 'testParseHorizontalRule', params: [{}] },
     { functionName: 'testParseInlineFormatting', params: [{}] },
+    { functionName: 'testParseAsteriskItalic', params: [{}] },
 ];
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -138,4 +139,24 @@ export function testParseInlineFormatting() {
     assert(tokens.some(token => token.type === 'bold'), 'Expected bold token');
     assert(tokens.some(token => token.type === 'inline-code'), 'Expected inline code token');
     assert(tokens.some(token => token.type === 'strike'), 'Expected strike token');
+}
+
+export function testParseAsteriskItalic() {
+    const italic = parseInlineRichText('*oi*');
+    assert(italic[0]?.type === 'italic' && italic[0].value === 'oi' && italic[0].markerStart === '*', 'Expected *oi* italic');
+
+    const bold = parseInlineRichText('**oi**');
+    assert(bold[0]?.type === 'bold' && bold[0].value === 'oi', 'Expected **oi** bold');
+
+    const underscore = parseInlineRichText('_oi_');
+    assert(underscore[0]?.type === 'italic' && underscore[0].value === 'oi' && underscore[0].markerStart === '_', 'Expected _oi_ italic');
+
+    const spaced = parseInlineRichText('a * b * c');
+    assert(spaced.every(token => token.type === 'text'), 'Expected a * b * c as text');
+
+    const unclosed = parseInlineRichText('*oi');
+    assert(unclosed.every(token => token.type === 'text'), 'Expected *oi without close as text');
+
+    const list = firstToken('* item');
+    assert(list.type === 'list' && list.items[0].marker === '*', 'Expected * item as list');
 }
