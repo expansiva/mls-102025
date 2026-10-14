@@ -5,10 +5,11 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 import {
     formatMomentDate,
+    mergeMural,
     msgGetMomentsFeed,
     msgGetMomentsStats,
     msgMarkMomentSeen,
-    momentsStartIndex,
+    oldestOrderAt,
     type MomentsFeedItem,
     type MomentsSeenItem,
     type MomentsStatsPost,
@@ -32,8 +33,9 @@ const message_pt = {
     newMoment: 'Novo moment',
     stats: 'Estatísticas',
     publishers: 'Publicadores',
-    caughtUp: 'Você está em dia',
-    refresh: 'atualizar',
+    newBadge: 'novo',
+    loadingMore: 'carregando…',
+    allSeen: 'Você viu todos os moments',
     newMoments: 'Novos moments',
     retry: 'tentar de novo',
     networkError: 'Não foi possível carregar os moments.',
@@ -48,8 +50,9 @@ const message_en = {
     newMoment: 'New moment',
     stats: 'Statistics',
     publishers: 'Publishers',
-    caughtUp: "You're all caught up",
-    refresh: 'refresh',
+    newBadge: 'new',
+    loadingMore: 'loading…',
+    allSeen: "You've seen all moments",
     newMoments: 'New moments',
     retry: 'try again',
     networkError: 'Could not load moments.',
@@ -72,6 +75,7 @@ type MomentsAction = 'new' | 'stats' | 'publishers';
 const SEEN_FLUSH_MS = 3000;
 const SEEN_BATCH = 50;
 const SEEN_THRESHOLD = 0.6;
+const FEED_PAGE = 30;
 
 @customElement('collab-messages-moments-102025')
 export class CollabMessagesMoments102025 extends StateLitElement {
@@ -85,6 +89,9 @@ export class CollabMessagesMoments102025 extends StateLitElement {
     @state() private view: MomentsView = 'feed';
     @state() private items: MomentsFeedItem[] = [];
     @state() private loading = false;
+    @state() private loadingOlder = false;
+    @state() private olderFailed = false;
+    @state() private exhausted = false;
     @state() private error = '';
     @state() private hasNewMoments = false;
     @state() private statsPosts: MomentsStatsPost[] = [];
@@ -97,9 +104,9 @@ export class CollabMessagesMoments102025 extends StateLitElement {
     private flushTimer = 0;
     private flushing = false;
     private observer: IntersectionObserver | undefined;
-    private pendingScroll = false;
-    private startIndex = 0;
+    private sentinelObserver: IntersectionObserver | undefined;
     private loadedFor = '';
+    private keepScrollTop: number | undefined;
 
     private onVisibility = () => {
         if (document.visibilityState === 'hidden') void this.flushSeen();
@@ -127,6 +134,8 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         window.clearInterval(this.flushTimer);
         this.observer?.disconnect();
         this.observer = undefined;
+        this.sentinelObserver?.disconnect();
+        this.sentinelObserver = undefined;
         void this.flushSeen();
         super.disconnectedCallback();
     }
@@ -137,10 +146,12 @@ export class CollabMessagesMoments102025 extends StateLitElement {
             void this.loadFeed();
         }
         if (changed.has('view') && this.view === 'stats') void this.loadStats();
-        if (this.view === 'feed') {
-            if (this.pendingScroll) this.scrollToStart();
-            this.bindObserver();
+        if (this.keepScrollTop !== undefined) {
+            const scroller = this.querySelector('.moments-feed');
+            if (scroller) scroller.scrollTop = this.keepScrollTop;
+            this.keepScrollTop = undefined;
         }
+        if (this.view === 'feed') this.bindObserver();
     }
 
     private currentUserId(): string {
@@ -152,6 +163,9 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         if (!userId) return;
         this.loadedFor = userId;
         this.loading = true;
+        this.loadingOlder = false;
+        this.olderFailed = false;
+        this.exhausted = false;
         this.error = '';
         this.hasNewMoments = false;
         try {
@@ -162,9 +176,10 @@ export class CollabMessagesMoments102025 extends StateLitElement {
                 this.items = [];
                 return;
             }
-            this.items = result.response.items ?? [];
-            this.startIndex = momentsStartIndex(this.items);
-            this.pendingScroll = true;
+            const incoming = result.response.items ?? [];
+            this.items = mergeMural([], incoming);
+            this.exhausted = incoming.length === 0;
+            this.keepScrollTop = 0;
         } catch (err) {
             console.error(err);
             this.error = err instanceof Error ? err.message : this.msg.networkError;
@@ -174,27 +189,43 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         }
     }
 
-    private scrollToStart() {
-        const scroller = this.querySelector('.moments-feed');
-        if (!scroller) return;
-        const cards = scroller.querySelectorAll<HTMLElement>('.moment-card, .moment-end');
-        const target = cards[this.startIndex] ?? cards[cards.length - 1];
-        target?.scrollIntoView({ block: 'start' });
-        this.pendingScroll = false;
+    private async loadOlder() {
+        const userId = this.currentUserId();
+        const before = oldestOrderAt(this.items);
+        if (!userId || !before || this.loading || this.loadingOlder || this.exhausted || this.olderFailed) return;
+        this.loadingOlder = true;
+        try {
+            const result = await msgGetMomentsFeed({ userId, limit: FEED_PAGE, before });
+            if (!result.ok) {
+                console.error(result.error);
+                this.olderFailed = true;
+                return;
+            }
+            const incoming = result.response.items ?? [];
+            if (incoming.length === 0) {
+                this.exhausted = true;
+                return;
+            }
+            const scroller = this.querySelector('.moments-feed');
+            if (scroller) this.keepScrollTop = scroller.scrollTop;
+            this.items = mergeMural(this.items, incoming);
+        } catch (err) {
+            console.error(err);
+            this.olderFailed = true;
+        } finally {
+            this.loadingOlder = false;
+        }
     }
 
     private bindObserver() {
         this.observer?.disconnect();
+        this.sentinelObserver?.disconnect();
         const scroller = this.querySelector('.moments-feed');
         if (!scroller) return;
         this.observer = new IntersectionObserver((entries) => {
             for (const entry of entries) {
                 if (entry.intersectionRatio < SEEN_THRESHOLD) continue;
                 const el = entry.target as HTMLElement;
-                if (el.classList.contains('moment-end')) {
-                    void this.flushSeen();
-                    continue;
-                }
                 const index = Number(el.dataset.index);
                 const item = this.items[index];
                 if (!item || item.seen) continue;
@@ -202,7 +233,13 @@ export class CollabMessagesMoments102025 extends StateLitElement {
                 this.markLocalSeen(item);
             }
         }, { root: scroller, threshold: SEEN_THRESHOLD });
-        scroller.querySelectorAll('.moment-card, .moment-end').forEach((el) => this.observer?.observe(el));
+        scroller.querySelectorAll('.moment-card').forEach((el) => this.observer?.observe(el));
+        const sentinel = scroller.querySelector('.moments-sentinel');
+        if (!sentinel) return;
+        this.sentinelObserver = new IntersectionObserver((entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) void this.loadOlder();
+        }, { root: scroller });
+        this.sentinelObserver.observe(sentinel);
     }
 
     private isOwn(item: MomentsFeedItem): boolean {
@@ -217,6 +254,7 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         if (this.seenKeys.has(key)) return;
         this.seenKeys.add(key);
         this.seenQueue.push({ threadId: item.threadId, messageId });
+        this.requestUpdate();
     }
 
     private async flushSeen() {
@@ -320,6 +358,7 @@ export class CollabMessagesMoments102025 extends StateLitElement {
                             <span class="moment-name">${item.publisher.name}</span>
                             <time class="moment-date">${formatMomentDate(item.message.createAt, this.getMessageKey(messages))}</time>
                         </div>
+                        ${item.seen ? nothing : html`<span class="moment-badge">${this.msg.newBadge}</span>`}
                     </header>
                     <div class="moment-body">
                         <collab-messages-rich-preview-text-102025 .text=${item.message.content}></collab-messages-rich-preview-text-102025>
@@ -339,15 +378,18 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         `;
     }
 
-    private renderEnd() {
-        return html`
-            <section class="moment-end">
-                <div class="moment-surface">
-                    <p>${this.msg.caughtUp}</p>
-                    <button type="button" @click=${() => { void this.loadFeed(); }}>${this.msg.refresh}</button>
+    private renderFoot() {
+        if (this.loadingOlder) return html`<p class="moments-more">${this.msg.loadingMore}</p>`;
+        if (this.olderFailed) {
+            return html`
+                <div class="moments-more">
+                    <p>${this.msg.networkError}</p>
+                    <button type="button" @click=${() => { this.olderFailed = false; void this.loadOlder(); }}>${this.msg.retry}</button>
                 </div>
-            </section>
-        `;
+            `;
+        }
+        if (this.exhausted) return html`<p class="moments-more">${this.msg.allSeen}</p>`;
+        return html`<div class="moments-sentinel" aria-hidden="true"></div>`;
     }
 
     private async loadStats() {
@@ -448,7 +490,7 @@ export class CollabMessagesMoments102025 extends StateLitElement {
         return html`
             <div class="moments-feed">
                 ${this.items.map((item, index) => this.renderCard(item, index))}
-                ${this.renderEnd()}
+                ${this.renderFoot()}
             </div>
         `;
     }

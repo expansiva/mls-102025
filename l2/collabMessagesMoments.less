@@ -65,22 +65,49 @@ collab-messages-moments-102025 {
         min-height: 0;
         height: 100%;
         overflow-y: auto;
-        scroll-snap-type: y mandatory;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+        box-sizing: border-box;
     }
 
-    .moment-card,
-    .moment-end {
-        scroll-snap-align: start;
-        height: 100%;
+    .moment-card {
         box-sizing: border-box;
-        padding: 12px;
         display: flex;
         flex-direction: column;
     }
 
+    .moments-sentinel {
+        height: 1px;
+        flex-shrink: 0;
+    }
+
+    .moments-more {
+        margin: 0;
+        padding: 0.75rem 0 1rem;
+        text-align: center;
+        color: @text-muted;
+        font-family: @font-family-primary;
+        font-size: @font-size-12;
+
+        p {
+            margin: 0 0 0.5rem;
+        }
+
+        button {
+            padding: 0.35rem 0.8rem;
+            border: 0;
+            border-radius: 999px;
+            background: @surface-alt-bg;
+            color: @text-default;
+            font-family: @font-family-primary;
+            font-size: @font-size-12;
+            cursor: pointer;
+        }
+    }
+
     .moment-surface {
-        flex: 1;
-        min-height: 0;
         display: flex;
         flex-direction: column;
         box-sizing: border-box;
@@ -131,10 +158,20 @@ collab-messages-moments-102025 {
         font-size: @font-size-12;
     }
 
+    .moment-badge {
+        margin-left: auto;
+        flex-shrink: 0;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+        background: @surface-alt-bg;
+        color: @text-default;
+        font-size: @font-size-12;
+        font-weight: @font-weight-bold;
+        font-family: @font-family-primary;
+    }
+
     .moment-body {
-        flex: 1;
-        min-height: 0;
-        overflow: auto;
+        overflow: visible;
         max-width: 65ch;
         margin: 0.75rem 0;
         line-height: 1.6;
@@ -227,31 +264,6 @@ collab-messages-moments-102025 {
 
     .moment-reach {
         margin-left: auto;
-    }
-
-    .moment-end {
-        .moment-surface {
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            text-align: center;
-            color: @text-muted;
-        }
-
-        p {
-            margin: 0;
-        }
-
-        button {
-            min-height: 36px;
-            border: 0;
-            border-radius: 8px;
-            padding: 0.45rem 0.9rem;
-            background: @button-primary-bg;
-            color: @button-primary-text;
-            font-family: @font-family-primary;
-            cursor: pointer;
-        }
     }
 
     .moments-stats {
