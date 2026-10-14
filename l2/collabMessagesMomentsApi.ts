@@ -87,6 +87,8 @@ export interface RequestGetMomentsFeed extends RequestBase {
 	action: 'getMomentsFeed';
 	userId: string;
 	limit?: number;
+	/** `orderAt` exclusivo: página mais antiga que este valor (`yyyyMMddHHmmss.n`). */
+	before?: string;
 }
 
 export interface ResponseGetMomentsFeed {
@@ -222,4 +224,30 @@ export function formatMomentDate(createAtUtc: string, lang: string, timeZone?: s
 export function momentsStartIndex(items: Array<{ seen: boolean }>): number {
 	const index = items.findIndex((item) => item.seen === false);
 	return index === -1 ? items.length : index;
+}
+
+function muralKey(item: MomentsFeedItem): string {
+	return `${item.threadId}/${item.message.orderAt}`;
+}
+
+/** Junta por `threadId/orderAt`. O item de `incoming` substitui o de `current`. Do mais novo ao mais antigo. */
+export function mergeMural(current: MomentsFeedItem[], incoming: MomentsFeedItem[]): MomentsFeedItem[] {
+	const byKey = new Map<string, MomentsFeedItem>();
+	for (const item of current) byKey.set(muralKey(item), item);
+	for (const item of incoming) byKey.set(muralKey(item), item);
+	return [...byKey.values()].sort((a, b) => {
+		const byOrder = b.message.orderAt.localeCompare(a.message.orderAt);
+		if (byOrder !== 0) return byOrder;
+		return a.threadId.localeCompare(b.threadId);
+	});
+}
+
+/** `orderAt` do item mais antigo; lista vazia não tem. */
+export function oldestOrderAt(items: MomentsFeedItem[]): string | undefined {
+	let oldest: string | undefined;
+	for (const item of items) {
+		const orderAt = item.message.orderAt;
+		if (oldest === undefined || orderAt < oldest) oldest = orderAt;
+	}
+	return oldest;
 }
