@@ -455,6 +455,7 @@ export class CollabMessagesMoments102025 extends StateLitElement {
                 <collab-messages-moments-new-102025
                     .userId=${userId}
                     @moments-published=${this.onPublished}
+                    @moments-open-settings=${() => this.openView('publishers')}
                 ></collab-messages-moments-new-102025>
             `;
         }
