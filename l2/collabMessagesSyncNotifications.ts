@@ -27,6 +27,7 @@ import {
 	updateLastMessageReadTime
 } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
+import { readUpdateNeeded } from '/_102025_/l2/collabMessagesReadState.js';
 import { dispatchThreadOpen, notifyThreadChange, notifyMessageChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 import { changeFavIcon } from '/_102025_/l2/collabMessagesHelper.js';
 import { msgGetMessage, msgGetThreadUpdates, post } from '/_102025_/l2/shared/api.js';
@@ -145,6 +146,16 @@ export async function markThreadReadLocally(
 	notificationTarget?: NotificationTarget
 ): Promise<msg.ThreadPerformanceCache | undefined> {
 	let thread = await getThread(threadId);
+	const pending = pendingNotificationThreads.has(threadId)
+		|| (!!notificationTarget?.taskId && pendingTaskRoomNotifications.has(notificationTarget.taskId));
+	if (thread && !readUpdateNeeded({
+		unreadCount: thread.unreadCount ?? 0,
+		storedReadTime: (thread as { lastMessageReadTime?: string }).lastMessageReadTime ?? '',
+		newReadTime: lastMessageReadTime,
+		pending,
+	})) {
+		return thread;
+	}
 	if (thread) {
 		thread = await updateThread(threadId, thread, undefined, undefined, 0);
 		if (lastMessageReadTime) {

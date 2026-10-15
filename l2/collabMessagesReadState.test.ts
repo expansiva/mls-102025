@@ -3,7 +3,47 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { shouldMarkOpenThreadRead } from '/_102025_/l2/collabMessagesReadState.js';
+import { readUpdateNeeded, shouldMarkOpenThreadRead } from '/_102025_/l2/collabMessagesReadState.js';
+
+test('readUpdateNeeded is false when count is zero, nothing pending, and time is the same', () => {
+  assert.equal(
+    readUpdateNeeded({ unreadCount: 0, storedReadTime: '20261015120000', newReadTime: '20261015120000', pending: false }),
+    false,
+  );
+});
+
+test('readUpdateNeeded is true when unreadCount is 1', () => {
+  assert.equal(
+    readUpdateNeeded({ unreadCount: 1, storedReadTime: '20261015120000', pending: false }),
+    true,
+  );
+});
+
+test('readUpdateNeeded is true when only pending', () => {
+  assert.equal(
+    readUpdateNeeded({ unreadCount: 0, storedReadTime: '20261015120000', pending: true }),
+    true,
+  );
+});
+
+test('readUpdateNeeded is true when newReadTime is newer', () => {
+  assert.equal(
+    readUpdateNeeded({ unreadCount: 0, storedReadTime: '20261015120000', newReadTime: '20261015120001', pending: false }),
+    true,
+  );
+});
+
+test('readUpdateNeeded is false when newReadTime is equal or older', () => {
+  assert.equal(
+    readUpdateNeeded({ unreadCount: 0, storedReadTime: '20261015120000', newReadTime: '20261015120000', pending: false }),
+    false,
+  );
+  assert.equal(
+    readUpdateNeeded({ unreadCount: 0, storedReadTime: '20261015120000', newReadTime: '20261015115959', pending: false }),
+    false,
+  );
+});
+
 
 const reasons = ['message', 'visible', 'systemScroll', 'leave'] as const;
 

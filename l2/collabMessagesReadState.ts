@@ -1,5 +1,14 @@
 /// <mls fileReference="_102025_/l2/collabMessagesReadState.ts" enhancement="_blank"/>
 
+export function readUpdateNeeded(s: {
+  unreadCount: number;
+  storedReadTime: string;
+  newReadTime?: string;
+  pending: boolean;
+}): boolean {
+  return s.unreadCount > 0 || s.pending || (!!s.newReadTime && s.newReadTime > s.storedReadTime);
+}
+
 export function shouldMarkOpenThreadRead(s: {
   hasOpenThread: boolean;
   pageVisible: boolean;
