@@ -2208,6 +2208,13 @@ export class CollabMessagesChat extends StateLitElement {
             inDetails: this.activeScenerie === 'details',
             reason,
         })) return;
+        if (
+            reason !== 'leave' &&
+            this.actualThread &&
+            this.unreadCountInSelectedThread === 0 &&
+            (this.actualThread.thread.unreadCount ?? 0) === 0 &&
+            !hasThreadNotificationPending(this.actualThread.thread.threadId)
+        ) return;
         await this.clearUnreadMarkerForActualThread();
     }
 
