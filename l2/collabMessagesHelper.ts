@@ -16,6 +16,7 @@ import {
 
 import { addThread, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { msgEnsureHumanDm } from '/_102025_/l2/collabMessagesHumanDmApi.js';
+import type { HumanDmGroup } from '/_102025_/l2/collabMessagesHumanDmApi.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
 import {
     isNotificationPermissionDenied,
@@ -502,7 +503,7 @@ export async function createThreadDM(
 export async function ensureHumanDmThread(
     userId: string,
     recipientUserId: string,
-    group: msg.ThreadGroup
+    group: HumanDmGroup
 ): Promise<msg.ThreadPerformanceCache> {
     const result = await msgEnsureHumanDm({ userId, recipientUserId, group });
     if (!result.ok) {

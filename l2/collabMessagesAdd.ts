@@ -22,6 +22,7 @@ import {
 } from '/_102025_/l2/shared/api.js';
 
 import { environment } from '/_102036_/l2/environmentContract.js';
+import type { HumanDmGroup } from '/_102025_/l2/collabMessagesHumanDmApi.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { CollabMessagesInputTag } from '/_102025_/l2/collabMessagesInputTag.js';
@@ -134,7 +135,7 @@ export class CollabMessagesAdd extends StateLitElement {
     @state() private threadType: ThreadType = 'dm';
     @state() private threadName: string = '';
     @state() private visibility: msg.ThreadVisibility = 'private';
-    @state() private group: msg.ThreadGroup = 'CRM';
+    @state() private group: HumanDmGroup = 'CRM';
     @state() private languages: string[] = [];
     @state() private isLoading: boolean = false;
     @state() private dmUser: string = ''
@@ -319,7 +320,7 @@ export class CollabMessagesAdd extends StateLitElement {
                 <label> ${this.msg.group}</label>
                     <select name="group" required
                         .value=${this.group}
-                        @change=${(e: Event) => this.group = (e.target as HTMLSelectElement).value as msg.ThreadGroup}>
+                        @change=${(e: Event) => this.group = (e.target as HTMLSelectElement).value as HumanDmGroup}>
                         <option value="CRM">CRM</option>
                         <option value="TASK">TASK</option>
                         <option value="DOCS">DOCS</option>
