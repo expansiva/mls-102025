@@ -38,10 +38,9 @@ import { msgGetUserUpdate, msgGetThreadUpdates } from '/_102025_/l2/shared/api.j
 import { ICollabMessageEvent, threadOpenFromHash } from '/_102025_/l2/collabMessagesEvents.js';
 import { OPEN_TAB_EVENT, markMomentsSeen } from '/_102025_/l2/collabMessagesMomentsUnread.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
-import { collab_crm, collab_tasks, collab_connect, collab_moments, collab_apps, collab_gear, collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons.js';
+import { collab_crm, collab_connect, collab_moments, collab_apps, collab_gear, collab_bell_slash, collab_xmark } from '/_102025_/l2/collabMessagesIcons.js';
 import '/_102025_/l2/collabMessagesAdd.js';
 import '/_102025_/l2/collabMessagesChat.js';
-import '/_102025_/l2/collabMessagesTasks.js';
 import '/_102025_/l2/collabMessagesApps.js';
 import '/_102025_/l2/collabMessagesMoments.js';
 import '/_102025_/l2/collabMessagesSettingsGeral.js';
@@ -51,7 +50,6 @@ import '/_102025_/l2/collabMessagesTabMenu.js'
 const message_pt = {
     loading: 'Carregando...',
     crm: 'CRM',
-    tasks: 'Tasks',
     docs: 'Docs',
     connect: 'Conectar',
     alertMsgTitle: 'Ative as notificações',
@@ -71,7 +69,6 @@ const message_pt = {
 const message_en = {
     loading: 'Loading...',
     crm: 'CRM',
-    tasks: 'Tasks',
     docs: 'Docs',
     connect: 'Connect',
     alertMsgTitle: 'Enable notifications',
@@ -123,7 +120,6 @@ export class CollabMessages extends CollabLitElement {
 
     private menuItems = [
         { id: 'CRM', icon: collab_crm, label: this.msg.crm, type: 'tab' },
-        { id: 'TASK', icon: collab_tasks, label: this.msg.tasks, type: 'tab' },
         { id: 'CONNECT', icon: collab_connect, label: this.msg.connect, type: 'tab' },
         { id: 'MOMENTS', icon: collab_moments, label: this.msg.moments, type: 'tab', active: true },
         { id: 'APPS', icon: collab_apps, label: this.msg.apps, type: 'tab' },
@@ -132,7 +128,7 @@ export class CollabMessages extends CollabLitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        this.dataLocal.lastTab = loadLastTab() as ITabType;
+        this.dataLocal.lastTab = toTab(loadLastTab());
         this.setEvents();
     }
 
@@ -147,7 +143,7 @@ export class CollabMessages extends CollabLitElement {
             this.e01RootSessionKey = this.newE01RootSessionKey();
         }
 
-        if (changedProperties.has('activeTab') && ['CRM', 'TASK', 'DOCS', 'CONNECT', 'MOMENTS'].includes(this.activeTab)) {
+        if (changedProperties.has('activeTab') && ['CRM', 'DOCS', 'CONNECT', 'MOMENTS'].includes(this.activeTab)) {
             await this.loadUserAndThreads();
         }
 
@@ -239,14 +235,14 @@ export class CollabMessages extends CollabLitElement {
 
         this.threadToOpen = thread.threadId;
         const group = thread.group;
-        if (group !== this.activeTab) this.activeTab = group as ITabType;
+        if (group !== this.activeTab) this.activeTab = toTab(group);
 
     }
 
     private onOpenTab = (e: Event) => {
         const tab = (e as CustomEvent).detail?.tab;
         if (!tab) return;
-        this.activeTab = tab as ITabType;
+        this.activeTab = toTab(tab);
         saveLastTab(this.activeTab);
     }
 
@@ -302,14 +298,12 @@ export class CollabMessages extends CollabLitElement {
                 </div>
             `;
         }
-        if (['CRM', 'TASK', 'DOCS', 'CONNECT', 'MOMENTS'].includes(this.activeTab) && !this.userPerfil) {
+        if (['CRM', 'DOCS', 'CONNECT', 'MOMENTS'].includes(this.activeTab) && !this.userPerfil) {
             return html`${this.msg.loading}`;
         }
         switch (this.activeTab) {
             case 'CRM':
                 return this.renderCRM();
-            case 'TASK':
-                return this.renderTasks()
             case 'MOMENTS':
                 return this.renderMoments();
             case 'APPS':
@@ -373,12 +367,6 @@ export class CollabMessages extends CollabLitElement {
             userId=${this.userPerfil?.userId} 
             .e01RootSessionKey=${this.e01RootSessionKey}
         ></collab-messages-chat-102025>`
-    }
-
-    renderTasks() {
-        this.groupSelected = 'TASK';
-        // this.execCoachMarks('Tasks');
-        return html`<collab-messages-tasks-102025></collab-messages-tasks-102025>`
     }
 
     renderMoments() {
@@ -645,7 +633,7 @@ export class CollabMessages extends CollabLitElement {
         if (!thread) return;
         this.hashOpenConsumed = true;
         this.threadToOpen = thread.threadId;
-        if (thread.group && thread.group !== this.activeTab) this.activeTab = thread.group as ITabType;
+        if (thread.group && thread.group !== this.activeTab) this.activeTab = toTab(thread.group);
     }
 
     private onTabChange(e: CustomEvent) {
@@ -696,5 +684,10 @@ interface IThreadInfo {
     users: msg.User[]
 }
 
-type ITabType = 'CRM' | 'TASK' | 'MOMENTS' | 'CONNECT' | 'APPS' | 'SETTINGS' | 'Add' | 'Loading';
+function toTab(value: string | undefined): ITabType {
+    if (value === 'CRM' || value === 'CONNECT' || value === 'MOMENTS' || value === 'APPS' || value === 'SETTINGS') return value;
+    return 'CRM';
+}
+
+type ITabType = 'CRM' | 'MOMENTS' | 'CONNECT' | 'APPS' | 'SETTINGS' | 'Add' | 'Loading';
 type IScenery = 'tabs' | 'settings' | 'findTask'

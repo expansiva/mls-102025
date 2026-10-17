@@ -16,7 +16,6 @@ export const asis: mls.defs.AsIs =
     "webComponents": [
       "collab-messages-tab-menu-102025",
       "collab-messages-chat-102025",
-      "collab-messages-tasks-102025",
       "collab-messages-moments-102025",
       "collab-messages-apps-102025",
       "collab-messages-settings-102025"
@@ -170,9 +169,6 @@ export const asis: mls.defs.AsIs =
         "dependencies": [
           {
             "name": "collab_crm"
-          },
-          {
-            "name": "collab_tasks"
           },
           {
             "name": "collab_connect"

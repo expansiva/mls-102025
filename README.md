@@ -15,7 +15,6 @@ Flat under `l2/`, by filename prefix:
 |---|---|
 | `collabMessages*` (~197 files) | the messaging UI: threads, prompt input, tags, filters, rich-text parsing, settings, modals, apps menu |
 | `collabMessagesTask*` | task panel: details, info, preview of an agent run (tools, raw output, result) |
-| `collabTasks*` | task sidebar, list and empty states |
 | `aiAgent*` | agent-facing pieces of the UI |
 | `widgetQuestions*`, `toolSchema*` | question widgets and tool schema rendering |
 
