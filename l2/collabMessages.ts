@@ -1,6 +1,6 @@
 /// <mls fileReference="_102025_/l2/collabMessages.ts" enhancement="_102027_/l2/enhancementLit" /> 
 
-import { html,  nothing } from 'lit';
+import { html, nothing, type PropertyValues } from 'lit';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -22,6 +22,8 @@ import {
 import {
     saveLastTab,
     loadLastTab,
+    toMessagesTab,
+    normalizeIncomingTab,
     saveUserId,
     saveLastAlertTime,
     loadLastAlertTime,
@@ -128,12 +130,18 @@ export class CollabMessages extends CollabLitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        this.dataLocal.lastTab = toTab(loadLastTab());
+        this.dataLocal.lastTab = toMessagesTab(loadLastTab());
         this.setEvents();
     }
 
     disconnectedCallback() {
         this.removeEvents();
+    }
+
+    protected override willUpdate(changed: PropertyValues): void {
+        const tab = normalizeIncomingTab(this.activeTab);
+        if (changed.has('activeTab') && tab !== this.activeTab) this.activeTab = tab;
+        super.willUpdate(changed);
     }
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
@@ -235,14 +243,14 @@ export class CollabMessages extends CollabLitElement {
 
         this.threadToOpen = thread.threadId;
         const group = thread.group;
-        if (group !== this.activeTab) this.activeTab = toTab(group);
+        if (group !== this.activeTab) this.activeTab = toMessagesTab(group);
 
     }
 
     private onOpenTab = (e: Event) => {
         const tab = (e as CustomEvent).detail?.tab;
         if (!tab) return;
-        this.activeTab = toTab(tab);
+        this.activeTab = toMessagesTab(tab);
         saveLastTab(this.activeTab);
     }
 
@@ -633,7 +641,7 @@ export class CollabMessages extends CollabLitElement {
         if (!thread) return;
         this.hashOpenConsumed = true;
         this.threadToOpen = thread.threadId;
-        if (thread.group && thread.group !== this.activeTab) this.activeTab = toTab(thread.group);
+        if (thread.group && thread.group !== this.activeTab) this.activeTab = toMessagesTab(thread.group);
     }
 
     private onTabChange(e: CustomEvent) {
@@ -682,11 +690,6 @@ type IThreadData = { [key: string]: IThreadInfo }
 interface IThreadInfo {
     thread: msg.Thread,
     users: msg.User[]
-}
-
-function toTab(value: string | undefined): ITabType {
-    if (value === 'CRM' || value === 'CONNECT' || value === 'MOMENTS' || value === 'APPS' || value === 'SETTINGS') return value;
-    return 'CRM';
 }
 
 type ITabType = 'CRM' | 'MOMENTS' | 'CONNECT' | 'APPS' | 'SETTINGS' | 'Add' | 'Loading';

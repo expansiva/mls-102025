@@ -11,9 +11,11 @@ import {
     changeFavIcon,
     loadNotificationDeviceId,
     loadNotificationPreferences,
+    normalizeIncomingTab,
     registerToken,
     saveNotificationDeviceId,
     saveUserId,
+    toMessagesTab,
 } from '/_102025_/l2/collabMessagesHelper.js';
 import { notificationsRuntime } from '/_102025_/l2/notificationsRuntime.js';
 
@@ -28,6 +30,19 @@ test('collabMessagesHelper has no local getMessageKey and imports it from libCom
         'must import getMessageKey from /_102029_/l2/libCommom.js',
     );
     assert.match(source, /\bconst lang = getMessageKey\(messages\)/, 'top-level call must remain');
+});
+
+test('toMessagesTab keeps the five tabs and maps the rest to CRM', () => {
+    for (const value of ['TASK', 'DOCS', '', undefined]) assert.equal(toMessagesTab(value), 'CRM');
+    for (const value of ['CRM', 'CONNECT', 'MOMENTS', 'APPS', 'SETTINGS'] as const) {
+        assert.equal(toMessagesTab(value), value);
+    }
+});
+
+test('normalizeIncomingTab keeps Loading and Add and maps TASK to CRM', () => {
+    assert.equal(normalizeIncomingTab('Loading'), 'Loading');
+    assert.equal(normalizeIncomingTab('Add'), 'Add');
+    assert.equal(normalizeIncomingTab('TASK'), 'CRM');
 });
 
 test('registerToken sends subscription and stores endpoint as local identity', () => {

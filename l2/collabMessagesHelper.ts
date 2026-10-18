@@ -291,6 +291,18 @@ export function loadLastTab(): string {
     return 'CRM';
 }
 
+type MessagesTab = 'CRM' | 'CONNECT' | 'MOMENTS' | 'APPS' | 'SETTINGS';
+
+export function toMessagesTab(value: string | undefined): MessagesTab {
+    if (value === 'CRM' || value === 'CONNECT' || value === 'MOMENTS' || value === 'APPS' || value === 'SETTINGS') return value;
+    return 'CRM';
+}
+
+export function normalizeIncomingTab(value: string | undefined): MessagesTab | 'Loading' | 'Add' {
+    if (value === 'Loading' || value === 'Add') return value;
+    return toMessagesTab(value);
+}
+
 export function saveUserId(userId: string) {
     let dataLocal: CollabMessagesLS | undefined = loadLocalStorage();
     if (!dataLocal) dataLocal = { userId };
