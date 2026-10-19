@@ -16,8 +16,31 @@ import {
 import { getClarificationElement } from '/_102027_/l2/aiAgentOrchestration.js';
 import { collab_money } from '/_102025_/l2/collabMessagesIcons.js';
 
+/// **collab_i18n_start**
+const message_en = {
+    process: 'Process',
+    stage: 'Stage',
+    status: 'Status',
+    actor: 'Actor',
+    passes: 'Passes',
+}
+
+const message_pt = {
+    process: 'Processo',
+    stage: 'Etapa',
+    status: 'Status',
+    actor: 'Ator',
+    passes: 'Passagens',
+}
+
+type MessageType = typeof message_en;
+const messages: { [key: string]: MessageType } = { en: message_en, pt: message_pt };
+/// **collab_i18n_end**
+
 @customElement('collab-messages-task-details-102025')
 export class CollabMessagesTaskDetails extends StateLitElement {
+
+    private msg: MessageType = messages['en'];
 
     @property() task: mls.msg.TaskData | undefined = undefined;
     @property() message: mls.msg.Message | undefined = undefined;
@@ -50,6 +73,7 @@ export class CollabMessagesTaskDetails extends StateLitElement {
 
         if (!this.task) return html`No task.`;
 
+        this.msg = messages[this.getMessageKey(messages)] ?? messages['en'];
         const isClarificationPending = this.hasPendingClarification();
 
         return html`
@@ -213,9 +237,45 @@ export class CollabMessagesTaskDetails extends StateLitElement {
                         ${payload.nextSteps && payload.nextSteps.length > 0 ? this.renderTaskInteractions(payload.nextSteps) : html``}  
                     </details>
                 `
+            case 'module':
+                return this.renderModuleProcess(payload, isDirect);
             default:
                 return html`<p>Tipo de resultado desconhecido.</p>`;
         }
+    }
+
+    private renderModuleProcess(payload: mls.msg.AIModuleStep, isDirect: boolean): TemplateResult<1> {
+        const title = payload.stepTitle || payload.module.key;
+        return html`
+            <details ?open=${isDirect}>
+                <summary>${this.msg.process}: ${title}</summary>
+                ${this.renderModuleFields(payload)}
+                ${(payload.nextSteps ?? []).map((step) => step.type === 'module'
+                    ? this.renderModuleStage(step)
+                    : this.renderPayload(step))}
+            </details>
+        `;
+    }
+
+    private renderModuleStage(payload: mls.msg.AIModuleStep): TemplateResult<1> {
+        const title = payload.stepTitle || payload.module.key;
+        return html`
+            <details>
+                <summary>${this.msg.stage}: ${title}</summary>
+                ${this.renderModuleFields(payload)}
+                ${(payload.nextSteps ?? []).map((step) => step.type === 'module'
+                    ? this.renderModuleStage(step)
+                    : this.renderPayload(step))}
+            </details>
+        `;
+    }
+
+    private renderModuleFields(payload: mls.msg.AIModuleStep): TemplateResult<1> {
+        return html`
+            <div>${this.msg.status}: ${payload.status}</div>
+            ${payload.module.actorNow ? html`<div>${this.msg.actor}: ${payload.module.actorNow}</div>` : html``}
+            ${payload.module.passes > 1 ? html`<div>${this.msg.passes}: ${payload.module.passes}</div>` : html``}
+        `;
     }
 
     private renderPayloadAgent(payload: mls.msg.AIPayload, isDirect: boolean = false): TemplateResult<1> {
