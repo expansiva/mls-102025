@@ -171,14 +171,7 @@ export class AiAgentDefaultFeedback102025 extends StateLitElement {
         `;
     }
 
-    private getTitle(
-        step:
-            | mls.msg.AIAgentStep
-            | mls.msg.AIToolStep
-            | mls.msg.AIClarificationStep
-            | mls.msg.AIResultStep
-            | mls.msg.AIFlexibleResultStep
-    ): string {
+    private getTitle(step: mls.msg.AIPayload): string {
         return displayedStepTitle(step, this.localTitles);
     }
 
