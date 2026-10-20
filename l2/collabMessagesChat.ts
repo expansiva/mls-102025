@@ -67,6 +67,7 @@ import {
     msgAddMessage,
     msgCompleteAttachmentUpload,
     msgCreateAttachmentUpload,
+    msgReportAttachmentUploadFailure,
     msgDeleteAttachment,
     msgUpdateMessage
 } from '/_102025_/l2/shared/api.js';
@@ -2641,23 +2642,52 @@ export class CollabMessagesChat extends StateLitElement {
         const attachments: msg.AttachmentUploadCompletion[] = [];
 
         for (const file of files.slice(0, 6)) {
+            const contentType = file.type || 'application/octet-stream';
             const createResult = await msgCreateAttachmentUpload({
                 userId: this.userId,
                 threadId,
                 fileName: file.name,
-                contentType: file.type || 'application/octet-stream',
+                contentType,
                 sizeBytes: file.size
             });
             if (!createResult.success || !createResult.response) {
                 throw new Error(createResult.error || 'Failed to create attachment upload');
             }
 
-            const uploadResponse = await fetch(createResult.response.uploadUrl, {
-                method: 'PUT',
-                headers: createResult.response.headers,
-                body: file
-            });
+            const reportUploadFailure = async (failure: 'network' | 'http', httpStatus?: number) => {
+                const reportResult = await msgReportAttachmentUploadFailure({
+                    userId: this.userId!,
+                    threadId,
+                    attachmentId: createResult.response!.attachmentId,
+                    storageKey: createResult.response!.storageKey,
+                    fileName: file.name,
+                    contentType,
+                    sizeBytes: file.size,
+                    stage: 'storage_put',
+                    failure,
+                    ...(httpStatus !== undefined ? { httpStatus } : {}),
+                    pageOrigin: window.location.origin
+                });
+                if (!reportResult.success) {
+                    console.error(`Failed to report attachment upload failure: ${reportResult.error}`);
+                }
+            };
+
+            let uploadResponse: Response;
+            try {
+                uploadResponse = await fetch(createResult.response.uploadUrl, {
+                    method: 'PUT',
+                    headers: createResult.response.headers,
+                    body: file
+                });
+            } catch (err) {
+                if (navigator.onLine) {
+                    await reportUploadFailure('network');
+                }
+                throw err;
+            }
             if (!uploadResponse.ok) {
+                await reportUploadFailure('http', uploadResponse.status);
                 throw new Error(`Failed to upload attachment: ${file.name}`);
             }
 
