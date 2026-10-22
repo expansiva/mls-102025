@@ -33,6 +33,7 @@ import { getMessage, updateMessage } from '/_102025_/l2/collabMessagesIndexedDB.
 import { msgGetAttachmentUrl, msgUpdateMessage } from '/_102025_/l2/shared/api.js';
 import { hasTaskNotificationPending } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { deserializeUserMentions, serializeUserMentions } from '/_102025_/l2/collabMessagesPrompt.js';
+import { openContentInDetails } from '/_102025_/l2/collabMessagesContentDetail.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
@@ -75,6 +76,7 @@ const message_pt = {
     readConfirmationRead: 'lido',
     seeMore: 'ver mais...',
     seeLess: 'ver menos',
+    messageFrom: 'Mensagem de {name}',
     followupPending: 'pendente',
     followupLido: 'Lido',
     followupVouFazer: 'Vou fazer',
@@ -137,6 +139,7 @@ const message_en = {
     readConfirmationRead: 'read',
     seeMore: 'see more...',
     seeLess: 'see less',
+    messageFrom: 'Message from {name}',
     followupPending: 'pending',
     followupLido: 'Read',
     followupVouFazer: 'Will do',
@@ -1047,8 +1050,35 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (!text.trim().startsWith('@@') || text.length < 100) return nothing;
         return html`<button
             class="message-see-more"
-            @click=${(ev: Event) => { ev.stopPropagation(); this.showFullContent = !this.showFullContent; }}
+            @click=${(ev: Event) => this.onSeeMoreClick(ev, text)}
         >${this.showFullContent ? this.msg.seeLess : this.msg.seeMore}</button>`;
+    }
+
+    private async onSeeMoreClick(ev: Event, text: string) {
+        ev.stopPropagation();
+        if (!this.showFullContent) {
+            try {
+                const opened = await openContentInDetails({
+                    id: 'detail',
+                    title: this.msg.messageFrom.replace('{name}', this.getBubbleAuthorName()),
+                    text,
+                });
+                if (opened) return;
+            } catch (err) {
+                console.error('Failed to open the message in details; expanding in place.', err);
+            }
+        }
+        this.showFullContent = !this.showFullContent;
+    }
+
+    private getBubbleAuthorName(): string {
+        const message = this.message;
+        if (!message?.senderId) return '';
+        const userToFind = [
+            ...this.usersAvaliables,
+            ...(this.actualThread?.users || []),
+        ];
+        return userToFind.find((user) => user.userId === message.senderId)?.name || message.senderId;
     }
 
     private async onMentionClick(ev: CustomEvent) {
