@@ -9,6 +9,7 @@ import { parseRichText } from '/_102025_/l2/collabMessagesRichTextParser.js';
 import type { RichListItem, RichToken } from '/_102025_/l2/collabMessagesRichTextParser.js';
 
 import '/_102025_/l2/collabMessagesTextCode.js';
+import { openContentInDetails } from '/_102025_/l2/collabMessagesContentDetail.js';
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -18,6 +19,7 @@ const message_pt = {
     showMore: 'ver mais',
     showLess: 'ver menos',
     open: 'Abrir',
+    code: 'Código',
 }
 
 const message_en = {
@@ -27,6 +29,7 @@ const message_en = {
     showMore: 'show more',
     showLess: 'show less',
     open: 'Open',
+    code: 'Code',
 }
 
 type MessageType = typeof message_en;
@@ -53,6 +56,9 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
     @property({ type: String }) text = ``;
 
     @property({ type: Boolean }) showMarkers: boolean = false;
+
+    @property({ type: Boolean }) collapseCodeBlocks = true;
+
     @state() private expandedCodeBlocks: string[] = [];
 
     render() {
@@ -134,7 +140,7 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
         }
 
         const lines = token.value.split(/\r?\n/);
-        const shouldCollapse = lines.length > 3;
+        const shouldCollapse = this.collapseCodeBlocks && lines.length > 3;
         const expanded = this.expandedCodeBlocks.includes(key);
         const visibleValue = shouldCollapse && !expanded ? lines.slice(0, 3).join('\n') : token.value;
 
@@ -146,7 +152,7 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
                 ${shouldCollapse ? html`
                     <button
                     class="collab-md-codeblock-toggle"
-                    @click=${() => this.toggleCodeBlock(key)}
+                    @click=${() => this.onCodeBlockToggle(key, token)}
                     >
                     ${expanded ? this.msg.showLess : this.msg.showMore}
                     </button>
@@ -181,6 +187,23 @@ export class CollabMessagesRichPreviewText102025 extends StateLitElement {
     private openBugReport(json: string) {
         // Handled by _100554_serviceReportBug, which opens the bug in view mode.
         window.dispatchEvent(new CustomEvent('collab-bug-report-open', { detail: { json } }));
+    }
+
+    private async onCodeBlockToggle(key: string, token: { language: string; value: string }) {
+        const expanded = this.expandedCodeBlocks.includes(key);
+        if (!expanded) {
+            try {
+                const opened = await openContentInDetails({
+                    id: 'detail',
+                    title: token.language ? token.language.toUpperCase() : this.msg.code,
+                    text: '```' + token.language + '\n' + token.value + '\n```',
+                });
+                if (opened) return;
+            } catch (err) {
+                console.error('Failed to open the code block in details; expanding in place.', err);
+            }
+        }
+        this.toggleCodeBlock(key);
     }
 
     private toggleCodeBlock(key: string) {
