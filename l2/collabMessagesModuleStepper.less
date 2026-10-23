@@ -76,15 +76,41 @@ collab-messages-module-stepper-102025 {
         gap: 0.1rem;
         font-size: 0.8rem;
         line-height: 1.3;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .stepper.vertical .body {
         align-items: flex-start;
         text-align: left;
+        flex: 1 1 auto;
     }
 
     .title {
         font-weight: 600;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .stepper.vertical .title {
+        white-space: normal;
+        overflow: visible;
+        overflow-wrap: anywhere;
+    }
+
+    .actor {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .stepper.vertical .actor {
+        white-space: normal;
+        overflow: visible;
+        overflow-wrap: anywhere;
     }
 
     .actor,

@@ -3,6 +3,7 @@
 import { html, TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { getUser } from '/_102025_/l2/collabMessagesIndexedDB.js';
 
 /// **collab_i18n_start**
 const message_en = {
@@ -35,9 +36,11 @@ export class CollabMessagesModuleStepper extends StateLitElement {
     @property({ attribute: false }) task: mls.msg.TaskData | undefined = undefined;
 
     @state() private vertical = false;
+    @state() private actorNames: { [userId: string]: string } = {};
 
     private msg: MessageType = messages.en;
     private resizeObserver: ResizeObserver | undefined;
+    private actorLoads = new Set<string>();
 
     connectedCallback() {
         super.connectedCallback();
@@ -80,8 +83,9 @@ export class CollabMessagesModuleStepper extends StateLitElement {
         const passes = stage.module.passes > 1
             ? html`<span class="passes" title="${this.msg.passes}">×${stage.module.passes}</span>`
             : html``;
-        const actor = status === 'in_progress' && stage.module.actorNow
-            ? html`<span class="actor">${this.msg.actor}: ${stage.module.actorNow}</span>`
+        const actorName = status === 'in_progress' ? this.actorName(stage.module.actorNow) : '';
+        const actor = actorName
+            ? html`<span class="actor">${this.msg.actor}: ${actorName}</span>`
             : html``;
         const mark = status === 'completed' ? '✓' : String(index + 1);
         const statusLabel = status === 'completed'
@@ -98,13 +102,29 @@ export class CollabMessagesModuleStepper extends StateLitElement {
             >
                 <span class="mark" aria-hidden="true">${mark}</span>
                 <span class="body">
-                    <span class="title">${title}</span>
+                    <span class="title" title="${title}">${title}</span>
                     ${actor}
                     ${passes}
                 </span>
             </li>
             ${index < total - 1 ? html`<li class="connector ${status}" aria-hidden="true"></li>` : html``}
         `;
+    }
+
+    private actorName(actorNow: string | null | undefined): string {
+        if (!actorNow) return '';
+        const known = this.actorNames[actorNow];
+        if (known !== undefined) return known;
+        if (!this.actorLoads.has(actorNow)) {
+            this.actorLoads.add(actorNow);
+            getUser(actorNow).then((user) => {
+                this.actorNames = { ...this.actorNames, [actorNow]: user?.name ?? '' };
+            }).catch((err) => {
+                console.error('Failed to read the stage actor from local users.', err);
+                this.actorNames = { ...this.actorNames, [actorNow]: '' };
+            });
+        }
+        return '';
     }
 
     private selectStage(stepId: number) {
