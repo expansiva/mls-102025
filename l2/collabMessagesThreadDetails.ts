@@ -35,6 +35,9 @@ import '/_102025_/l2/collabMessagesChangeAvatar.js';
 const message_pt = {
     loading: 'Carregando...',
     threadName: 'Nome da thread',
+    roomId: 'ID da sala',
+    copyRoomId: 'Copiar',
+    copiedRoomId: 'Copiado',
     visibility: 'Visibilidade',
     visibilityPublic: 'Pública',
     visibilityPrivate: 'Privada',
@@ -102,6 +105,9 @@ const message_pt = {
 const message_en = {
     loading: 'Loading...',
     threadName: 'Thread name',
+    roomId: 'Room ID',
+    copyRoomId: 'Copy',
+    copiedRoomId: 'Copied',
     visibility: 'Visibility',
     visibilityPublic: 'Public',
     visibilityPrivate: 'Private',
@@ -199,6 +205,8 @@ export class CollabMessagesThreadDetails extends StateLitElement {
 
     // Details edit mode
     @state() private isEditingDetails: boolean = false;
+    @state() private roomIdCopied: boolean = false;
+    private roomIdCopiedTimer: number | undefined;
 
     // Agent states
     @state() private showAgentForm: boolean = false;
@@ -349,6 +357,25 @@ export class CollabMessagesThreadDetails extends StateLitElement {
         `;
     }
 
+    private copyRoomId(id: string) {
+        const done = () => {
+            this.roomIdCopied = true;
+            if (this.roomIdCopiedTimer !== undefined) window.clearTimeout(this.roomIdCopiedTimer);
+            this.roomIdCopiedTimer = window.setTimeout(() => { this.roomIdCopied = false; }, 1200);
+        };
+        if (navigator && navigator.clipboard) {
+            navigator.clipboard.writeText(id).then(done).catch((err: unknown) => console.error('copyRoomId failed', err));
+            return;
+        }
+        const t = document.createElement('textarea');
+        t.value = id;
+        document.body.appendChild(t);
+        t.select();
+        document.execCommand('copy');
+        document.body.removeChild(t);
+        done();
+    }
+
     private renderDetailsViewMode() {
         const thread = this.threadDetails?.thread;
         const topics = thread?.defaultTopics?.filter(t => t && t.trim()) || [];
@@ -381,6 +408,18 @@ export class CollabMessagesThreadDetails extends StateLitElement {
                     <div class="summary-item">
                         <span class="summary-label">${this.msg.threadName}</span>
                         <span class="summary-value">${thread?.name || '-'}</span>
+                    </div>
+
+                    <div class="summary-item">
+                        <span class="summary-label">${this.msg.roomId}</span>
+                        <span class="summary-value summary-id-row">
+                            <span class="summary-id">${thread?.threadId || '-'}</span>
+                            ${thread?.threadId ? html`
+                                <button type="button" class="btn-copy-id" @click=${() => this.copyRoomId(thread.threadId)}>
+                                    ${this.roomIdCopied ? this.msg.copiedRoomId : this.msg.copyRoomId}
+                                </button>
+                            ` : nothing}
+                        </span>
                     </div>
 
                     <div class="summary-item">

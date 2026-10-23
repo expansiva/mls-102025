@@ -445,6 +445,24 @@ collab-messages-thread-details-102025 {
                     font-size: @font-size-12;
                     color: @text-default;
 
+                    &.summary-id-row {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                    }
+
+                    .summary-id {
+                        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                        word-break: break-all;
+                    }
+
+                    .btn-copy-id {
+                        flex: none;
+                        font-size: @font-size-12;
+                        padding: 0.1rem 0.45rem;
+                        cursor: pointer;
+                    }
+
                     .tags-inline {
                         display: inline;
                         word-break: break-word;
