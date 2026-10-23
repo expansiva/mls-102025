@@ -10,6 +10,7 @@ import '/_102025_/l2/collabMessagesTaskDetails.js';
 import '/_102025_/l2/collabMessagesTaskPreview.js';
 import '/_102025_/l2/collabMessagesTaskLogPreview.js';
 import '/_102025_/l2/collabMessagesTaskRoom.js';
+import '/_102025_/l2/collabMessagesModuleStepper.js';
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -42,6 +43,7 @@ const message_pt = {
     total: 'total',
     failedSteps: 'steps falhos',
     fallbacks: 'fallbacks',
+    process: 'Processo',
 };
 
 const message_en = {
@@ -74,6 +76,7 @@ const message_en = {
     total: 'total',
     failedSteps: 'failed steps',
     fallbacks: 'fallbacks',
+    process: 'Process',
 };
 
 type MessageType = typeof message_en;
@@ -83,7 +86,7 @@ const messages: { [key: string]: MessageType } = {
 };
 /// **collab_i18n_end**
 
-type TaskInfoTab = 'workflow' | 'step' | 'raw' | 'todo' | 'chat' | 'statistics';
+type TaskInfoTab = 'workflow' | 'step' | 'raw' | 'todo' | 'chat' | 'statistics' | 'process';
 
 type TraceRecord = {
     stepId: number;
@@ -470,6 +473,9 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     }
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
+        if (changedProperties.has('task') && this.isModuleTask() && this.activeTab === 'todo') {
+            this.activeTab = 'process';
+        }
         if ((changedProperties.has('task') || changedProperties.has('message')) && this.hasPendingClarification() && !this.forceViewRaw) {
             this.setClarification();
         }
@@ -510,9 +516,14 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
         let aux: any = '';
         const hasTaskRoom = this.canUseTaskRoom();
-        const activeTab = hasTaskRoom || this.activeTab !== 'chat' ? this.activeTab : 'todo';
+        const moduleTask = this.isModuleTask();
+        const fallbackTab: TaskInfoTab = moduleTask ? 'process' : 'todo';
+        const activeTab = hasTaskRoom || this.activeTab !== 'chat' ? this.activeTab : fallbackTab;
 
-        if (this.hasTodo) {
+        if (moduleTask) {
+            aux = html`
+            <div class="tab ${activeTab === 'process' ? 'active' : ''}" @click=${() => this.setTab('process')} >${this.msg.process}</div>`;
+        } else if (this.hasTodo) {
             aux = html`
             <div class="tab ${activeTab === 'todo' ? 'active' : ''}" @click=${() => this.setTab('todo')} >Todo</div>`;
         }
@@ -564,6 +575,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
             case 'chat': return this.renderChat();
             case 'raw': return this.renderRaw();
             case 'todo': return this.renderTodo();
+            case 'process': return this.renderProcess();
             default: return html`workflow`;
         }
     }
@@ -578,6 +590,27 @@ export class CollabMessagesTaskInfo extends StateLitElement {
 
     renderTodo() {
         return html`<collab-messages-task-log-preview-102025 .message=${this.message} .task=${this.task} .father="${this}"></collab-messages-task-log-preview-102025>`
+    }
+
+    renderProcess() {
+        return html`
+            <collab-messages-module-stepper-102025
+                .task=${this.task}
+                @step-select=${(e: CustomEvent<number>) => this.onProcessStepSelect(e)}
+            ></collab-messages-module-stepper-102025>
+            <collab-messages-task-details-102025 .task=${this.task} .message=${this.message} taskId=${this.task?.PK}></collab-messages-task-details-102025>
+        `;
+    }
+
+    private isModuleTask(): boolean {
+        if (this.task?.source === 'module') return true;
+        const first = this.task?.iaCompressed?.nextSteps?.[0];
+        return first?.type === 'module';
+    }
+
+    private onProcessStepSelect(e: CustomEvent<number>) {
+        this.currentStepId = e.detail;
+        this.setTab('step');
     }
 
     renderChat() {
