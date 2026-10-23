@@ -145,4 +145,44 @@ collab-messages-task-preview-102025 {
             color: @text-default-disabled;
         }
     }
+
+    .module-step {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        padding: 1rem;
+        color: @text-default;
+
+        .module-step-title,
+        .module-step-trace-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .module-step-meta,
+        .module-step-trace-entry {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+
+        .module-step-meta span,
+        .module-step-trace-entry span {
+            border: 1px solid @border-default;
+            border-radius: 4px;
+            padding: .15rem .4rem;
+            font-size: .75rem;
+        }
+
+        .module-step-trace {
+            display: flex;
+            flex-direction: column;
+            gap: .4rem;
+        }
+
+        p {
+            margin: 0;
+            color: @text-default-disabled;
+        }
+    }
 }

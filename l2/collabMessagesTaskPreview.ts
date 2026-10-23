@@ -12,6 +12,37 @@ import '/_102025_/l2/collabMessagesTaskPreviewTools.js';
 import '/_102025_/l2/collabMessagesTaskPreviewResult.js';
 import '/_102025_/l2/collabMessagesTaskPreviewRaw.js';
 
+/// **collab_i18n_start**
+const message_pt = {
+    status: 'Estado',
+    kind: 'Tipo',
+    ownerKind: 'Dono',
+    actorNow: 'Ator agora',
+    passes: 'Passadas',
+    trace: 'Trace',
+    noTrace: 'Sem entradas neste trace.',
+    message: 'Mensagem',
+    person: 'Pessoa',
+    routine: 'Rotina',
+};
+
+const message_en = {
+    status: 'Status',
+    kind: 'Kind',
+    ownerKind: 'Owner',
+    actorNow: 'Actor now',
+    passes: 'Passes',
+    trace: 'Trace',
+    noTrace: 'No entries in this trace.',
+    message: 'Message',
+    person: 'Person',
+    routine: 'Routine',
+};
+
+type MessageType = typeof message_en;
+const messages: { [key: string]: MessageType } = { en: message_en, pt: message_pt };
+/// **collab_i18n_end**
+
 @customElement('collab-messages-task-preview-102025')
 
 export class CollabMessagesTaskPreview extends CollabLitElement {
@@ -160,6 +191,7 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
             case 'flexible': return this.renderFlexible(step);
             case 'tool': return this.renderTools(step);
             case 'result': return this.renderResult(step);
+            case 'module': return this.renderModule(step);
             case 'dynamicWorkflow':
             case 'staticWorkflow': return this.renderWorkflow(step);
             default: return html`Not found type: renderStepDetails`;
@@ -208,6 +240,65 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
 
     renderResult(step: mls.msg.AIResultStep) {
         return html` <collab-messages-task-preview-result-102025 .step=${step} .message=${this.message}  .task=${this.task} key="${step.stepId}"></collab-messages-task-preview-result-102025> `;
+    }
+
+    renderModule(step: mls.msg.AIModuleStep) {
+        const t = this.moduleText();
+        const key = step.module?.key || '';
+        const title = step.stepTitle || key;
+        const trace = this.moduleTrace(key);
+        return html`
+            <div class="module-step">
+                <div class="module-step-title">${title}</div>
+                <div class="module-step-meta">
+                    <span>${t.status}: ${step.status}</span>
+                    <span>${t.kind}: ${step.module?.kind || ''}</span>
+                    <span>${t.ownerKind}: ${step.module?.ownerKind || ''}</span>
+                    <span>${t.actorNow}: ${step.module?.actorNow || '—'}</span>
+                    <span>${t.passes}: ${step.module?.passes ?? 0}</span>
+                </div>
+                <div class="module-step-trace">
+                    <div class="module-step-trace-title">${t.trace}</div>
+                    ${trace.length
+                        ? trace.map((entry) => html`
+                            <div class="module-step-trace-entry">
+                                <span>${this.formatTraceAt(entry.at)}</span>
+                                <span>${entry.from || '—'} → ${entry.step}</span>
+                                <span>${this.traceExecutor(entry.executor, t)}</span>
+                                ${entry.message
+                                    ? html`<span>${t.message}: ${entry.message.content} (${entry.message.state})</span>`
+                                    : html``}
+                            </div>
+                        `)
+                        : html`<p>${t.noTrace}</p>`}
+                </div>
+            </div>
+        `;
+    }
+
+    private moduleText(): MessageType {
+        return messages[this.getMessageKey(messages)] ?? message_en;
+    }
+
+    private moduleTrace(key: string): mls.msg.TaskModuleHistoryEntry[] {
+        const history = this.task?.module?.history;
+        if (!key || !history?.length) return [];
+        return history
+            .filter((entry) => entry.step === key || entry.from === key)
+            .slice()
+            .sort((a, b) => a.at < b.at ? -1 : a.at > b.at ? 1 : 0);
+    }
+
+    private formatTraceAt(at: string) {
+        const date = new Date(at);
+        if (Number.isNaN(date.getTime())) return at;
+        const locale = this.getMessageKey(messages) === 'pt' ? 'pt-BR' : 'en-US';
+        return date.toLocaleString(locale);
+    }
+
+    private traceExecutor(executor: mls.msg.TaskModuleExecutor, t: MessageType) {
+        if (executor.kind === 'person') return `${t.person}: ${executor.userId}`;
+        return `${t.routine}: ${executor.name}`;
     }
 
     renderWorkflow(step: { stepId: number, type: string, workflowName?: string, status?: string, nextSteps?: any[] }) {
