@@ -80,6 +80,24 @@ collab-messages-module-stepper-102025 {
         max-width: 100%;
     }
 
+    // Horizontal: every stage has the same width and nothing inside can be wider (the label is cut with an ellipsis).
+    .stepper.horizontal .stage {
+        width: 11rem;
+        overflow: hidden;
+    }
+
+    .stepper.horizontal .body {
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .stepper.horizontal .title,
+    .stepper.horizontal .actor {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
     .stepper.vertical .body {
         align-items: flex-start;
         text-align: left;
