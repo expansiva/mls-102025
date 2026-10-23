@@ -149,6 +149,7 @@ const message_pt = {
     personalMemory: 'Minha memória',
     backToConversation: 'Voltar para a conversa',
     newMoments: 'Você tem moments novos',
+    couldNotOpenTask: 'Não foi possível abrir a tarefa: {erro}',
 }
 
 const message_en = {
@@ -204,6 +205,7 @@ const message_en = {
     personalMemory: 'My memory',
     backToConversation: 'Back to conversation',
     newMoments: 'You have new moments',
+    couldNotOpenTask: 'Could not open the task: {error}',
 }
 
 type MessageType = typeof message_en;
@@ -2922,10 +2924,18 @@ export class CollabMessagesChat extends StateLitElement {
 
 
     private async onTaskClick(taskId: string, messageId: string, threadId: string, message: IMessage) {
-        const task = await this.getTaskUpdate(taskId, messageId, threadId);
-        if (!task) return;
-        addOrUpdateTask(task);
-        await this.openTaskDetailsPanel(task, message);
+        try {
+            const task = await this.getTaskUpdate(taskId, messageId, threadId);
+            if (!task) return;
+            addOrUpdateTask(task);
+            await this.openTaskDetailsPanel(task, message);
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : String(error);
+            console.error(detail);
+            await this.showLocalSystemMessage(
+                this.msg.couldNotOpenTask.replace('{erro}', detail).replace('{error}', detail),
+            );
+        }
     }
 
     private async openTaskDetailsPanel(task: msg.TaskData, message: IMessage) {
