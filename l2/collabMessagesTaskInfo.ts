@@ -44,6 +44,16 @@ const message_pt = {
     failedSteps: 'steps falhos',
     fallbacks: 'fallbacks',
     process: 'Processo',
+    currentStep: 'Etapa atual',
+    actorNow: 'Ator agora',
+    advances: 'Avanços',
+    person: 'pessoa',
+    routine: 'rotina',
+    repeatedPasses: 'Etapas com mais de uma passada',
+    revision: 'Revisão',
+    sinceOpen: 'Desde a abertura',
+    sinceLast: 'Desde o último avanço',
+    none: 'Nenhuma',
 };
 
 const message_en = {
@@ -77,6 +87,16 @@ const message_en = {
     failedSteps: 'failed steps',
     fallbacks: 'fallbacks',
     process: 'Process',
+    currentStep: 'Current step',
+    actorNow: 'Actor now',
+    advances: 'Advances',
+    person: 'person',
+    routine: 'routine',
+    repeatedPasses: 'Steps with more than one pass',
+    revision: 'Revision',
+    sinceOpen: 'Since opening',
+    sinceLast: 'Since last advance',
+    none: 'None',
 };
 
 type MessageType = typeof message_en;
@@ -622,21 +642,17 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         const m = this.msg;
         const totalTokens = stats.inputTokens + stats.outputTokens;
         const tracePercent = stats.traceRecords > 0 ? Math.round((stats.jsonTraceRecords / stats.traceRecords) * 100) : 0;
+        const moduleTask = this.isModuleTask();
+        const showLlm = !moduleTask || stats.interactions > 0;
 
-        if (stats.totalSteps === 0 && stats.traceRecords === 0) {
+        if (!moduleTask && stats.totalSteps === 0 && stats.traceRecords === 0) {
+            return html`<div class="stats-empty">${m.noStatistics}</div>`;
+        }
+        if (moduleTask && stats.totalSteps === 0 && stats.traceRecords === 0 && !this.task?.module) {
             return html`<div class="stats-empty">${m.noStatistics}</div>`;
         }
 
-        return html`
-            <div class="stats-dashboard">
-                <div class="stats-header">
-                    <div>
-                        <h3>${m.statisticsTitle}</h3>
-                        <p>${m.statisticsSubtitle}</p>
-                    </div>
-                    <span class="stats-pill">${stats.totalSteps} ${m.total}</span>
-                </div>
-
+        const llmBlocks = showLlm ? html`
                 <div class="stats-kpis">
                     ${this.renderStatKpi(m.totalCost, this.formatMoney(stats.totalCost), 'kpi-cost')}
                     ${this.renderStatKpi(m.llmCalls, this.formatInteger(stats.llmCalls), 'kpi-calls')}
@@ -690,8 +706,76 @@ export class CollabMessagesTaskInfo extends StateLitElement {
                         ${this.renderSlowCalls(stats)}
                     </section>
                 </div>
+        ` : html`
+                <div class="stats-layout">
+                    <section class="stats-panel">
+                        <div class="stats-panel-title">${m.stepTypes}</div>
+                        ${this.renderStatsBars(stats.byType)}
+                    </section>
+                </div>
+        `;
+
+        return html`
+            <div class="stats-dashboard">
+                <div class="stats-header">
+                    <div>
+                        <h3>${m.statisticsTitle}</h3>
+                        <p>${m.statisticsSubtitle}</p>
+                    </div>
+                    <span class="stats-pill">${stats.totalSteps} ${m.total}</span>
+                </div>
+
+                ${moduleTask ? this.renderModuleProcess(stats) : html``}
+                ${llmBlocks}
             </div>
         `;
+    }
+
+    private renderModuleProcess(stats: TaskExecutionStatistics) {
+        const m = this.msg;
+        const mod = this.task?.module;
+        const history = mod?.history ?? [];
+        const person = history.filter(entry => entry.executor?.kind === 'person').length;
+        const routine = history.filter(entry => entry.executor?.kind === 'routine').length;
+        const stages = this.modulePlanStages();
+        const current = stages.find(step => step.status === 'in_progress');
+        const currentTitle = current ? (current.stepTitle || current.module?.key || '—') : '—';
+        const actor = current?.module?.actorNow || '—';
+        const repeated = stages.filter(step => (step.module?.passes ?? 0) > 1);
+
+        return html`
+            <section class="stats-panel stats-panel-wide module-process-stats">
+                <div class="stats-panel-title">${m.process}</div>
+                <div class="stats-mini-grid">
+                    <span><b>${currentTitle}</b>${m.currentStep}</span>
+                    <span><b>${actor}</b>${m.actorNow}</span>
+                    <span><b>${history.length}</b>${m.advances} (${person} ${m.person} × ${routine} ${m.routine})</span>
+                    <span><b>${mod?.revision ?? '—'}</b>${m.revision}</span>
+                    <span><b>${this.formatSince(history[0]?.at)}</b>${m.sinceOpen}</span>
+                    <span><b>${this.formatSince(history[history.length - 1]?.at)}</b>${m.sinceLast}</span>
+                </div>
+                <div class="stats-panel-title">${m.stepStatus}</div>
+                ${this.renderStatsBars(stats.byStatus)}
+                <div class="stats-panel-title">${m.repeatedPasses}</div>
+                ${repeated.length > 0
+                    ? html`<ul class="stats-errors">${repeated.map(step => html`<li>${step.stepTitle || step.module?.key} ×${step.module?.passes}</li>`)}</ul>`
+                    : html`<div class="stats-ok">${m.none}</div>`}
+            </section>
+        `;
+    }
+
+    private modulePlanStages(): mls.msg.AIModuleStep[] {
+        const root = this.task?.iaCompressed?.nextSteps?.[0];
+        if (!root || root.type !== 'module') return [];
+        return ((root.nextSteps ?? []) as mls.msg.AIPayload[])
+            .filter((step): step is mls.msg.AIModuleStep => step.type === 'module');
+    }
+
+    private formatSince(at: string | undefined): string {
+        if (!at) return '—';
+        const ms = Date.parse(at);
+        if (!Number.isFinite(ms)) return '—';
+        return this.formatDuration(Date.now() - ms);
     }
 
     renderDirectClarification() {
