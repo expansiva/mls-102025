@@ -73,6 +73,7 @@ const message_pt = {
     canceledReadConfirmation: 'cancelou confirmação de leitura',
     notConfirmedRead: 'não confirmado',
     readConfirmationWaiting: 'aguardando leitura',
+    executionWaiting: 'aguardando resposta',
     readConfirmationRead: 'lido',
     seeMore: 'ver mais...',
     seeLess: 'ver menos',
@@ -136,6 +137,7 @@ const message_en = {
     canceledReadConfirmation: 'canceled read confirmation',
     notConfirmedRead: 'not confirmed',
     readConfirmationWaiting: 'waiting for read',
+    executionWaiting: 'waiting for response',
     readConfirmationRead: 'read',
     seeMore: 'see more...',
     seeLess: 'see less',
@@ -1287,6 +1289,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             ...this.getEmojiReactionListItems(message),
             ...this.getFollowupReactionListItems(message),
             ...this.getReadConfirmationReactionListItems(message),
+            ...this.getExecutionPendingReactionListItems(message),
         ];
     }
 
@@ -1332,7 +1335,33 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                 isReadConfirmation: true,
             });
         }
+        const execution = this.getActiveExecutionFollowup(message);
+        if (execution) {
+            const pendingCountExecution = this.getFollowupStatusItems(message, execution)
+                .filter(item => !item.reaction).length;
+            if (pendingCountExecution > 0) {
+                items.push({
+                    reactionName: 'execution_pending',
+                    icon: collab_clock_static,
+                    count: pendingCountExecution,
+                    isFollowup: false,
+                    isReadConfirmation: true,
+                });
+            }
+        }
         return items;
+    }
+
+    private getExecutionPendingReactionListItems(message: IMessage): ReactionListItem[] {
+        const execution = this.getActiveExecutionFollowup(message);
+        if (!execution) return [];
+        return this.getFollowupStatusItems(message, execution)
+            .filter(item => !item.reaction)
+            .map(({ userId }) => ({
+                userId,
+                icon: collab_clock_static,
+                label: this.msg.executionWaiting,
+            }));
     }
 
     private getReadConfirmationReactionListItems(message: IMessage): ReactionListItem[] {
