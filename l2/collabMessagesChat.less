@@ -888,6 +888,39 @@ collab-messages-chat-102025 {
             box-shadow: var(--cm-shadow-sm, 0 1px 3px rgba(0, 0, 0, .14));
         }
 
+        .followup-notice {
+            align-self: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 76%;
+            margin: 8px 0;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: .75rem;
+            color: var(--cm-text-muted, #5b635f);
+            background: var(--cm-date-bg, rgba(255, 255, 255, .9));
+            border: 1px solid @border-subtle;
+            border-radius: var(--cm-radius-pill, 9999px);
+            box-shadow: var(--cm-shadow-sm, 0 1px 3px rgba(0, 0, 0, .14));
+
+            svg {
+                flex: 0 0 auto;
+                fill: var(--cm-green, #008f4c);
+            }
+        }
+
+        .followup-notice-see {
+            flex: 0 0 auto;
+            border: 1px solid @border-subtle;
+            border-radius: var(--cm-radius-pill, 9999px);
+            background: var(--cm-panel-bg, #ffffff);
+            color: var(--cm-green, #008f4c);
+            font-size: .75rem;
+            padding: 2px 10px;
+            cursor: pointer;
+        }
+
     }
 
     .jump-to-latest {

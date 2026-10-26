@@ -27,6 +27,7 @@ import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/colla
 import { johnSendErrorMessage } from '/_102025_/l2/collabMessagesJohnSendError.js';
 import { shouldMarkOpenThreadRead } from '/_102025_/l2/collabMessagesReadState.js';
 import { pickMessagesAfter, sliceWindowFromTarget } from '/_102025_/l2/collabMessagesChatWindow.js';
+import { nextFollowupNotice } from '/_102025_/l2/collabMessagesFollowupNotice.js';
 
 import {
     addOrUpdateTask,
@@ -152,6 +153,9 @@ const message_pt = {
     newMoments: 'Você tem moments novos',
     couldNotOpenTask: 'Não foi possível abrir a tarefa: {erro}',
     jumpToLatest: 'Ir para a última mensagem',
+    followupNoticeOne: 'Você tem 1 mensagem aguardando sua atenção.',
+    followupNoticeMany: 'Você tem {n} mensagens aguardando sua atenção.',
+    followupNoticeSee: 'Ver',
 }
 
 const message_en = {
@@ -209,6 +213,9 @@ const message_en = {
     newMoments: 'You have new moments',
     couldNotOpenTask: 'Could not open the task: {error}',
     jumpToLatest: 'Go to latest message',
+    followupNoticeOne: 'You have 1 message waiting for your attention.',
+    followupNoticeMany: 'You have {n} messages waiting for your attention.',
+    followupNoticeSee: 'See',
 }
 
 type MessageType = typeof message_en;
@@ -273,6 +280,7 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private e01SessionEpoch = 0;
     @state() private hasNewMoments = false;
     @state() private showJumpToLatest = false;
+    @state() private followupNotice = { visible: false, lastCount: 0 };
 
     private isSystemChangeScroll: boolean = false;
     private savedScrollTop = 0;
@@ -287,6 +295,17 @@ export class CollabMessagesChat extends StateLitElement {
     private isToolbarAutoScroll = false;
     private toolbarAutoScrollTimer?: ReturnType<typeof setTimeout>;
     private personalMemoryTrigger?: HTMLElement;
+
+    protected willUpdate(changedProperties: Map<PropertyKey, unknown>) {
+        const threadChanged = changedProperties.has('actualThread');
+        const messagesChanged = changedProperties.has('actualMessages');
+        if (!threadChanged && !messagesChanged) return;
+        if (threadChanged) {
+            const previous = changedProperties.get('actualThread') as IThreadInfo | undefined;
+            if (previous?.thread.threadId !== this.actualThread?.thread.threadId) return;
+        }
+        this.applyFollowupNotice('count');
+    }
 
     async updated(changedProperties: Map<PropertyKey, unknown>) {
 
@@ -541,12 +560,35 @@ export class CollabMessagesChat extends StateLitElement {
                                 ></collab-messages-chat-message-102025>`
             })}`
         })}
+                        ${this.renderFollowupNotice()}
                         ${this.isLoadingMessages ? html`<div class="unread-messages">Loading messages...</div>` : html``}
                         ${this.isThreadError ? html`<div class="error-messages">${this.threadErrorMsg}</div>` : html``}
                     </div>
                 ${this.renderTaskNotificationNav()}
                 ${this.renderJumpToLatest()}
                 ${this.renderPrompt()}`
+    }
+
+    private applyFollowupNotice(event: 'open' | 'count' | 'userScroll') {
+        const count = this.getReadConfirmationMessageIdsForThread().length;
+        const next = nextFollowupNotice(this.followupNotice, event, count);
+        if (next.visible === this.followupNotice.visible && next.lastCount === this.followupNotice.lastCount) return;
+        this.followupNotice = next;
+    }
+
+    private renderFollowupNotice() {
+        if (!this.followupNotice.visible) return nothing;
+        const count = this.getReadConfirmationMessageIdsForThread().length;
+        const text = count === 1
+            ? this.msg.followupNoticeOne
+            : this.msg.followupNoticeMany.replace('{n}', String(count));
+        return html`
+            <div class="followup-notice" role="status">
+                ${collab_bell}
+                <span>${text}</span>
+                <button class="followup-notice-see" @click=${() => this.navigateToolbarItem('readReceipts')}>${this.msg.followupNoticeSee}</button>
+            </div>
+        `;
     }
 
     private renderJumpToLatest() {
@@ -1840,6 +1882,8 @@ export class CollabMessagesChat extends StateLitElement {
             return;
         }
 
+        this.applyFollowupNotice('userScroll');
+
         if (this.isToolbarAutoScroll || Date.now() <= this.ignoreToolbarScrollClearUntil) {
             this.deferToolbarAutoScrollEnd();
         } else {
@@ -2226,6 +2270,7 @@ export class CollabMessagesChat extends StateLitElement {
         const messagesInDb = await getMessagesByThreadId(this.actualThread.thread.threadId, this.messagesLimit, 0);
         this.actualMessages = messagesInDb;
         await this.refreshCachedToolbarMessages();
+        this.applyFollowupNotice('open');
         this.isSystemChangeScroll = true;
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         this.activeScenerie = 'details';
