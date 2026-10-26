@@ -26,6 +26,7 @@ import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotif
 import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
 import { johnSendErrorMessage } from '/_102025_/l2/collabMessagesJohnSendError.js';
 import { shouldMarkOpenThreadRead } from '/_102025_/l2/collabMessagesReadState.js';
+import { pickMessagesAfter, sliceWindowFromTarget } from '/_102025_/l2/collabMessagesChatWindow.js';
 
 import {
     addOrUpdateTask,
@@ -274,6 +275,7 @@ export class CollabMessagesChat extends StateLitElement {
     private savedScrollTop = 0;
     private hasMoreMessagesLocalDB = true;
     private hasMoreMessagesBefore: boolean = false;
+    private hasMoreMessagesAfter = false;
     private messagesLimit = 50;
     private isLoadingMoreMessages = false;
     private isChangeTopics = false;
@@ -1036,7 +1038,8 @@ export class CollabMessagesChat extends StateLitElement {
         if (!isCurrent()) return;
         const messageWindow = this.buildMessageWindowFromTarget(allMessages, targetMessage);
         if (!isCurrent()) return;
-        this.applyToolbarMessageWindow(messageWindow);
+        this.hasMoreMessagesAfter = messageWindow.hasMoreAfter;
+        this.applyToolbarMessageWindow(messageWindow.messages);
         await this.refreshCachedToolbarMessages(isCurrent);
     }
 
@@ -1067,6 +1070,7 @@ export class CollabMessagesChat extends StateLitElement {
         const messages = [targetMessage, ...(afterResponse?.data || [])]
             .slice(0, this.messagesLimit)
             .map(message => ({ ...message, footers: [] }));
+        this.hasMoreMessagesAfter = (afterResponse?.hasMore ?? false) || (1 + (afterResponse?.data.length ?? 0)) > this.messagesLimit;
 
         if (persist) {
             if (!isCurrent()) return;
@@ -1081,7 +1085,7 @@ export class CollabMessagesChat extends StateLitElement {
     private buildMessageWindowFromTarget(
         messages: msg.MessagePerformanceCache[],
         targetMessage: msg.Message
-    ): IMessage[] {
+    ): { messages: IMessage[]; hasMoreAfter: boolean } {
         const targetId = this.getMessageCacheKey(targetMessage);
         const messagesById = new Map<string, msg.MessagePerformanceCache>();
 
@@ -1100,7 +1104,11 @@ export class CollabMessagesChat extends StateLitElement {
             this.isSameMessageId(message, targetId)
         );
         const startIndex = targetIndex >= 0 ? targetIndex : 0;
-        return sortedMessages.slice(startIndex, startIndex + this.messagesLimit) as IMessage[];
+        const window = sliceWindowFromTarget(sortedMessages, startIndex, this.messagesLimit);
+        return {
+            messages: window.messages as IMessage[],
+            hasMoreAfter: window.hasMoreAfter,
+        };
     }
 
     private applyToolbarMessageWindow(messages: IMessage[]) {
@@ -1646,6 +1654,48 @@ export class CollabMessagesChat extends StateLitElement {
         this.restoreScrollAnchor(container, anchor);
     }
 
+    private maxLoadedOrderAt(): string {
+        let maxOrderAt = '';
+        for (const message of this.actualMessages) {
+            const orderAt = message.orderAt || message.createAt;
+            if (orderAt > maxOrderAt) maxOrderAt = orderAt;
+        }
+        return maxOrderAt;
+    }
+
+    private async loadMessagesAfterWindow() {
+        if (!this.actualThread) return;
+        const lastOrderAt = this.maxLoadedOrderAt();
+        if (!lastOrderAt) return;
+
+        const loadedKeys = new Set(this.actualMessages.map(message => this.getMessageCacheKey(message)));
+        const localMessages = await getAllMessagesByThreadId(this.actualThread.thread.threadId);
+        const picked = pickMessagesAfter(localMessages, lastOrderAt, loadedKeys, this.messagesLimit);
+        let page = picked.messages as IMessage[];
+        let hasMoreAfter = picked.hasMoreAfter;
+
+        if (page.length === 0) {
+            let afterResponse: msg.ResponseGetMessagesAfter | undefined;
+            try {
+                afterResponse = await this.getMessagesAfter(this.actualThread.thread, lastOrderAt);
+            } catch (error) {
+                console.error(error);
+                return;
+            }
+            if (!afterResponse) {
+                console.error('Failed to fetch messages after the open window');
+                return;
+            }
+            const data = afterResponse.data || [];
+            page = data.slice(0, this.messagesLimit).map(message => ({ ...message, footers: [] })) as IMessage[];
+            hasMoreAfter = !!afterResponse.hasMore || data.length > this.messagesLimit;
+        }
+
+        this.actualMessages = [...this.actualMessages, ...page];
+        this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+        this.hasMoreMessagesAfter = hasMoreAfter;
+    }
+
     private async getBeforeMessagesInServer(thread: msg.ThreadPerformanceCache) {
         const firstItem = [...this.actualMessages]
             .sort((a, b) => (a.orderAt || a.createAt).localeCompare(b.orderAt || b.createAt))[0];
@@ -1766,7 +1816,8 @@ export class CollabMessagesChat extends StateLitElement {
         const container = e.target as HTMLElement;
         this.savedScrollTop = container.scrollTop;
         const threshold = 5;
-        this.wasMessagesAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
+        const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
+        this.wasMessagesAtBottom = this.hasMoreMessagesAfter ? false : atBottom;
         if (
             this.wasMessagesAtBottom &&
             this.actualThread &&
@@ -1774,6 +1825,22 @@ export class CollabMessagesChat extends StateLitElement {
         ) {
             await this.clearUnreadMarkerForActualThread();
         }
+
+        if (
+            atBottom &&
+            this.hasMoreMessagesAfter &&
+            !this.isLoadingMoreMessages &&
+            this.actualThread
+        ) {
+            this.isLoadingMoreMessages = true;
+            try {
+                await this.loadMessagesAfterWindow();
+            } finally {
+                this.isLoadingMoreMessages = false;
+            }
+            return;
+        }
+
         const scrollAnchor = this.getScrollAnchor(container);
 
         if (
@@ -2108,6 +2175,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.lastTopicFilter = '';
         this.hasMoreMessagesLocalDB = true;
         this.hasMoreMessagesBefore = false;
+        this.hasMoreMessagesAfter = false;
         this.toolbarView = {};
         this.toolbarNavigationKind = undefined;
         this.toolbarNavigationFailedKind = undefined;
@@ -2916,6 +2984,7 @@ export class CollabMessagesChat extends StateLitElement {
         if (outputs) m.footers = footerData;
         await addMessage(m);
         const messagesInDb = await getMessagesByThreadId(m.threadId, this.messagesLimit, 0);
+        this.hasMoreMessagesAfter = false;
         this.actualMessages = messagesInDb;
         this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
         this.requestUpdate();
@@ -3577,6 +3646,7 @@ export class CollabMessagesChat extends StateLitElement {
                     if (isScrolledToBottom) this.isSystemChangeScroll = true;
                 }
                 const messagesInDb = await getMessagesByThreadId(this.actualThread.thread.threadId, this.messagesLimit, 0);
+                this.hasMoreMessagesAfter = false;
                 this.actualMessages = messagesInDb;
                 this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
                 if (hasUnreadMessages) await this.updateLastMessage(this.actualThread);
