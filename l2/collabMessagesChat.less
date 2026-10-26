@@ -890,6 +890,30 @@ collab-messages-chat-102025 {
 
     }
 
+    .jump-to-latest {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 86px;
+        z-index: 5;
+        width: 38px;
+        height: 38px;
+        border: 1px solid @border-subtle;
+        border-radius: 50%;
+        background: var(--cm-panel-bg, #ffffff);
+        color: var(--cm-green, #008f4c);
+        box-shadow: rgba(0, 0, 0, .22) 0 2px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color .15s ease;
+
+        &:hover {
+            background: var(--cm-panel-muted, #f3f7f4);
+        }
+    }
+
     .task-notification-nav {
         position: absolute;
         right: 18px;

@@ -151,6 +151,7 @@ const message_pt = {
     backToConversation: 'Voltar para a conversa',
     newMoments: 'Você tem moments novos',
     couldNotOpenTask: 'Não foi possível abrir a tarefa: {erro}',
+    jumpToLatest: 'Ir para a última mensagem',
 }
 
 const message_en = {
@@ -207,6 +208,7 @@ const message_en = {
     backToConversation: 'Back to conversation',
     newMoments: 'You have new moments',
     couldNotOpenTask: 'Could not open the task: {error}',
+    jumpToLatest: 'Go to latest message',
 }
 
 type MessageType = typeof message_en;
@@ -270,6 +272,7 @@ export class CollabMessagesChat extends StateLitElement {
     @state() private showPersonalMemory = false;
     @state() private e01SessionEpoch = 0;
     @state() private hasNewMoments = false;
+    @state() private showJumpToLatest = false;
 
     private isSystemChangeScroll: boolean = false;
     private savedScrollTop = 0;
@@ -542,7 +545,37 @@ export class CollabMessagesChat extends StateLitElement {
                         ${this.isThreadError ? html`<div class="error-messages">${this.threadErrorMsg}</div>` : html``}
                     </div>
                 ${this.renderTaskNotificationNav()}
+                ${this.renderJumpToLatest()}
                 ${this.renderPrompt()}`
+    }
+
+    private renderJumpToLatest() {
+        if (!this.showJumpToLatest) return nothing;
+        return html`
+            <button
+                class="jump-to-latest"
+                @click=${() => this.onJumpToLatest()}
+                title=${this.msg.jumpToLatest}
+                aria-label=${this.msg.jumpToLatest}
+            >
+                ${this.renderTaskNotificationNavIcon('down')}
+            </button>
+        `;
+    }
+
+    private async onJumpToLatest() {
+        if (this.hasMoreMessagesAfter && this.actualThread) {
+            const threadId = this.actualThread.thread.threadId;
+            const messagesInDb = await getMessagesByThreadId(threadId, this.messagesLimit, 0);
+            this.actualMessages = messagesInDb;
+            this.actualMessagesParsed = this.parseMessages(this.actualMessages, this.lastTopicFilter);
+            this.hasMoreMessagesAfter = false;
+            await this.scrollMessagesToBottom();
+            return;
+        }
+        if (this.messageContainer) {
+            this.messageContainer.scrollTo({ top: this.messageContainer.scrollHeight, behavior: 'smooth' });
+        }
     }
 
     private renderTaskNotificationNav() {
@@ -1818,6 +1851,9 @@ export class CollabMessagesChat extends StateLitElement {
         const threshold = 5;
         const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
         this.wasMessagesAtBottom = this.hasMoreMessagesAfter ? false : atBottom;
+        const nextShowJumpToLatest = this.hasMoreMessagesAfter ||
+            (container.scrollHeight - container.scrollTop - container.clientHeight > container.clientHeight);
+        if (nextShowJumpToLatest !== this.showJumpToLatest) this.showJumpToLatest = nextShowJumpToLatest;
         if (
             this.wasMessagesAtBottom &&
             this.actualThread &&
@@ -2176,6 +2212,7 @@ export class CollabMessagesChat extends StateLitElement {
         this.hasMoreMessagesLocalDB = true;
         this.hasMoreMessagesBefore = false;
         this.hasMoreMessagesAfter = false;
+        this.showJumpToLatest = false;
         this.toolbarView = {};
         this.toolbarNavigationKind = undefined;
         this.toolbarNavigationFailedKind = undefined;
@@ -2623,6 +2660,7 @@ export class CollabMessagesChat extends StateLitElement {
             this.wasMessagesAtBottom = true;
             this.updateTaskNotificationNavDirection();
         }
+        this.showJumpToLatest = false;
         this.isSystemChangeScroll = false;
     }
 
