@@ -20,6 +20,10 @@ export const collabMessagesEnvironmentBase: Pick<
     },
 };
 
+export function agentModulePath(file: { project: number; level: number; folder: string; shortName: string }): string {
+    return `/_${file.project}_/l${file.level}/${file.folder ? file.folder + '/' : ''}${file.shortName}.js`;
+}
+
 async function getAgents(): Promise<IAgentMeta[]> {
 
     const keys = Object.keys(mls.stor.files);
@@ -27,7 +31,7 @@ async function getAgents(): Promise<IAgentMeta[]> {
     for await (const k of keys) {
         if (k.indexOf('agent') < 0) continue;
         const file = mls.stor.files[k];
-        const path = `/_${file.project}_${file.folder ? file.folder + '/' : ''}${file.shortName}`;
+        const path = agentModulePath(file);
         if (file.extension !== '.ts' || !file.shortName.startsWith('agent')) continue;
         try {
             const mdl = await import(path);
@@ -35,7 +39,8 @@ async function getAgents(): Promise<IAgentMeta[]> {
             const agent = mdl.createAgent() as IAgentMeta
             ret.push(agent);
         } catch (err) {
-            console.info(err)
+            const message = err instanceof Error ? err.message : String(err);
+            console.warn(`[getAgents] could not load ${path}: ${message}`);
             continue;
         }
     }

@@ -7,13 +7,29 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import { environment, setEnvironment } from '/_102036_/l2/environmentContract.js';
-import { collabMessagesEnvironmentBase } from '/_102025_/l2/collabMessagesEnvironmentBase.js';
+import { agentModulePath, collabMessagesEnvironmentBase } from '/_102025_/l2/collabMessagesEnvironmentBase.js';
 import type { Thread } from '/_102036_/l2/shared/interfaces.js';
 
 const source = readFileSync(
     join(dirname(fileURLToPath(import.meta.url)), 'collabMessagesEnvironmentBase.ts'),
     'utf8',
 );
+
+test('agentModulePath uses project, level, folder and .js', () => {
+    assert.equal(
+        agentModulePath({
+            project: 102035,
+            level: 2,
+            folder: 'agentReviewSolution/steps/validate40',
+            shortName: 'agentValidate40',
+        }),
+        '/_102035_/l2/agentReviewSolution/steps/validate40/agentValidate40.js',
+    );
+    assert.equal(
+        agentModulePath({ project: 102035, level: 2, folder: '', shortName: 'agentX' }),
+        '/_102035_/l2/agentX.js',
+    );
+});
 
 test('base has no Studio imports (the detector that would prove it was not neutral)', () => {
     assert.equal(
