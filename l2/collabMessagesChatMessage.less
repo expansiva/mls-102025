@@ -68,6 +68,10 @@ collab-messages-chat-message-102025 {
                 &.user {
                     background-color: var(--cm-bubble-out, #aee8c4);
                     align-self: flex-end;
+
+                    .message-content.clamped.has-more::after {
+                        background: linear-gradient(to bottom, transparent, var(--cm-bubble-out, #aee8c4));
+                    }
                 }
 
                 &.user:not(.same) {
@@ -159,6 +163,23 @@ collab-messages-chat-message-102025 {
                     align-items: flex-start;
                     gap: .4rem;
                     word-break: break-word;
+
+                    &.clamped {
+                        max-height: calc(10 * 1.34em);
+                        overflow: hidden;
+                        position: relative;
+
+                        &.has-more::after {
+                            content: '';
+                            position: absolute;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            height: 1.34em;
+                            pointer-events: none;
+                            background: linear-gradient(to bottom, transparent, var(--cm-bubble-in, #ffffff));
+                        }
+                    }
 
                     /* TODO-FINAL-028: failed-task reason styling */
                     &.task-failed {

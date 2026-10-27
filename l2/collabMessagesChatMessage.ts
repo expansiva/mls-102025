@@ -232,6 +232,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     @state() private showEditHistory = false;
     @state() private showFullContent = false;
     @state() private showFullTaskError = false;
+    @state() private contentOverflows = false;
+    private contentResizeObserver?: ResizeObserver;
+    private observedContentEl?: HTMLElement;
 
     public onTaskClick?: Function;
     private msg: MessageType = messages['en'];
@@ -249,6 +252,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     disconnectedCallback() {
         document.removeEventListener('click', this.documentClickHandler, true);
         document.removeEventListener('scroll', this.documentScrollHandler, true);
+        this.contentResizeObserver?.disconnect();
+        this.contentResizeObserver = undefined;
+        this.observedContentEl = undefined;
         super.disconnectedCallback();
     }
 
@@ -260,7 +266,37 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         // this.positionReactionListPopup();
         this.updateReactionListPlacement();
         this.positionFollowupActionMenu();
+        this.observeMessageContent();
+    }
 
+    private contentClampClass(base: string): string {
+        if (this.showFullContent) return base;
+        return `${base} clamped${this.contentOverflows ? ' has-more' : ''}`;
+    }
+
+    private observeMessageContent() {
+        if (!this.contentResizeObserver) {
+            this.contentResizeObserver = new ResizeObserver(() => this.measureContentOverflow());
+        }
+        const el = this.querySelector('.message-content.clamped');
+        const target = el instanceof HTMLElement ? el : undefined;
+        if (target !== this.observedContentEl) {
+            this.contentResizeObserver.disconnect();
+            this.observedContentEl = target;
+            if (target) this.contentResizeObserver.observe(target);
+        }
+        if (!target) {
+            if (this.contentOverflows) this.contentOverflows = false;
+            return;
+        }
+        this.measureContentOverflow();
+    }
+
+    private measureContentOverflow() {
+        const el = this.observedContentEl;
+        if (!el?.classList.contains('clamped')) return;
+        const overflows = el.scrollHeight > el.clientHeight + 1;
+        if (overflows !== this.contentOverflows) this.contentOverflows = overflows;
     }
 
 
@@ -386,7 +422,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const mode = this.userPreferenceChat?.translationMode || 'icon';
         if (!this.userPreferenceChat || mode === 'none' || !message.translations) {
             return html`
-            <div class="message-content">
+            <div class="${this.contentClampClass('message-content')}">
                 ${this.renderCollabMessagesRichPreview(message.content)} 
             </div>`
         }
@@ -396,13 +432,13 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         switch (mode) {
             case 'icon':
                 return html`
-                <div class="message-content">
+                <div class="${this.contentClampClass('message-content')}">
                     ${this.renderCollabMessagesRichPreview(messageByLanguagePref || message.content)} 
                      ${!isSameLanguege ? collab_translate : ''}
                 </div>`;
             case 'text':
                 return html`
-                <div class="message-content">
+                <div class="${this.contentClampClass('message-content')}">
                     ${this.renderCollabMessagesRichPreview(messageByLanguagePref || message.content)}   
                 </div>
                 ${!isSameLanguege ?
@@ -412,7 +448,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                         : ''}`;
             case 'iconText':
                 return html`
-                    <div class="message-content">
+                    <div class="${this.contentClampClass('message-content')}">
                         ${this.renderCollabMessagesRichPreview(messageByLanguagePref || message.content)}   
                         ${!isSameLanguege ? collab_translate : ''}
                     </div>
@@ -424,7 +460,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                     }`;
             case 'trace':
                 return html`
-                <div class="message-content trace">
+                <div class="${this.contentClampClass('message-content trace')}">
                     <div>
                         <b>[LanguageDetected: ${message.language_detected}]</b>
                         ${this.renderCollabMessagesRichPreview(message.content)}   
@@ -1036,20 +1072,18 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private renderCollabMessagesRichPreview(text: string) {
-        const needsTruncation = text.trim().startsWith('@@') && text.length >= 100;
-        const displayText = needsTruncation && !this.showFullContent ? text.slice(0, 100) + '...' : text;
         return html`
         <collab-messages-rich-preview-text-102025
             @mention-click=${this.onMentionClick}
             @channel-hover=${this.onChannelHover}
             .allUsers=${this.usersAvaliables}
             .allThreads=${this.allThreads}
-            text="${displayText}"
+            text="${text}"
         ></collab-messages-rich-preview-text-102025>`
     }
 
     private renderSeeMoreButton(text: string) {
-        if (!text.trim().startsWith('@@') || text.length < 100) return nothing;
+        if (!this.contentOverflows && !this.showFullContent) return nothing;
         return html`<button
             class="message-see-more"
             @click=${(ev: Event) => this.onSeeMoreClick(ev, text)}
