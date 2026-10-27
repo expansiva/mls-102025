@@ -1232,10 +1232,22 @@ collab-messages-chat-message-102025 {
 
     .message-reply-text {
         font-size: 12px;
-        // white-space: nowrap;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 5;
         overflow: hidden;
-        text-overflow: ellipsis;
+        max-height: calc(5 * 1.4em);
         opacity: .85;
+
+        collab-messages-rich-preview-text-102025 * {
+            font-size: inherit;
+            line-height: inherit;
+        }
+
+        .collab-md-codeblock-card {
+            margin: 0;
+        }
     }
 
 }
