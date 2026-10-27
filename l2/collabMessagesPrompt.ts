@@ -102,8 +102,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() isSending: boolean = false;
 
     @state() allAgents: IMentionAgent[] = [];
-    @state() alreadyLoadingAgents: boolean = false;
-    @state() lastScopeLoaded: string | undefined;
+    private agentsLoad?: { scope: string | undefined; promise: Promise<void> };
 
     @state() replyingTo?: {
         messageId: string;
@@ -231,6 +230,23 @@ export class CollabMessagesPrompt extends StateLitElement {
 
         this.allAgents = [...agentsPublic, ...agentsAsUser] as IMentionAgent[];
 
+    }
+
+    private ensureAgentsLoaded(): Promise<void> {
+        if (!this.acceptAutoCompleteAgents) return Promise.resolve();
+        if (this.agentsLoad && this.agentsLoad.scope === this.scope) return this.agentsLoad.promise;
+        const scope = this.scope;
+        let promise!: Promise<void>;
+        promise = (async () => {
+            try {
+                await this.getAgents();
+            } catch (err) {
+                console.error(err);
+                if (this.agentsLoad?.promise === promise) this.agentsLoad = undefined;
+            }
+        })();
+        this.agentsLoad = { scope, promise };
+        return promise;
     }
 
     private getCaretCoordinates(): { x: number, y: number } | null {
@@ -492,14 +508,7 @@ export class CollabMessagesPrompt extends StateLitElement {
             </div>
         `;
     }
-    async handleFocus() {
-        if (this.acceptAutoCompleteAgents &&
-            (!this.alreadyLoadingAgents || this.scope !== this.lastScopeLoaded)
-        ) {
-            this.lastScopeLoaded = this.scope;
-            this.alreadyLoadingAgents = true;
-            this.getAgents();
-        }
+    handleFocus() {
     }
 
     async handleInput(e: MouseEvent) {
@@ -527,7 +536,11 @@ export class CollabMessagesPrompt extends StateLitElement {
         const matchAgent = beforeCursor.match(/(?:^|\s)@@([a-zA-Z]*)$/);
         if (matchAgent && this.acceptAutoCompleteAgents) {
             query = matchAgent[1];
+            const load = this.ensureAgentsLoaded();
             suggestions = this.getAgentSuggestions(query);
+            if (this.allAgents.length === 0) {
+                void load.then(() => this.showAgentSuggestionsIfStillMatching());
+            }
         }
 
         const matchEmoji = beforeCursor.match(/::(\w+)$/);
@@ -667,6 +680,20 @@ export class CollabMessagesPrompt extends StateLitElement {
                 description: user.name,
                 type: 'user'
             }));
+    }
+
+    private async showAgentSuggestionsIfStillMatching() {
+        if (!this.textArea || !this.acceptAutoCompleteAgents) return;
+        const beforeCursor = this.text.slice(0, this.textArea.selectionStart);
+        const still = beforeCursor.match(/(?:^|\s)@@([a-zA-Z]*)$/);
+        if (!still) return;
+        const suggestions = this.getAgentSuggestions(still[1]);
+        if (suggestions.length === 0) return;
+        this.mentionActive = true;
+        this.mentionQuery = still[1];
+        this.mentionSuggestions = suggestions;
+        await this.updateComplete;
+        this.calculatePosition();
     }
 
     private getAgentSuggestions(query: string): IMentions[] {
@@ -850,6 +877,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         finalText = serializeUserMentions(finalText, this.allUsersValids);
 
         if (finalText.startsWith('@@')) {
+            await this.ensureAgentsLoaded();
 
             const _agentNameTemp = this.extractAgentName(finalText.trim());
             const inList = this.allAgents.find((agent) => (agent.name === _agentNameTemp || agent.alias === _agentNameTemp));
