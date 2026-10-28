@@ -37,6 +37,7 @@ const message_pt = {
     attachFiles: 'Anexar arquivos',
     removeAttachment: 'Remover anexo',
     sendError: 'Erro ao enviar mensagem',
+    searchingAgents: 'Buscando agentes…',
 }
 
 const message_en = {
@@ -45,6 +46,7 @@ const message_en = {
     attachFiles: 'Attach files',
     removeAttachment: 'Remove attachment',
     sendError: 'Error sending message',
+    searchingAgents: 'Searching agents…',
 }
 
 type MessageType = typeof message_en;
@@ -102,6 +104,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() isSending: boolean = false;
 
     @state() allAgents: IMentionAgent[] = [];
+    @state() private agentsLoading = false;
     private agentsLoad?: { scope: string | undefined; promise: Promise<void> };
 
     @state() replyingTo?: {
@@ -237,12 +240,15 @@ export class CollabMessagesPrompt extends StateLitElement {
         if (this.agentsLoad && this.agentsLoad.scope === this.scope) return this.agentsLoad.promise;
         const scope = this.scope;
         let promise!: Promise<void>;
+        this.agentsLoading = true;
         promise = (async () => {
             try {
                 await this.getAgents();
             } catch (err) {
                 console.error(err);
                 if (this.agentsLoad?.promise === promise) this.agentsLoad = undefined;
+            } finally {
+                if (!this.agentsLoad || this.agentsLoad.promise === promise) this.agentsLoading = false;
             }
         })();
         this.agentsLoad = { scope, promise };
@@ -416,7 +422,11 @@ export class CollabMessagesPrompt extends StateLitElement {
                         </textarea>
                     </div>
                     ${this.showSubmitButton ? html`<button ?disabled=${this.isSending} @click=${this.handleSend}>${collab_arrow_up_long}</button>` : nothing}
-                    ${this.mentionActive && this.mentionSuggestions.length > 0 ? html`
+                    ${this.mentionActive && this.agentsLoading && this.mentionSuggestions.length === 0 ? html`
+                        <ul class="mention-suggestions">
+                            <li class="mention-loading" aria-live="polite">${this.msg.searchingAgents}</li>
+                        </ul>
+                    ` : this.mentionActive && this.mentionSuggestions.length > 0 ? html`
                         <ul class="mention-suggestions">
                             ${this.mentionSuggestions.map((s, i) => html`
                                 <li
@@ -543,6 +553,10 @@ export class CollabMessagesPrompt extends StateLitElement {
             }
         }
 
+        const waitingForAgents = Boolean(
+            matchAgent && this.agentsLoading && this.allAgents.length === 0
+        );
+
         const matchEmoji = beforeCursor.match(/::(\w+)$/);
         if (matchEmoji) {
             query = matchEmoji[1];
@@ -553,6 +567,12 @@ export class CollabMessagesPrompt extends StateLitElement {
             this.mentionActive = true;
             this.mentionQuery = query;
             this.mentionSuggestions = suggestions;
+            await this.updateComplete;
+            this.calculatePosition();
+        } else if (waitingForAgents) {
+            this.mentionActive = true;
+            this.mentionQuery = query;
+            this.mentionSuggestions = [];
             await this.updateComplete;
             this.calculatePosition();
         } else {
@@ -683,12 +703,26 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private async showAgentSuggestionsIfStillMatching() {
-        if (!this.textArea || !this.acceptAutoCompleteAgents) return;
+        const close = () => {
+            if (this.mentionSuggestions.length > 0) return;
+            this.mentionActive = false;
+            this.mentionQuery = '';
+        };
+        if (!this.textArea || !this.acceptAutoCompleteAgents) {
+            close();
+            return;
+        }
         const beforeCursor = this.text.slice(0, this.textArea.selectionStart);
         const still = beforeCursor.match(/(?:^|\s)@@([a-zA-Z]*)$/);
-        if (!still) return;
+        if (!still) {
+            close();
+            return;
+        }
         const suggestions = this.getAgentSuggestions(still[1]);
-        if (suggestions.length === 0) return;
+        if (suggestions.length === 0) {
+            close();
+            return;
+        }
         this.mentionActive = true;
         this.mentionQuery = still[1];
         this.mentionSuggestions = suggestions;
@@ -732,7 +766,7 @@ export class CollabMessagesPrompt extends StateLitElement {
 
 
     private async handleKeyDown(e: KeyboardEvent) {
-        if (this.mentionActive) {
+        if (this.mentionActive && this.mentionSuggestions.length > 0) {
             const mention = this.mentionSuggestions[this.mentionIndex];
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
