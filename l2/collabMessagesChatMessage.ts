@@ -239,7 +239,10 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     public onTaskClick?: Function;
     private msg: MessageType = messages['en'];
     private readonly documentClickHandler = (ev: MouseEvent) => this.onDocumentClick(ev);
-    private readonly documentScrollHandler = () => this.closeLocalPopups();
+    private readonly documentScrollHandler = (ev: Event) => {
+        if (ev.target instanceof Element && ev.target.closest('.message-menu')) return;
+        this.closeLocalPopups();
+    };
 
     private readonly reactionEmojis = REACTION_EMOJIS;
 
@@ -1857,7 +1860,10 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         const limitBottom = clipRect ? Math.min(clipRect.bottom, winBottom) : winBottom;
 
         submenu.style.maxHeight = '';
-        const naturalHeight = submenu.getBoundingClientRect().height;
+        const menuStyle = getComputedStyle(submenu);
+        const marginTop = parseFloat(menuStyle.marginTop) || 0;
+        const marginBottom = parseFloat(menuStyle.marginBottom) || 0;
+        const naturalHeight = submenu.offsetHeight + marginTop + marginBottom;
         const spaceBelow = limitBottom - btnRect.bottom - GAP;
         const spaceAbove = btnRect.top - limitTop - GAP;
 
@@ -1875,10 +1881,10 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
             maxHeight = Math.max(0, spaceBelow);
         }
 
-        if (maxHeight !== undefined) submenu.style.maxHeight = `${maxHeight}px`;
-        const usedHeight = maxHeight !== undefined ? maxHeight : naturalHeight;
+        if (maxHeight !== undefined) submenu.style.maxHeight = `${Math.max(0, maxHeight - marginTop - marginBottom)}px`;
+        const usedHeight = (maxHeight !== undefined ? maxHeight : naturalHeight) - marginTop - marginBottom;
         const top = openTop
-            ? btnRect.top - parentRect.top - usedHeight - GAP
+            ? btnRect.top - parentRect.top - usedHeight - GAP - marginTop
             : btnRect.bottom - parentRect.top + GAP;
 
         submenu.style.top = `${top}px`;
