@@ -1841,30 +1841,50 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         if (!submenu) return;
 
         const btnRect = this.messageMenuTarget.getBoundingClientRect();
-        const pickerRect = submenu.getBoundingClientRect();
         const parent = submenu.offsetParent as HTMLElement;
         const parentRect = parent.getBoundingClientRect();
         const GAP = 8;
         const VIEWPORT_GAP = 8;
 
-        const spaceBelow = window.innerHeight - btnRect.bottom;
-        let top: number;
+        const clip = this.closest('.chat-container') as HTMLElement | null;
+        const clipRect = clip?.getBoundingClientRect();
+        const view = window.visualViewport;
+        const winTop = view ? view.offsetTop : 0;
+        const winBottom = view
+            ? view.offsetTop + view.height
+            : document.documentElement.clientHeight;
+        const limitTop = clipRect ? Math.max(clipRect.top, winTop) : winTop;
+        const limitBottom = clipRect ? Math.min(clipRect.bottom, winBottom) : winBottom;
 
-        if (spaceBelow >= pickerRect.height + GAP) {
-            top =
-                btnRect.bottom -
-                parentRect.top +
-                GAP;
+        submenu.style.maxHeight = '';
+        const naturalHeight = submenu.getBoundingClientRect().height;
+        const spaceBelow = limitBottom - btnRect.bottom - GAP;
+        const spaceAbove = btnRect.top - limitTop - GAP;
+
+        let openTop: boolean;
+        let maxHeight: number | undefined;
+        if (spaceBelow >= naturalHeight) {
+            openTop = false;
+        } else if (spaceAbove >= naturalHeight) {
+            openTop = true;
+        } else if (spaceAbove > spaceBelow) {
+            openTop = true;
+            maxHeight = Math.max(0, spaceAbove);
         } else {
-            top =
-                btnRect.top -
-                parentRect.top -
-                pickerRect.height -
-                GAP;
+            openTop = false;
+            maxHeight = Math.max(0, spaceBelow);
         }
+
+        if (maxHeight !== undefined) submenu.style.maxHeight = `${maxHeight}px`;
+        const usedHeight = maxHeight !== undefined ? maxHeight : naturalHeight;
+        const top = openTop
+            ? btnRect.top - parentRect.top - usedHeight - GAP
+            : btnRect.bottom - parentRect.top + GAP;
 
         submenu.style.top = `${top}px`;
         submenu.style.bottom = 'auto';
+        const placement = openTop ? 'top' : 'bottom';
+        if (this.messageMenuPlacement !== placement) this.messageMenuPlacement = placement;
 
         if (parent.classList.contains('user')) {
             submenu.style.right = '10px';
@@ -2231,13 +2251,8 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
         if (!menu) return;
 
-        const targetRect = this.messageMenuTarget.getBoundingClientRect();
-        const menuRect = menu.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const spaceBelow = viewportHeight - targetRect.bottom;
-        const spaceAbove = targetRect.top;
-        const shouldOpenTop = spaceBelow < menuRect.height && spaceAbove > spaceBelow;
-        this.messageMenuPlacement = shouldOpenTop ? 'top' : 'bottom';
+        menu.classList.remove('top', 'bottom');
+        menu.classList.add(this.messageMenuPlacement);
 
         requestAnimationFrame(() => {
             menu.classList.add('open');
