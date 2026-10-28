@@ -321,6 +321,46 @@ export function getUserId(): string | null {
     return null;
 }
 
+let ensureUserIdInFlight: Promise<string> | undefined;
+
+async function defaultFetchUserId(): Promise<string> {
+    if (!environment.config?.getApiUrl) {
+        throw new Error('collab_messages_environment_not_ready');
+    }
+    const result = await msgGetUserUpdate({
+        userId: '',
+        name: environment.config.getDefaultUserName?.() ?? '',
+    });
+    if (!result.success) {
+        throw new Error(result.error ?? '');
+    }
+    const userId = result.response?.user?.userId;
+    if (!userId) {
+        throw new Error(result.error ?? 'Failed to fetch user');
+    }
+    return userId;
+}
+
+export function ensureUserId(fetchUser: () => Promise<string> = defaultFetchUserId): Promise<string> {
+    const saved = getUserId();
+    if (saved) return Promise.resolve(saved);
+    if (!ensureUserIdInFlight) {
+        ensureUserIdInFlight = (async () => {
+            try {
+                const id = await fetchUser();
+                saveUserId(id);
+                ensureUserIdInFlight = undefined;
+                return id;
+            } catch (err: unknown) {
+                ensureUserIdInFlight = undefined;
+                const cause = err instanceof Error ? err.message : String(err);
+                throw new Error('collab_messages_user_unavailable: ' + cause);
+            }
+        })();
+    }
+    return ensureUserIdInFlight;
+}
+
 export function loadChatPreferences(): IChatPreferences {
     const savedOld = localStorage.getItem(LS_KEY_OLD);
     if (savedOld) {
