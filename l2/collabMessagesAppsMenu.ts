@@ -1,8 +1,10 @@
 /// <mls fileReference="_102025_/l2/collabMessagesAppsMenu.ts" enhancement="_102027_/l2/enhancementLit" />
 
-import { html } from 'lit';
+import { html, nothing } from 'lit';
+import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { customElement, state, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
+import { loadLucideArtwork, menuIconSvg } from '/_102025_/l2/collabMessagesAppsIcon.js';
 
 export interface IMenu {
     name: string;
@@ -80,12 +82,47 @@ export class CollabMessagesAppsMenu extends StateLitElement {
 
     @state() activeFilter: IFilter = 'all';
 
+    @state() private lucideArtwork: ((name: string) => string | undefined) | undefined = undefined;
+
 
     firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
         super.firstUpdated(_changedProperties);
         this.loadFavorites();
         this.loadHistory();
         this.loadFilter();
+    }
+
+    updated(_changedProperties: Map<PropertyKey, unknown>) {
+        super.updated(_changedProperties);
+        if (!_changedProperties.has('menuModules') || !this.menuHasIcon()) return;
+        loadLucideArtwork().then(artwork => {
+            this.lucideArtwork = artwork;
+        }).catch((cause: unknown) => {
+            console.error('[appsMenu] failed to load Lucide artwork', cause);
+        });
+    }
+
+    private menuHasIcon(): boolean {
+        for (const moduleItem of this.menuModules) {
+            if (moduleItem.icon !== '') return true;
+            if (this.itemsHaveIcon(moduleItem.menu)) return true;
+        }
+        return false;
+    }
+
+    private itemsHaveIcon(items: IMenuItem[]): boolean {
+        for (const item of items) {
+            if (item.icon !== '') return true;
+            if (item.children && this.itemsHaveIcon(item.children)) return true;
+        }
+        return false;
+    }
+
+    private renderIcon(name: string) {
+        if (!this.lucideArtwork) return nothing;
+        const svg = menuIconSvg(name, this.lucideArtwork);
+        if (svg === undefined) return nothing;
+        return html`<span class="icon">${unsafeSVG(svg)}</span>`;
     }
 
     // Scope key isolates favorites/history per project. Falls back to identifier when
@@ -228,7 +265,7 @@ export class CollabMessagesAppsMenu extends StateLitElement {
         return html`
 			<li class="menu-item">
 				<div class="menu-item-header" @click=${() => this.handleMenuClick(moduleItem, item)}>
-					<span class="icon" .innerHTML=${item.icon}></span>
+					${this.renderIcon(item.icon)}
 					<span class="title">${item.title}</span>
 					<span
 						class="favorite ${this.isFavorite(moduleItem, item) ? 'active' : ''}"
@@ -317,7 +354,7 @@ export class CollabMessagesAppsMenu extends StateLitElement {
                                     title=${pathDisplay}
                                     @click=${() => this.handleMenuClick(r.moduleItem as IMenu, r.menuItem as IMenuItem)}
                                 >
-                                    <span class="icon" .innerHTML=${(r.menuItem as IMenuItem).icon}></span>
+                                    ${this.renderIcon((r.menuItem as IMenuItem).icon)}
                                     <span class="title">${pathDisplay}</span>
                                 </li>
                             `;
@@ -345,7 +382,7 @@ export class CollabMessagesAppsMenu extends StateLitElement {
             ${modules.map(({ module, items }) => html`
                 <details class="menu-module" ?open=${searching}>
                     <summary>
-                        <span class="icon" .innerHTML=${module.icon}></span>
+                        ${this.renderIcon(module.icon)}
                         <span class="name">${module.name}</span>
                     </summary>
                     <ul class="menu-list">
