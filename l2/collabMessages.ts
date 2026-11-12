@@ -94,21 +94,6 @@ const messages: { [key: string]: MessageType } = {
 }
 /// **collab_i18n_end**
 
-/** What each chat tab forwards to `<collab-messages-chat-102025>`. Empty strings stay unset. */
-export function chatOpenAttributes(
-    group: string,
-    threadToOpen: string,
-    taskToOpen: string,
-): { threadToOpen: string | undefined; taskToOpen: string | undefined } {
-    if (group !== 'CONNECT' && group !== 'CRM') {
-        return { threadToOpen: undefined, taskToOpen: undefined };
-    }
-    return {
-        threadToOpen: threadToOpen || undefined,
-        taskToOpen: taskToOpen || undefined,
-    };
-}
-
 @customElement('collab-messages-102025')
 export class CollabMessages extends CollabLitElement {
 
