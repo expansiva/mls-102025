@@ -94,6 +94,21 @@ const messages: { [key: string]: MessageType } = {
 }
 /// **collab_i18n_end**
 
+/** What each chat tab forwards to `<collab-messages-chat-102025>`. Empty strings stay unset. */
+export function chatOpenAttributes(
+    group: string,
+    threadToOpen: string,
+    taskToOpen: string,
+): { threadToOpen: string | undefined; taskToOpen: string | undefined } {
+    if (group !== 'CONNECT' && group !== 'CRM') {
+        return { threadToOpen: undefined, taskToOpen: undefined };
+    }
+    return {
+        threadToOpen: threadToOpen || undefined,
+        taskToOpen: taskToOpen || undefined,
+    };
+}
+
 @customElement('collab-messages-102025')
 export class CollabMessages extends CollabLitElement {
 
@@ -372,6 +387,8 @@ export class CollabMessages extends CollabLitElement {
             }} 
             .allThreads=${Object.keys(this.userThreads).map((key) => this.userThreads[key].thread)}
             
+            threadToOpen=${ifDefined(this.threadToOpen || undefined)}
+            taskToOpen=${ifDefined(this.taskToOpen || undefined)}
             userId=${this.userPerfil?.userId} 
             .e01RootSessionKey=${this.e01RootSessionKey}
         ></collab-messages-chat-102025>`
