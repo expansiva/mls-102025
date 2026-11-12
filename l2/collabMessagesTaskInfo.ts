@@ -11,6 +11,8 @@ import '/_102025_/l2/collabMessagesTaskPreview.js';
 import '/_102025_/l2/collabMessagesTaskLogPreview.js';
 import '/_102025_/l2/collabMessagesTaskRoom.js';
 import '/_102025_/l2/collabMessagesModuleStepper.js';
+import { getUserId } from '/_102025_/l2/collabMessagesHelper.js';
+import { environment, type CollabProgramMenuItem } from '/_102036_/l2/environmentContract.js';
 
 /// **collab_i18n_start**
 const message_pt = {
@@ -54,6 +56,7 @@ const message_pt = {
     sinceOpen: 'Desde a abertura',
     sinceLast: 'Desde o último avanço',
     none: 'Nenhuma',
+    openScreen: 'Abrir tela',
 };
 
 const message_en = {
@@ -97,6 +100,7 @@ const message_en = {
     sinceOpen: 'Since opening',
     sinceLast: 'Since last advance',
     none: 'None',
+    openScreen: 'Open screen',
 };
 
 type MessageType = typeof message_en;
@@ -454,6 +458,38 @@ export function buildTaskStatistics(task: mls.msg.TaskData | undefined): TaskExe
     };
 }
 
+export function moduleScreenAddress(task: mls.msg.TaskData | undefined, userId: string): string | undefined {
+    if (!userId) return undefined;
+    const root = task?.iaCompressed?.nextSteps?.[0];
+    if (!root || root.type !== 'module') return undefined;
+    const current = ((root.nextSteps ?? []) as mls.msg.AIPayload[])
+        .filter((step): step is mls.msg.AIModuleStep => step.type === 'module')
+        .find(step => step.status === 'in_progress');
+    if (!current || current.module.kind !== 'human' || current.module.actorNow !== userId) return undefined;
+    const page = current.module.params?.page;
+    if (!page) return undefined;
+    const recordParam = current.module.params?.recordParam;
+    if (!recordParam) return page;
+    return `${page}?${recordParam}=${encodeURIComponent(task?.module?.ref.recordId ?? '')}`;
+}
+
+export function moduleScreenProgramItem(address: string): CollabProgramMenuItem {
+    return {
+        title: '',
+        icon: '',
+        url: address,
+        pageName: address.split('?')[0] || address,
+    };
+}
+
+export async function openModuleScreenProgram(
+    address: string | undefined,
+    openProgram: ((item: CollabProgramMenuItem) => Promise<void>) | undefined,
+): Promise<void> {
+    if (!address || !openProgram) return;
+    await openProgram(moduleScreenProgramItem(address));
+}
+
 @customElement('collab-messages-task-info-102025')
 export class CollabMessagesTaskInfo extends StateLitElement {
 
@@ -613,11 +649,17 @@ export class CollabMessagesTaskInfo extends StateLitElement {
     }
 
     renderProcess() {
+        const address = moduleScreenAddress(this.task, getUserId() ?? '');
         return html`
             <collab-messages-module-stepper-102025
                 .task=${this.task}
                 @step-select=${(e: CustomEvent<number>) => this.onProcessStepSelect(e)}
             ></collab-messages-module-stepper-102025>
+            ${address ? html`
+                <button class="open-screen" @click=${() => { void openModuleScreenProgram(address, environment.apps?.openProgram); }}>
+                    ${this.msg.openScreen}
+                </button>
+            ` : ''}
             <collab-messages-task-details-102025 .task=${this.task} .message=${this.message} taskId=${this.task?.PK}></collab-messages-task-details-102025>
         `;
     }
