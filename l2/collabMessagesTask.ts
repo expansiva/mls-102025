@@ -72,6 +72,16 @@ export function taskCardIconStatus(task: msg.TaskData, userId: string): string {
     return task.status;
 }
 
+export function taskNeedsServerSync(
+    task: msg.TaskData | undefined,
+    userId: string,
+    hasContext: boolean,
+    hasMessageRef: boolean
+): boolean {
+    if (!task) return hasMessageRef;
+    return task.status === 'in progress' && task.owner === userId && !hasContext;
+}
+
 @customElement('collab-messages-task-102025')
 export class CollabMessagesTask extends StateLitElement {
 
@@ -216,14 +226,18 @@ export class CollabMessagesTask extends StateLitElement {
 
     private async getTaskLocal(taskId: string) {
         const task = await getTask(taskId);
-        if (!task) return;
+        const hasMessageRef = !!(this.threadId && this.messageid);
+        if (!task) {
+            if (taskNeedsServerSync(undefined, this.userId, !!this.context, hasMessageRef)) {
+                await this.syncTaskFromServer(taskId);
+            }
+            return;
+        }
 
         this.task = task;
 
         const shouldSync =
-            (task.status === 'in progress' &&
-                task.owner === this.userId &&
-                !this.context) ||
+            taskNeedsServerSync(task, this.userId, !!this.context, hasMessageRef) ||
             this.shouldSyncFailedSnapshot(task);
 
         if (!shouldSync) return;

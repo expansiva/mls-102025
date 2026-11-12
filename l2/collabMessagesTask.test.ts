@@ -9,6 +9,7 @@ import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
 type IconStatus = (task: mls.msg.TaskData, userId: string) => string | undefined;
+type NeedsSync = (task: mls.msg.TaskData | undefined, userId: string, hasContext: boolean, hasMessageRef: boolean) => boolean;
 
 // Loads only the pure block of the card (collectSteps ... taskCardIconStatus), so the component's lit imports stay out.
 async function loadIconStatus(): Promise<IconStatus> {
@@ -21,8 +22,8 @@ async function loadIconStatus(): Promise<IconStatus> {
     }).outputText;
     const file = join(mkdtempSync(join(tmpdir(), 'task-card-')), 'taskCardIcon.mjs');
     writeFileSync(file, js);
-    const mod = await import(pathToFileURL(file).href) as { taskCardIconStatus: IconStatus };
-    return mod.taskCardIconStatus;
+    const mod = await import(pathToFileURL(file).href) as { taskCardIconStatus: IconStatus; taskNeedsServerSync: NeedsSync };
+    return mod;
 }
 
 const VIEWER = 'user-viewer';
@@ -84,28 +85,28 @@ function moduleTask(kind: mls.msg.ModuleStepKind, actorNow: string | null): mls.
 describe('task card icon', { concurrency: 1 }, () => {
 
 test('module human step with actorNow equal to the viewer shows the bell', async () => {
-    const taskCardIconStatus = await loadIconStatus();
+    const { taskCardIconStatus } = await loadIconStatus();
     assert.equal(taskCardIconStatus(moduleTask('human', VIEWER), VIEWER), 'waitingforuser');
 });
 
 test('module human step with another actorNow keeps the clock status', async () => {
-    const taskCardIconStatus = await loadIconStatus();
+    const { taskCardIconStatus } = await loadIconStatus();
     assert.equal(taskCardIconStatus(moduleTask('human', OTHER), VIEWER), 'in progress');
 });
 
 test('module wait and llm steps keep the clock status', async () => {
-    const taskCardIconStatus = await loadIconStatus();
+    const { taskCardIconStatus } = await loadIconStatus();
     assert.equal(taskCardIconStatus(moduleTask('wait', VIEWER), VIEWER), 'in progress');
     assert.equal(taskCardIconStatus(moduleTask('llm', VIEWER), VIEWER), 'in progress');
 });
 
 test('a viewer without id never gets the bell from a module step', async () => {
-    const taskCardIconStatus = await loadIconStatus();
+    const { taskCardIconStatus } = await loadIconStatus();
     assert.equal(taskCardIconStatus(moduleTask('human', ''), ''), 'in progress');
 });
 
 test('agent clarification still shows the bell', async () => {
-    const taskCardIconStatus = await loadIconStatus();
+    const { taskCardIconStatus } = await loadIconStatus();
     const task = makeTask([
         {
             type: 'agent',
@@ -130,6 +131,40 @@ test('agent clarification still shows the bell', async () => {
         },
     ]);
     assert.equal(taskCardIconStatus(task, VIEWER), 'waitingforuser');
+});
+
+});
+
+const localTask = { status: 'in progress', owner: VIEWER } as mls.msg.TaskData;
+
+describe('taskNeedsServerSync current decision', { concurrency: 1 }, () => {
+
+test('missing local task does not sync', async () => {
+    const { taskNeedsServerSync } = await loadIconStatus();
+    assert.equal(taskNeedsServerSync(undefined, VIEWER, false, false), false);
+    assert.equal(taskNeedsServerSync(undefined, OTHER, false, false), false);
+});
+
+test('in progress owner without context syncs', async () => {
+    const { taskNeedsServerSync } = await loadIconStatus();
+    assert.equal(taskNeedsServerSync(localTask, VIEWER, false, false), true);
+});
+
+test('owner with context, other user, or another status does not sync', async () => {
+    const { taskNeedsServerSync } = await loadIconStatus();
+    assert.equal(taskNeedsServerSync(localTask, VIEWER, true, false), false);
+    assert.equal(taskNeedsServerSync(localTask, OTHER, false, false), false);
+    assert.equal(taskNeedsServerSync({ ...localTask, status: 'done' }, VIEWER, false, false), false);
+});
+
+});
+
+describe('taskNeedsServerSync when the task is absent and the card has a message ref', { concurrency: 1 }, () => {
+
+test('owner and non-owner both sync', async () => {
+    const { taskNeedsServerSync } = await loadIconStatus();
+    assert.equal(taskNeedsServerSync(undefined, VIEWER, false, true), true);
+    assert.equal(taskNeedsServerSync(undefined, OTHER, true, true), true);
 });
 
 });
