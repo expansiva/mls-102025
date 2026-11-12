@@ -37,6 +37,41 @@ const messages: { [key: string]: MessageType } = {
 }
 /// **collab_i18n_end**
 
+function collectSteps(firstStep: msg.AIPayload[] | undefined): msg.AIPayload[] {
+    if (!firstStep || firstStep.length < 1) return [];
+    const allSteps: msg.AIPayload[] = [];
+    const queue: msg.AIPayload[] = [...firstStep];
+    while (queue.length > 0) {
+        const currentStep = queue.shift()!;
+        allSteps.push(currentStep);
+        if (currentStep.nextSteps) queue.push(...currentStep.nextSteps);
+        if (currentStep.interaction?.payload) queue.push(...currentStep.interaction.payload);
+    }
+    return allSteps;
+}
+
+function nextPendingStep(task: msg.TaskData): msg.AIPayload | null {
+    return collectSteps(task.iaCompressed?.nextSteps).find(step => step.status === 'pending') || null;
+}
+
+function currentModuleStage(task: msg.TaskData): msg.AIModuleStep | undefined {
+    const root = task.iaCompressed?.nextSteps?.[0];
+    if (!root || root.type !== 'module') return undefined;
+    const children = root.nextSteps ?? [];
+    return children.find((step): step is msg.AIModuleStep =>
+        step.type === 'module' && step.status === 'in_progress');
+}
+
+export function taskCardIconStatus(task: msg.TaskData, userId: string): string {
+    const pending = nextPendingStep(task);
+    if (pending?.type === 'clarification') return 'waitingforuser';
+    const stage = currentModuleStage(task);
+    if (userId && stage?.module.kind === 'human' && stage.module.actorNow === userId) {
+        return 'waitingforuser';
+    }
+    return task.status;
+}
+
 @customElement('collab-messages-task-102025')
 export class CollabMessagesTask extends StateLitElement {
 
@@ -142,9 +177,7 @@ export class CollabMessagesTask extends StateLitElement {
         }
         let status = this.status;
         if (this.task) {
-            status = this.task.status;
-            const nextStepPending = this.getNextPendentStep(this.task);
-            if (nextStepPending?.type === 'clarification') status = 'waitingforuser'
+            status = taskCardIconStatus(this.task, this.userId);
         }
 
         if (!status) return html`<span class="task-icon in progress ">${collab_clock}</span>`;
@@ -269,35 +302,8 @@ export class CollabMessagesTask extends StateLitElement {
         return `${parts[0]}/${parts[parts.length - 1]}`;
     }
 
-    private getAllSteps(firstStep: msg.AIPayload[] | undefined): msg.AIPayload[] {
-        if (!firstStep || firstStep.length < 1) {
-            return [];
-        }
-        const allSteps: msg.AIPayload[] = [];
-        const queue: msg.AIPayload[] = [...firstStep];
-
-        // BFS approach to collect all steps
-        while (queue.length > 0) {
-            const currentStep = queue.shift()!;
-            allSteps.push(currentStep);
-
-            // Add nextSteps to queue if they exist
-            if (currentStep.nextSteps) {
-                queue.push(...currentStep.nextSteps);
-            }
-
-            // Add steps from interaction.payload if they exist
-            if (currentStep.interaction?.payload) {
-                queue.push(...currentStep.interaction.payload);
-            }
-        }
-
-        return allSteps;
-    };
-
     private getNextPendentStep(task: msg.TaskData): msg.AIPayload | null {
-        const allSteps = this.getAllSteps(task.iaCompressed?.nextSteps);
-        return allSteps.find(step => step.status === 'pending') || null;
+        return nextPendingStep(task);
     };
 
 
