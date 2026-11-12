@@ -458,6 +458,15 @@ export function buildTaskStatistics(task: mls.msg.TaskData | undefined): TaskExe
     };
 }
 
+/** Module tasks show the LLM statistics block only after a call. Other tasks keep the block. */
+export function moduleTaskShowsLlmStatistics(task: mls.msg.TaskData | undefined): boolean {
+    const first = task?.iaCompressed?.nextSteps?.[0];
+    const moduleTask = task?.source === 'module' || first?.type === 'module';
+    if (!moduleTask) return true;
+    const stats = buildTaskStatistics(task);
+    return stats.interactions > 0 || stats.llmCalls > 0;
+}
+
 export function moduleScreenAddress(task: mls.msg.TaskData | undefined, userId: string): string | undefined {
     if (!userId) return undefined;
     const root = task?.iaCompressed?.nextSteps?.[0];
@@ -685,7 +694,7 @@ export class CollabMessagesTaskInfo extends StateLitElement {
         const totalTokens = stats.inputTokens + stats.outputTokens;
         const tracePercent = stats.traceRecords > 0 ? Math.round((stats.jsonTraceRecords / stats.traceRecords) * 100) : 0;
         const moduleTask = this.isModuleTask();
-        const showLlm = !moduleTask || stats.interactions > 0;
+        const showLlm = moduleTaskShowsLlmStatistics(this.task);
 
         if (!moduleTask && stats.totalSteps === 0 && stats.traceRecords === 0) {
             return html`<div class="stats-empty">${m.noStatistics}</div>`;
