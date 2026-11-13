@@ -24,6 +24,7 @@ const message_pt = {
     message: 'Mensagem',
     person: 'Pessoa',
     routine: 'Rotina',
+    byNora: 'pela Nora',
 };
 
 const message_en = {
@@ -37,11 +38,24 @@ const message_en = {
     message: 'Message',
     person: 'Person',
     routine: 'Routine',
+    byNora: 'by Nora',
 };
 
 type MessageType = typeof message_en;
 const messages: { [key: string]: MessageType } = { en: message_en, pt: message_pt };
 /// **collab_i18n_end**
+
+export function moduleTraceExecutorLabel(
+    executor: mls.msg.TaskModuleExecutor,
+    via: 'nora' | undefined,
+    t: Pick<MessageType, 'person' | 'routine' | 'byNora'>,
+): string {
+    if (executor.kind === 'person') {
+        const name = `${t.person}: ${executor.userId}`;
+        return via === 'nora' ? `${name} ${t.byNora}` : name;
+    }
+    return `${t.routine}: ${executor.name}`;
+}
 
 @customElement('collab-messages-task-preview-102025')
 
@@ -264,7 +278,7 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
                             <div class="module-step-trace-entry">
                                 <span>${this.formatTraceAt(entry.at)}</span>
                                 <span>${entry.from || '—'} → ${entry.step}</span>
-                                <span>${this.traceExecutor(entry.executor, t)}</span>
+                                <span>${moduleTraceExecutorLabel(entry.executor, entry.via, t)}</span>
                                 ${entry.message
                                     ? html`<span>${t.message}: ${entry.message.content} (${entry.message.state})</span>`
                                     : html``}
@@ -294,11 +308,6 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
         if (Number.isNaN(date.getTime())) return at;
         const locale = this.getMessageKey(messages) === 'pt' ? 'pt-BR' : 'en-US';
         return date.toLocaleString(locale);
-    }
-
-    private traceExecutor(executor: mls.msg.TaskModuleExecutor, t: MessageType) {
-        if (executor.kind === 'person') return `${t.person}: ${executor.userId}`;
-        return `${t.routine}: ${executor.name}`;
     }
 
     renderWorkflow(step: { stepId: number, type: string, workflowName?: string, status?: string, nextSteps?: any[] }) {
