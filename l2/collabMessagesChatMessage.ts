@@ -38,6 +38,7 @@ import { openContentInDetails } from '/_102025_/l2/collabMessagesContentDetail.j
 import { openModuleScreenProgram } from '/_102025_/l2/collabMessagesTaskInfo.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
 import { noraMessageScreenAddress } from '/_102025_/l2/collabMessagesNoraOpen.js';
+import { noraConfirmButtons } from '/_102025_/l2/collabMessagesNoraConfirm.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
@@ -110,6 +111,8 @@ const message_pt = {
     openAttachment: 'Abrir anexo',
     deleteAttachment: 'Apagar anexo',
     openRecord: 'Abrir',
+    confirmYes: 'Sim',
+    confirmNo: 'Não',
 }
 
 const message_en = {
@@ -175,6 +178,8 @@ const message_en = {
     openAttachment: 'Open attachment',
     deleteAttachment: 'Delete attachment',
     openRecord: 'Open',
+    confirmYes: 'Yes',
+    confirmNo: 'No',
 
 }
 
@@ -212,6 +217,7 @@ type ReactionSummaryItem = {
 export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     @property() message?: IMessage;
+    @state() private noraConfirmSent = false;
     @property({ reflect: true }) messageId?: string;
     @property({ attribute: false }) allThreads: msg.Thread[] = [];
     @property() actualThread: IThreadInfo | undefined;
@@ -316,6 +322,27 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         return this.renderMessage();
     }
 
+    private sendNoraConfirm(text: string) {
+        if (this.noraConfirmSent) return;
+        this.noraConfirmSent = true;
+        this.dispatchEvent(new CustomEvent('nora-confirm-reply', {
+            detail: { text },
+            bubbles: true,
+            composed: true,
+        }));
+    }
+
+    private renderNoraConfirm(message: IMessage) {
+        const confirm = this.noraConfirmSent && message.noraConfirm
+            ? { ...message.noraConfirm, answered: true }
+            : message.noraConfirm;
+        if (noraConfirmButtons(confirm, Date.now()) !== 'pending') return nothing;
+        return html`<div class="nora-confirm">
+            <button type="button" class="nora-confirm-yes" @click=${() => this.sendNoraConfirm(this.msg.confirmYes)}>${this.msg.confirmYes}</button>
+            <button type="button" class="nora-confirm-no" @click=${() => this.sendNoraConfirm(this.msg.confirmNo)}>${this.msg.confirmNo}</button>
+        </div>`;
+    }
+
     private renderNoraOpen(message: IMessage) {
         const address = noraMessageScreenAddress(message.noraOpen);
         if (!address) return nothing;
@@ -355,6 +382,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             ${message.replyTo && !isMessageContentHidden ? this.renderReplyPreview(message.replyTo) : nothing}
                             ${this.isEditingMessage ? this.renderEditMessageForm(message) : this.renderMessageByLanguage(message)}
                             ${!isMessageContentHidden ? this.renderNoraOpen(message) : nothing}
+                            ${!isMessageContentHidden ? this.renderNoraConfirm(message) : nothing}
                             ${!isMessageContentHidden ? this.renderAttachments(message) : nothing}
                             ${message.isLoading ? html`<span class="loader"></span>` : ''}
                             ${message.isFailed ? html`<div class="failed">

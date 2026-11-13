@@ -562,6 +562,7 @@ export class CollabMessagesChat extends StateLitElement {
                                     @forward-message=${this.onForwardMessageClick}
                                     @delete-attachment-message=${this.onDeleteAttachmentMessage}
                                     @e01-open-source=${this.onE01OpenSource}
+                                    @nora-confirm-reply=${this.onNoraConfirmReply}
                                 ></collab-messages-chat-message-102025>`
             })}`
         })}
@@ -3174,6 +3175,12 @@ export class CollabMessagesChat extends StateLitElement {
         );
         if (!messageReply) return;
         messageReply.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    private onNoraConfirmReply(ev: CustomEvent) {
+        const text = ev.detail?.text;
+        if (typeof text !== 'string' || !text.trim()) return;
+        void this.handleSend(text, { isSpecialMention: false, agentName: '' });
     }
 
     private onReplyMessageClick(ev: CustomEvent) {
