@@ -1,5 +1,6 @@
 /// <mls fileReference="_102025_/l2/collabMessagesChatMessage.ts" enhancement="_102027_/l2/enhancementLit" />
 
+import { isPersonalAgentDm } from '/_102025_/l2/collabMessagesJohnSendError.js';
 import { html, nothing, LitElement, TemplateResult } from 'lit';
 import {until } from 'lit/directives/until.js';
 import { customElement, property, state } from 'lit/decorators.js';
@@ -393,12 +394,9 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private renderE01Context(message: msg.Message) {
         if (!this.userId || !this.actualThread) return nothing;
-        const thread = this.actualThread.thread as msg.Thread & { agentDm?: { agentId?: string; agentUserId?: string; configRef?: string } };
+        const thread = this.actualThread.thread;
         const binding = thread.agentDm;
-        if (thread.visibility !== 'private' || thread.users.length !== 2
-            || !thread.users.some(item => item.userId === this.userId)
-            || !thread.users.some(item => item.userId === binding?.agentUserId)
-            || binding?.agentId !== 'john' || binding.configRef !== 'pma/john/e01-c0') return nothing;
+        if (!isPersonalAgentDm(thread, this.userId) || !binding?.agentUserId) return nothing;
         const isResponse = message.senderId === binding.agentUserId && !!message.replyTo;
         const isSource = message.senderId === this.userId;
         if (!isResponse && !isSource) return nothing;
@@ -666,12 +664,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
 
     private isJohnAudioThread(): boolean {
         if (!this.userId || !this.actualThread) return false;
-        const thread = this.actualThread.thread as msg.Thread & { agentDm?: { agentId?: string; agentUserId?: string; configRef?: string } };
-        const binding = thread.agentDm;
-        return thread.visibility === 'private' && thread.users.length === 2
-            && thread.users.some(item => item.userId === this.userId)
-            && thread.users.some(item => item.userId === binding?.agentUserId)
-            && binding?.agentId === 'john' && binding.configRef === 'pma/john/e01-c0';
+        return isPersonalAgentDm(this.actualThread.thread, this.userId);
     }
 
     private renderDeleteAttachmentButton(message: msg.Message, attachment: msg.MessageAttachment) {

@@ -23,8 +23,8 @@ import {
 import { hasUnreadMoments, markMomentsSeen, requestOpenTab } from '/_102025_/l2/collabMessagesMomentsUnread.js';
 
 import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally, isHelpCommand, isTestplayCommand, runNotificationTestplay } from '/_102025_/l2/collabMessagesSyncNotifications.js';
-import { notifyThreadChange, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
-import { johnSendErrorMessage } from '/_102025_/l2/collabMessagesJohnSendError.js';
+import { notifyThreadChange, notifyThreadCreate, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
+import { isPersonalAgentDm, johnSendErrorMessage } from '/_102025_/l2/collabMessagesJohnSendError.js';
 import { shouldMarkOpenThreadRead } from '/_102025_/l2/collabMessagesReadState.js';
 import { pickMessagesAfter, sliceWindowFromTarget } from '/_102025_/l2/collabMessagesChatWindow.js';
 import { nextFollowupNotice } from '/_102025_/l2/collabMessagesFollowupNotice.js';
@@ -71,7 +71,8 @@ import {
     msgCreateAttachmentUpload,
     msgReportAttachmentUploadFailure,
     msgDeleteAttachment,
-    msgUpdateMessage
+    msgUpdateMessage,
+    post
 } from '/_102025_/l2/shared/api.js';
 
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -156,6 +157,7 @@ const message_pt = {
     followupNoticeOne: 'Você tem 1 mensagem aguardando sua atenção.',
     followupNoticeMany: 'Você tem {n} mensagens aguardando sua atenção.',
     followupNoticeSee: 'Ver',
+    openNora: 'Nora',
 }
 
 const message_en = {
@@ -216,6 +218,7 @@ const message_en = {
     followupNoticeOne: 'You have 1 message waiting for your attention.',
     followupNoticeMany: 'You have {n} messages waiting for your attention.',
     followupNoticeSee: 'See',
+    openNora: 'Nora',
 }
 
 type MessageType = typeof message_en;
@@ -265,6 +268,8 @@ export class CollabMessagesChat extends StateLitElement {
     @property({ attribute: false }) allThreads: msg.Thread[] = [];
     @property() lastMessageReaded: string | undefined = ''
     @property() unreadCountInSelectedThread: number = 0;
+    @state() private noraOpening = false;
+    @state() private noraOpenError = '';
     @state() private forwardMessageSource?: IMessage;
     @state() private forwardDestinationQuery: string = '';
     @state() private forwardDestinationThreadId: string = '';
@@ -1299,6 +1304,44 @@ export class CollabMessagesChat extends StateLitElement {
         this.threadErrorMsg = this.msg.readOnlyThread;
     }
 
+    private renderNoraEntry() {
+        if (this.group !== 'CONNECT') return nothing;
+        return html`<button type="button" class="nora-entry" ?disabled=${this.noraOpening} @click=${this.onOpenNora}>${this.msg.openNora}</button>${this.noraOpenError ? html`<p class="nora-open-error">${this.noraOpenError}</p>` : nothing}`;
+    }
+
+    private async onOpenNora() {
+        if (!this.userId || this.noraOpening) return;
+        this.noraOpening = true;
+        this.noraOpenError = '';
+        try {
+            const args: msg.RequestBase & { userId: string } = {
+                action: 'ensureAssistantDm',
+                userId: this.userId,
+            };
+            const reply = await post<{ statusCode: number; msg?: string; threadId?: string }>(args);
+            const threadId = reply.threadId;
+            if (!threadId) throw new Error('assistant conversation was not created');
+            const info = await msgGetThreadUpdates({ threadId, userId: this.userId });
+            if (!info.success || !info.response?.thread) {
+                throw new Error(info.error || 'assistant conversation was not created');
+            }
+            notifyThreadCreate(info.response.thread);
+            await this.onThreadClick({
+                thread: info.response.thread,
+                users: info.response.users,
+                threadsPending: info.response.threadsPending,
+                hasMore: info.response.hasMore,
+                messages: info.response.messages,
+            });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(message, error);
+            this.noraOpenError = johnSendErrorMessage(message, this.getMessageKey(messages));
+        } finally {
+            this.noraOpening = false;
+        }
+    }
+
     private renderNewMomentsCard() {
         if (this.group !== 'CONNECT' || !this.hasNewMoments) return nothing;
         return html`<button type="button" class="moments-new-card" @click=${this.onNewMomentsClick}>${collab_moments}<span>${this.msg.newMoments}</span></button>`;
@@ -1325,13 +1368,14 @@ export class CollabMessagesChat extends StateLitElement {
     private renderListThreads() {
 
         if (!this.userThreads[this.group] || (this.userThreads[this.group].length === 0 && !this.isLoadingThread)) {
-            return html`${this.renderNewMomentsCard()}<div style="padding:1rem;">${this.msg.noThreads}</div>`;
+            return html`${this.renderNoraEntry()}${this.renderNewMomentsCard()}<div style="padding:1rem;">${this.msg.noThreads}</div>`;
         }
 
         const ordenedThreads = this.getOrdenedThreadsByStatus();
         this.filteredThreads = this.getFilteredThreads(ordenedThreads);
 
         return html`
+            ${this.renderNoraEntry()}
             ${this.renderNewMomentsCard()}
             ${this.renderThreadsByStatus2()}
             ${this.isLoadingThread ? html`<div>${this.msg.loading}</div>` : ''}
@@ -2587,12 +2631,7 @@ export class CollabMessagesChat extends StateLitElement {
     };
 
     private isJohnE01Thread(): boolean {
-        const thread = this.actualThread?.thread as msg.Thread & { agentDm?: { agentId?: string; agentUserId?: string; configRef?: string } };
-        const binding = thread?.agentDm;
-        return !!this.userId && thread?.visibility === 'private' && thread.users.length === 2
-            && thread.users.some(item => item.userId === this.userId)
-            && thread.users.some(item => item.userId === binding?.agentUserId)
-            && binding?.agentId === 'john' && binding.configRef === 'pma/john/e01-c0';
+        return isPersonalAgentDm(this.actualThread?.thread, this.userId);
     }
 
     private onE01OpenSource = async (event: CustomEvent<{ messageId: string }>) => {
