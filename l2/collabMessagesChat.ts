@@ -1326,7 +1326,10 @@ export class CollabMessagesChat extends StateLitElement {
             if (!info.success || !info.response?.thread) {
                 throw new Error(info.error || 'assistant conversation was not created');
             }
-            notifyThreadCreate(info.response.thread);
+            // Keep the thread in the local store before anything reads or updates it: opening a Nora
+            // conversation this browser never synced otherwise fails with "Thread not found".
+            const stored = await addThread(info.response.thread);
+            notifyThreadCreate(stored);
             await this.onThreadClick({
                 thread: info.response.thread,
                 users: info.response.users,
