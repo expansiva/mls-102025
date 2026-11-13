@@ -35,6 +35,9 @@ import { msgGetAttachmentUrl, msgUpdateMessage } from '/_102025_/l2/shared/api.j
 import { hasTaskNotificationPending } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { deserializeUserMentions, serializeUserMentions } from '/_102025_/l2/collabMessagesPrompt.js';
 import { openContentInDetails } from '/_102025_/l2/collabMessagesContentDetail.js';
+import { openModuleScreenProgram } from '/_102025_/l2/collabMessagesTaskInfo.js';
+import { environment } from '/_102036_/l2/environmentContract.js';
+import { noraMessageScreenAddress } from '/_102025_/l2/collabMessagesNoraOpen.js';
 
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
@@ -106,6 +109,7 @@ const message_pt = {
     attachmentRemoved: 'Anexo removido por',
     openAttachment: 'Abrir anexo',
     deleteAttachment: 'Apagar anexo',
+    openRecord: 'Abrir',
 }
 
 const message_en = {
@@ -170,6 +174,7 @@ const message_en = {
     attachmentRemoved: 'Attachment removed by',
     openAttachment: 'Open attachment',
     deleteAttachment: 'Delete attachment',
+    openRecord: 'Open',
 
 }
 
@@ -311,6 +316,12 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
         return this.renderMessage();
     }
 
+    private renderNoraOpen(message: IMessage) {
+        const address = noraMessageScreenAddress(message.noraOpen);
+        if (!address) return nothing;
+        return html`<button type="button" class="nora-open" @click=${() => { void openModuleScreenProgram(address, environment.apps?.openProgram); }}>${this.msg.openRecord}</button>`;
+    }
+
     private renderMessage() {
         const message = this.message;
         if (!message) return html`${nothing}`
@@ -343,6 +354,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
                             ${!isSame ? html`<div class="message-title">@${userName}</div>` : ``}
                             ${message.replyTo && !isMessageContentHidden ? this.renderReplyPreview(message.replyTo) : nothing}
                             ${this.isEditingMessage ? this.renderEditMessageForm(message) : this.renderMessageByLanguage(message)}
+                            ${!isMessageContentHidden ? this.renderNoraOpen(message) : nothing}
                             ${!isMessageContentHidden ? this.renderAttachments(message) : nothing}
                             ${message.isLoading ? html`<span class="loader"></span>` : ''}
                             ${message.isFailed ? html`<div class="failed">
