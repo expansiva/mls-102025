@@ -24,7 +24,7 @@ import { hasUnreadMoments, markMomentsSeen, requestOpenTab } from '/_102025_/l2/
 
 import { removeThreadFromSync, hasThreadNotificationPending, getPendingTaskNotificationsForThread, getThreadUpdateInBackground, checkIfNotificationUnread, markThreadReadLocally, isHelpCommand, isTestplayCommand, runNotificationTestplay } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { notifyThreadChange, notifyThreadCreate, notifyThreadNotification } from '/_102025_/l2/collabMessagesEvents.js';
-import { isPersonalAgentDm, johnSendErrorMessage } from '/_102025_/l2/collabMessagesJohnSendError.js';
+import { isPersonalAgentDm, sendErrorMessage } from '/_102025_/l2/collabMessagesSendError.js';
 import { shouldMarkOpenThreadRead } from '/_102025_/l2/collabMessagesReadState.js';
 import { pickMessagesAfter, sliceWindowFromTarget } from '/_102025_/l2/collabMessagesChatWindow.js';
 import { nextFollowupNotice } from '/_102025_/l2/collabMessagesFollowupNotice.js';
@@ -430,7 +430,7 @@ export class CollabMessagesChat extends StateLitElement {
                         <span @click=${this.onTitleClick}>${collab_chevron_left} <span class="header-title">Thread: ${this.getThreadName(this.actualThread)}</span></span>
                         ${this.actualThread?.thread.status !== 'deleted' ? html`
                             <div class="header-actions">
-                                ${this.isJohnE01Thread() ? html`<button class="personal-memory-entry" @click=${this.openPersonalMemory} aria-label=${this.msg.personalMemory}>${this.msg.personalMemory}</button>` : nothing}
+                                ${this.isE01Thread() ? html`<button class="personal-memory-entry" @click=${this.openPersonalMemory} aria-label=${this.msg.personalMemory}>${this.msg.personalMemory}</button>` : nothing}
                                 <span @click=${this.onThreadDetailsClick}>${collab_gear}</span>
                             </div>
                         `: ''}                        
@@ -1340,7 +1340,7 @@ export class CollabMessagesChat extends StateLitElement {
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
             console.error(message, error);
-            this.noraOpenError = johnSendErrorMessage(message, this.getMessageKey(messages));
+            this.noraOpenError = sendErrorMessage(message, this.getMessageKey(messages));
         } finally {
             this.noraOpening = false;
         }
@@ -2627,14 +2627,14 @@ export class CollabMessagesChat extends StateLitElement {
 
     private openPersonalMemory = async (event: Event) => {
         event.stopPropagation();
-        if (!this.isJohnE01Thread()) return;
+        if (!this.isE01Thread()) return;
         this.personalMemoryTrigger = event.currentTarget as HTMLElement;
         this.showPersonalMemory = true;
         await this.updateComplete;
         (this.querySelector('.personal-memory-back') as HTMLElement | null)?.focus();
     };
 
-    private isJohnE01Thread(): boolean {
+    private isE01Thread(): boolean {
         return isPersonalAgentDm(this.actualThread?.thread, this.userId);
     }
 
@@ -2817,7 +2817,7 @@ export class CollabMessagesChat extends StateLitElement {
 
         } catch (err: any) {
             message.isFailed = true;
-            message.isFailedError = johnSendErrorMessage(
+            message.isFailedError = sendErrorMessage(
                 err?.message || 'Failed to send message', this.getMessageKey(messages));
             message.isLoading = false;
 

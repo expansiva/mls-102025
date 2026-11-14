@@ -1,4 +1,4 @@
-/// <mls fileReference="_102025_/l2/collabMessagesJohnSendError.ts" enhancement="_blank" />
+/// <mls fileReference="_102025_/l2/collabMessagesSendError.ts" enhancement="_blank" />
 
 const errors = {
   'Select an organization for this session before messaging John.': {
@@ -67,7 +67,7 @@ function knownError(error: string): KnownError | undefined {
   return undefined;
 }
 
-export function johnSendErrorMessage(error: string, language: string): string {
+export function sendErrorMessage(error: string, language: string): string {
   const key = knownError(error);
   if (!key) return error;
   return errors[key][language === 'pt' ? 'pt' : 'en'];
