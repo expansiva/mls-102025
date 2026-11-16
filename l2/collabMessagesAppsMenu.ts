@@ -4,7 +4,7 @@ import { html, nothing } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { customElement, state, property } from 'lit/decorators.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
-import { loadLucideArtwork, menuIconSvg } from '/_102025_/l2/collabMessagesAppsIcon.js';
+import { loadLucideArtwork, menuEntryIconSvg } from '/_102025_/l2/collabMessagesAppsIcon.js';
 
 export interface IMenu {
     name: string;
@@ -14,9 +14,13 @@ export interface IMenu {
     menu: IMenuItem[];
 }
 
+const noArtwork = (): string | undefined => undefined;
+
 export interface IMenuItem {
     title: string;
     icon: string;
+    /** Own SVG markup; wins over `icon` when it passes the inline-SVG rule. */
+    iconSvg?: string;
     url: string;
     pageName: string;
     target?: string,
@@ -112,15 +116,17 @@ export class CollabMessagesAppsMenu extends StateLitElement {
 
     private itemsHaveIcon(items: IMenuItem[]): boolean {
         for (const item of items) {
-            if (item.icon !== '') return true;
+            if (item.icon !== '' || item.iconSvg) return true;
             if (item.children && this.itemsHaveIcon(item.children)) return true;
         }
         return false;
     }
 
-    private renderIcon(name: string) {
-        if (!this.lucideArtwork) return nothing;
-        const svg = menuIconSvg(name, this.lucideArtwork);
+    /** An own `iconSvg` draws at once; a Lucide name waits for the catalog. */
+    private renderIcon(entry: { icon: string; iconSvg?: string }) {
+        // Without the catalog a Lucide name would be reported as unknown: wait for it instead.
+        if (!this.lucideArtwork && !entry.iconSvg) return nothing;
+        const svg = menuEntryIconSvg(entry, this.lucideArtwork ?? noArtwork);
         if (svg === undefined) return nothing;
         return html`<span class="icon">${unsafeSVG(svg)}</span>`;
     }
@@ -265,7 +271,7 @@ export class CollabMessagesAppsMenu extends StateLitElement {
         return html`
 			<li class="menu-item">
 				<div class="menu-item-header" @click=${() => this.handleMenuClick(moduleItem, item)}>
-					${this.renderIcon(item.icon)}
+					${this.renderIcon(item)}
 					<span class="title">${item.title}</span>
 					<span
 						class="favorite ${this.isFavorite(moduleItem, item) ? 'active' : ''}"
@@ -354,7 +360,7 @@ export class CollabMessagesAppsMenu extends StateLitElement {
                                     title=${pathDisplay}
                                     @click=${() => this.handleMenuClick(r.moduleItem as IMenu, r.menuItem as IMenuItem)}
                                 >
-                                    ${this.renderIcon((r.menuItem as IMenuItem).icon)}
+                                    ${this.renderIcon(r.menuItem as IMenuItem)}
                                     <span class="title">${pathDisplay}</span>
                                 </li>
                             `;
@@ -382,7 +388,7 @@ export class CollabMessagesAppsMenu extends StateLitElement {
             ${modules.map(({ module, items }) => html`
                 <details class="menu-module" ?open=${searching}>
                     <summary>
-                        ${this.renderIcon(module.icon)}
+                        ${this.renderIcon(module)}
                         <span class="name">${module.name}</span>
                     </summary>
                     <ul class="menu-list">
