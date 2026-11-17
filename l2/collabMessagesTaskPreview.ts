@@ -4,6 +4,7 @@ import { html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { getAllSteps } from '/_102027_/l2/aiAgentHelper.js';
 import { CollabLitElement } from '/_102029_/l2/collabLitElement.js';
+import type { TaskModuleExecutor, TaskModuleHistoryEntry } from '/_102036_/l2/shared/interfaces.js';
 
 import '/_102025_/l2/collabMessagesTaskPreviewAgent.js';
 import '/_102025_/l2/collabMessagesTaskPreviewClarification.js';
@@ -46,7 +47,7 @@ const messages: { [key: string]: MessageType } = { en: message_en, pt: message_p
 /// **collab_i18n_end**
 
 export function moduleTraceExecutorLabel(
-    executor: mls.msg.TaskModuleExecutor,
+    executor: TaskModuleExecutor,
     via: 'nora' | undefined,
     t: Pick<MessageType, 'person' | 'routine' | 'byNora'>,
 ): string {
@@ -294,7 +295,7 @@ export class CollabMessagesTaskPreview extends CollabLitElement {
         return messages[this.getMessageKey(messages)] ?? message_en;
     }
 
-    private moduleTrace(key: string): mls.msg.TaskModuleHistoryEntry[] {
+    private moduleTrace(key: string): TaskModuleHistoryEntry[] {
         const history = this.task?.module?.history;
         if (!key || !history?.length) return [];
         return history
