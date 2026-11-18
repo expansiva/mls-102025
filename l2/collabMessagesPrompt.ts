@@ -9,6 +9,9 @@ import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
 
 import { environment } from '/_102036_/l2/environmentContract.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
+import { msgGetUsers } from '/_102025_/l2/shared/api.js';
+import { buildUserSuggestions } from '/_102025_/l2/collabMessagesPromptMention.js';
+import type { MentionUser } from '/_102025_/l2/collabMessagesPromptMention.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
 import '/_102025_/l2/collabMessagesAvatar.js';
@@ -38,6 +41,7 @@ const message_pt = {
     removeAttachment: 'Remover anexo',
     sendError: 'Erro ao enviar mensagem',
     searchingAgents: 'Buscando agentes…',
+    agentBadge: 'agente',
 }
 
 const message_en = {
@@ -47,6 +51,7 @@ const message_en = {
     removeAttachment: 'Remove attachment',
     sendError: 'Error sending message',
     searchingAgents: 'Searching agents…',
+    agentBadge: 'agent',
 }
 
 type MessageType = typeof message_en;
@@ -60,7 +65,7 @@ function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function serializeUserMentions(text: string, users: msg.User[]): string {
+export function serializeUserMentions(text: string, users: MentionUser[]): string {
     let finalText = text;
     const sortedUsers = [...users].sort((a, b) => b.name.length - a.name.length);
 
@@ -73,7 +78,7 @@ export function serializeUserMentions(text: string, users: msg.User[]): string {
     return finalText;
 }
 
-export function deserializeUserMentions(text: string, users: msg.User[] = []): string {
+export function deserializeUserMentions(text: string, users: MentionUser[] = []): string {
     return text.replace(/\[@([^\]]+)\]\(([^)]+)\)/g, (_match, name, userId) => {
         const user = users.find(item => item.userId === userId);
         return `@${user?.name || name}`;
@@ -98,6 +103,9 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() mentionIndex: number = 0;
     @state() allUsers: msg.User[] = [];
     @state() allUsersValids: msg.User[] = [];
+    /** The virtual employees that can be called, asked each time the `@` list opens. */
+    @state() callableAgents: MentionUser[] = [];
+    private callableListOpen = false;
     @state() hasSelection: boolean = false;
     @state() selectedFiles: File[] = [];
     @state() sendError: string = '';
@@ -139,6 +147,13 @@ export class CollabMessagesPrompt extends StateLitElement {
         type: Boolean,
         converter: (value: string | null) => value === 'true'
     }) acceptAutoCompleteAgents?: boolean = false;
+
+    /** The `@` list also shows the virtual employees that can be called (needs `userId`). */
+    @property({
+        type: Boolean,
+        converter: (value: string | null) => value === 'true'
+    }) acceptAutoCompleteCallableAgents?: boolean = false;
+    @property() userId?: string;
 
     @property({
         type: Boolean,
@@ -442,6 +457,7 @@ export class CollabMessagesPrompt extends StateLitElement {
                                         <span class="agent-suggestion">${s.text}</span>
                                     ` : s.type === 'user' ? html`<collab-messages-avatar-102025 width="20px" height="20px" avatar=${s.avatar_url} alt=${s.text}></collab-messages-avatar-102025>
                                     <span class="user-suggestion">${s.text}</span>
+                                    ${s.callable ? html`<span class="agent-badge">${this.msg.agentBadge}</span>` : nothing}
                                     ` : ''}
                                 </li>
                                 `)}
@@ -541,6 +557,9 @@ export class CollabMessagesPrompt extends StateLitElement {
         if (matchUser && this.acceptAutoCompleteUser) {
             query = matchUser[1];
             suggestions = this.getUserSuggestions(query);
+            this.askCallableAgentsOnOpen();
+        } else {
+            this.callableListOpen = false;
         }
 
         const matchAgent = beforeCursor.match(/(?:^|\s)@@([a-zA-Z]*)$/);
@@ -691,15 +710,52 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private getUserSuggestions(query: string): IMentions[] {
-        return this.allUsersValids
-            .filter(user => user.name.toLowerCase().startsWith(query.toLowerCase()))
+        return buildUserSuggestions(this.allUsersValids, this.callableAgents, query)
             .map(user => ({
                 avatar_url: user.avatar_url,
                 text: user.name,
                 value: user.name,
                 description: user.name,
-                type: 'user'
+                type: 'user',
+                ...(user.callable ? { callable: true } : {})
             }));
+    }
+
+    /** Once per opening of the `@` list (not at each key): who can be called now. A failure is logged and the list stays with the people. */
+    private askCallableAgentsOnOpen() {
+        if (this.callableListOpen || !this.acceptAutoCompleteCallableAgents || !this.userId) return;
+        this.callableListOpen = true;
+        void this.loadCallableAgents(this.userId);
+    }
+
+    private async loadCallableAgents(userId: string) {
+        try {
+            const result = await msgGetUsers({ status: 'active', prefixName: '', userId, callableOnly: true });
+            if (!result.success || !result.response) {
+                console.error('Could not list the agents that can be called:', result.error);
+                this.callableAgents = [];
+                return;
+            }
+            this.callableAgents = result.response.users.map((user) => ({ userId: user.userId, name: user.name }));
+        } catch (error) {
+            console.error('Could not list the agents that can be called:', error);
+            this.callableAgents = [];
+            return;
+        }
+        await this.showUserSuggestionsIfStillMatching();
+    }
+
+    private async showUserSuggestionsIfStillMatching() {
+        if (!this.textArea || !this.callableListOpen) return;
+        const match = this.text.slice(0, this.textArea.selectionStart).match(/(?:^|\s)@([a-zA-Z]*)$/);
+        if (!match) return;
+        const suggestions = this.getUserSuggestions(match[1]);
+        if (suggestions.length === 0) return;
+        this.mentionActive = true;
+        this.mentionQuery = match[1];
+        this.mentionSuggestions = suggestions;
+        await this.updateComplete;
+        this.calculatePosition();
     }
 
     private async showAgentSuggestionsIfStillMatching() {
@@ -908,7 +964,7 @@ export class CollabMessagesPrompt extends StateLitElement {
         let finalText = this.text.trim();
         let isSpecialMention = false;
         let agentName: string | undefined;
-        finalText = serializeUserMentions(finalText, this.allUsersValids);
+        finalText = serializeUserMentions(finalText, [...this.allUsersValids, ...this.callableAgents]);
 
         if (finalText.startsWith('@@')) {
             await this.ensureAgentsLoaded();
@@ -956,5 +1012,7 @@ interface IMentions {
     value: string,
     description: string,
     avatar_url?: string | undefined,
-    type: 'user' | 'agent' | 'emoji'
+    type: 'user' | 'agent' | 'emoji',
+    /** A virtual employee that can be called (shown with the mark of agent). */
+    callable?: true
 }

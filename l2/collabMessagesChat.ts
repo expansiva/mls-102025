@@ -1281,6 +1281,8 @@ export class CollabMessagesChat extends StateLitElement {
             <collab-messages-prompt-102025
                 acceptAutoCompleteAgents="true"
                 acceptAutoCompleteUser="true"
+                acceptAutoCompleteCallableAgents="true"
+                .userId=${this.userId}
                 enableRichPreview="true"
                 threadId=${this.actualThread?.thread.threadId}
                 .onSend=${this.handleSend.bind(this)}
