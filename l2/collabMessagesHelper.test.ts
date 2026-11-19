@@ -11,9 +11,12 @@ import {
     changeFavIcon,
     loadNotificationDeviceId,
     loadNotificationPreferences,
+    loadNotificationToken,
+    loadNotificationTokenUserId,
     normalizeIncomingTab,
     registerToken,
     saveNotificationDeviceId,
+    saveNotificationToken,
     saveUserId,
     toMessagesTab,
 } from '/_102025_/l2/collabMessagesHelper.js';
@@ -49,7 +52,7 @@ test('registerToken sends subscription and stores endpoint as local identity', (
     assert.match(source, /environment\.notifications\.getPushSubscriptionForBackend\(\)/);
     assert.doesNotMatch(source, /getFCMTokenForBackend/);
     assert.doesNotMatch(source, /notificationToken/);
-    assert.match(source, /saveNotificationToken\(subscription\.endpoint\)/);
+    assert.match(source, /saveNotificationToken\(subscription\.endpoint, user\.userId\)/);
     assert.match(source, /lastToken === subscription\.endpoint/);
     assert.match(
         source,
@@ -164,6 +167,87 @@ test('T5: registerToken called twice reuses the persisted deviceId', async () =>
         else delete (globalThis as { fetch?: typeof fetch }).fetch;
         setEnvironment({});
     }
+});
+
+// front_01 s2: the saved endpoint spares the registration only for the user it was registered for.
+const PUSH_ENDPOINT = 'https://push.example/e1';
+
+async function withPushServer(updateOk: boolean, fn: (calls: string[]) => Promise<void>): Promise<void> {
+    const calls: string[] = [];
+    setEnvironment({
+        notifications: {
+            getPushSubscriptionForBackend: async () => ({ endpoint: PUSH_ENDPOINT, keys: { p256dh: 'p', auth: 'a' } }),
+            getNotifySoundUrl: async () => null,
+            sendRequestMissed: async () => undefined,
+            sendACK: async () => undefined,
+        },
+    });
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+        const body = init?.body ? JSON.parse(String(init.body)) : null;
+        calls.push(body?.action);
+        if (body?.action === 'getUserUpdate') {
+            return { status: 200, json: async () => ({ statusCode: 200, user: { userId: 'u-current', name: 'U', status: 'active', avatar_url: '' } }) } as Response;
+        }
+        if (body?.action === 'updateUserDetails' && !updateOk) {
+            return { status: 500, statusText: 'x', json: async () => ({ statusCode: 500, msg: 'boom' }) } as Response;
+        }
+        return { status: 200, json: async () => ({ statusCode: 200 }) } as Response;
+    }) as typeof fetch;
+    try {
+        await fn(calls);
+    } finally {
+        if (original) globalThis.fetch = original;
+        else delete (globalThis as { fetch?: typeof fetch }).fetch;
+        setEnvironment({});
+    }
+}
+
+test('front_01 s2 (a): same endpoint and same user does not call the server', async () => {
+    installMemoryStorage();
+    saveUserId('u-current');
+    saveNotificationToken(PUSH_ENDPOINT, 'u-current');
+    await withPushServer(true, async (calls) => {
+        await registerToken();
+        assert.deepEqual(calls, []);
+    });
+});
+
+test('front_01 s2 (b): same endpoint, another user: registers again and records the new user', async () => {
+    installMemoryStorage();
+    saveUserId('u-current');
+    saveNotificationToken(PUSH_ENDPOINT, 'u-old');
+    await withPushServer(true, async (calls) => {
+        await registerToken();
+        assert.ok(calls.includes('updateUserDetails'));
+        assert.equal(loadNotificationTokenUserId(), 'u-current');
+        calls.length = 0;
+        await registerToken();
+        assert.deepEqual(calls, [], 'now the shortcut holds');
+    });
+});
+
+test('front_01 s2 (c): an endpoint saved without a user (older format) is registered again', async () => {
+    installMemoryStorage();
+    saveUserId('u-current');
+    saveNotificationToken(PUSH_ENDPOINT);
+    await withPushServer(true, async (calls) => {
+        await registerToken();
+        assert.ok(calls.includes('updateUserDetails'));
+        assert.equal(loadNotificationTokenUserId(), 'u-current');
+    });
+});
+
+test('front_01 s2 (d): a failed updateUserDetails saves nothing and the next call tries again', async () => {
+    installMemoryStorage();
+    saveUserId('u-current');
+    await withPushServer(false, async (calls) => {
+        await assert.rejects(registerToken(), /Error on register token/);
+        assert.equal(loadNotificationToken(), null);
+        assert.equal(loadNotificationTokenUserId(), null);
+        await assert.rejects(registerToken(), /Error on register token/);
+        assert.equal(calls.filter((action) => action === 'updateUserDetails').length, 2, 'tried again');
+    });
 });
 
 function walkTs(dir: string): string[] {

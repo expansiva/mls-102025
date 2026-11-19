@@ -5,7 +5,8 @@ import {
     msgUpdateUserDetails,
     msgAddMessage,
     msgAddThread,
-    msgAddParticipantToThread
+    msgAddParticipantToThread,
+    setIdentityRefusedHandler
 } from '/_102025_/l2/shared/api.js';
 
 import {
@@ -14,7 +15,7 @@ import {
     notifyThreadCreate,
 } from '/_102025_/l2/collabMessagesEvents.js';
 
-import { addThread, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { addThread, clearAllLocalData, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { msgEnsureHumanDm } from '/_102025_/l2/collabMessagesHumanDmApi.js';
 import type { HumanDmGroup } from '/_102025_/l2/collabMessagesHumanDmApi.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -107,10 +108,11 @@ export async function registerToken() {
         return subscription ?? null;
     }
 
+    // The shortcut holds only for the user the endpoint was registered for: an endpoint saved for another user (or by an older format, with no
+    // user saved) is registered again.
     const lastToken = loadNotificationToken();
-    if (lastToken === subscription.endpoint) return subscription;
-
-    saveNotificationToken(subscription.endpoint);
+    const currentUserId = getUserId();
+    if (lastToken === subscription.endpoint && currentUserId && loadNotificationTokenUserId() === currentUserId) return subscription;
 
     try {
         const deviceId = loadNotificationDeviceId() || crypto.randomUUID();
@@ -136,6 +138,8 @@ export async function registerToken() {
             throw new Error(updateResult.error || 'Failed to update user details');
         }
 
+        // Saved only after the server accepted it: a failure leaves the next call to try again.
+        saveNotificationToken(subscription.endpoint, user.userId);
         saveNotificationPreferences('granted');
         return subscription;
 
@@ -226,11 +230,20 @@ export function loadNotificationDeviceId(): string | null {
     return null;
 }
 
-export function saveNotificationToken(tokenFCM: string) {
+export function saveNotificationToken(tokenFCM: string, userId?: string) {
     let dataLocal: CollabMessagesLS | undefined = loadLocalStorage();
     if (!dataLocal) dataLocal = { tokenFCM }
     else dataLocal.tokenFCM = tokenFCM;
+    if (userId) dataLocal.tokenUserId = userId;
+    else delete dataLocal.tokenUserId;
     saveLocalStorage(dataLocal);
+}
+
+/** The user the saved endpoint was registered for (none for an endpoint saved before this was recorded). */
+export function loadNotificationTokenUserId(): string | null {
+    const lsData = loadLocalStorage();
+    if (lsData && lsData.tokenUserId) return lsData.tokenUserId;
+    return null;
 }
 
 export function loadNotificationToken(): string | null {
@@ -340,6 +353,27 @@ async function defaultFetchUserId(): Promise<string> {
     }
     return userId;
 }
+
+/**
+ * The cm refused the saved user (the person of the token is another one, e.g. the database of the cm started empty): what the browser keeps for the
+ * old user is dropped (saved id, push endpoint, the local chat database, unread rooms included: they were the old user's) and the id of the
+ * person of the token is fetched and saved. Registered below as the handler of `post`; an error is logged by `post` and the original error goes up.
+ */
+export async function replaceStaleIdentity(clearLocalData: () => Promise<void> = clearAllLocalData): Promise<string> {
+    const dataLocal = loadLocalStorage();
+    if (dataLocal) {
+        delete dataLocal.userId;
+        delete dataLocal.tokenFCM;
+        delete dataLocal.tokenUserId;
+        saveLocalStorage(dataLocal);
+    }
+    await clearLocalData();
+    const id = await defaultFetchUserId();
+    saveUserId(id);
+    return id;
+}
+
+setIdentityRefusedHandler(() => replaceStaleIdentity());
 
 export function ensureUserId(fetchUser: () => Promise<string> = defaultFetchUserId): Promise<string> {
     const saved = getUserId();
@@ -822,6 +856,8 @@ export interface CollabMessagesLS {
     chatPreferences?: IChatPreferences,
     userId?: string,
     tokenFCM?: string,
+    /** The user the endpoint in `tokenFCM` was registered for. */
+    tokenUserId?: string,
     deviceId?: string,
     notificationPreference?: NotificationPermission
     notificationAudio?: boolean,
