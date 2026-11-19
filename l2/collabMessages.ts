@@ -25,7 +25,7 @@ import {
     loadLastTab,
     toMessagesTab,
     normalizeIncomingTab,
-    saveUserId,
+    adoptUserId,
     saveLastAlertTime,
     loadLastAlertTime,
     changeFavIcon
@@ -434,7 +434,7 @@ export class CollabMessages extends CollabLitElement {
             if (this.noAccessEmail || this.userLoadError) return;
             try {
                 this.userPerfil = await this.getUser();
-                saveUserId(this.userPerfil.userId);
+                await adoptUserId(this.userPerfil.userId);
                 await cleanupThreads(this.userPerfil.threads);
                 try {
                     await cleanupUsers([this.userPerfil.userId]);

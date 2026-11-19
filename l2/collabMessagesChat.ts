@@ -72,7 +72,8 @@ import {
     msgReportAttachmentUploadFailure,
     msgDeleteAttachment,
     msgUpdateMessage,
-    post
+    post,
+    threadNotFoundIdInMessage
 } from '/_102025_/l2/shared/api.js';
 
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -2365,6 +2366,11 @@ export class CollabMessagesChat extends StateLitElement {
         } catch (err: any) {
             this.isThreadError = true;
             this.threadErrorMsg = err.message || 'Error on read thread';
+            if (threadNotFoundIdInMessage(err?.message)) {
+                // the cm does not hold this room: `post` already dropped it from the local copy; the screen shows the error state, nothing is left unhandled
+                console.warn('The room the cm does not know was opened:', err.message);
+                return;
+            }
             throw new Error('Error on loading messages: ' + err.message);
         } finally {
             this.isLoadingMessages = false;

@@ -6,7 +6,8 @@ import {
     msgAddMessage,
     msgAddThread,
     msgAddParticipantToThread,
-    setIdentityRefusedHandler
+    setIdentityRefusedHandler,
+    setThreadNotFoundHandler
 } from '/_102025_/l2/shared/api.js';
 
 import {
@@ -15,7 +16,7 @@ import {
     notifyThreadCreate,
 } from '/_102025_/l2/collabMessagesEvents.js';
 
-import { addThread, clearAllLocalData, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
+import { addThread, clearAllLocalData, deleteAllMessagesFromThread, deleteThread, listThreads, updateThread } from '/_102025_/l2/collabMessagesIndexedDB.js';
 import { msgEnsureHumanDm } from '/_102025_/l2/collabMessagesHumanDmApi.js';
 import type { HumanDmGroup } from '/_102025_/l2/collabMessagesHumanDmApi.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -360,6 +361,14 @@ async function defaultFetchUserId(): Promise<string> {
  * person of the token is fetched and saved. Registered below as the handler of `post`; an error is logged by `post` and the original error goes up.
  */
 export async function replaceStaleIdentity(clearLocalData: () => Promise<void> = clearAllLocalData): Promise<string> {
+    await dropLocalUserState(clearLocalData);
+    const id = await defaultFetchUserId();
+    saveUserId(id);
+    return id;
+}
+
+/** Drops what the browser keeps for a user who is gone: saved id, push endpoint and its user, and the local chat database (unread rooms included). */
+export async function dropLocalUserState(clearLocalData: () => Promise<void> = clearAllLocalData): Promise<void> {
     const dataLocal = loadLocalStorage();
     if (dataLocal) {
         delete dataLocal.userId;
@@ -368,12 +377,49 @@ export async function replaceStaleIdentity(clearLocalData: () => Promise<void> =
         saveLocalStorage(dataLocal);
     }
     await clearLocalData();
-    const id = await defaultFetchUserId();
-    saveUserId(id);
-    return id;
+}
+
+/**
+ * The chat loaded and the cm answered with a user: that is the user from now on. No saved id: it is saved. The same: nothing changes. Another one:
+ * the local state belongs to somebody else, so it is dropped (a warning says so) before the new id is saved. A failure while emptying the local
+ * database is logged and the new id is saved anyway: the chat has to open.
+ */
+export async function adoptUserId(newId: string, clearLocalData: () => Promise<void> = clearAllLocalData): Promise<void> {
+    const saved = getUserId();
+    if (!saved) {
+        saveUserId(newId);
+        return;
+    }
+    if (saved === newId) return;
+    console.warn(`The cm answered with user ${newId}, not the saved ${saved}: dropping the local chat state of the saved one.`);
+    try {
+        await dropLocalUserState(clearLocalData);
+    } catch (error: unknown) {
+        console.error('Could not empty the local chat database for the previous user.', error);
+    }
+    saveUserId(newId);
 }
 
 setIdentityRefusedHandler(() => replaceStaleIdentity());
+
+/**
+ * The cm answered "Thread not found" for a room the browser still holds: it is a copy of a room that no longer exists (e.g. the database of the cm
+ * started empty). Its messages and the room leave the local database, with a warning. There is no event that takes a room off the list without
+ * moving it to the deleted ones, so the list loses it on the next load; the room is not read again from the server meanwhile.
+ */
+export async function dropGoneThread(
+    threadId: string,
+    drop: { deleteMessages: (id: string) => Promise<void>; deleteRoom: (id: string) => Promise<void> } = {
+        deleteMessages: deleteAllMessagesFromThread,
+        deleteRoom: deleteThread,
+    }
+): Promise<void> {
+    console.warn(`The cm does not know the room ${threadId}: removing it and its messages from the local copy.`);
+    await drop.deleteMessages(threadId);
+    await drop.deleteRoom(threadId);
+}
+
+setThreadNotFoundHandler((threadId) => dropGoneThread(threadId));
 
 export function ensureUserId(fetchUser: () => Promise<string> = defaultFetchUserId): Promise<string> {
     const saved = getUserId();

@@ -2,8 +2,11 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { post, setIdentityRefusedHandler } from '/_102025_/l2/shared/api.js';
-import { getUserId, loadNotificationToken, replaceStaleIdentity, saveNotificationToken, saveUserId } from '/_102025_/l2/collabMessagesHelper.js';
+import { adoptUserId, getUserId, loadNotificationToken, loadNotificationTokenUserId, replaceStaleIdentity, saveNotificationToken, saveUserId } from '/_102025_/l2/collabMessagesHelper.js';
 
 const REFUSED = 'userId does not match authenticated user';
 const STORES = ['threads', 'poolings', 'users', 'tasks', 'messages'];
@@ -155,4 +158,78 @@ void test('a failure while clearing the local database does not save a half swap
     saveUserId('old-id');
     await assert.rejects(replaceStaleIdentity(async () => { throw new Error('idb down'); }), /idb down/);
     assert.equal(getUserId(), null, 'the old id is not kept: the next ensureUserId fetches the right one');
+});
+
+// front_03 s1: the chat loaded and the cm answered with a user.
+function captureConsole(method: 'warn' | 'error'): { lines: string[]; restore: () => void } {
+    const lines: string[] = [];
+    const original = console[method];
+    console[method] = (...args: unknown[]) => { lines.push(args.map(String).join(' ')); };
+    return { lines, restore: () => { console[method] = original; } };
+}
+
+void test('front_03 s1 (a): no saved id: the id is saved and the local database is left alone', async () => {
+    installMemoryStorage();
+    let cleared = 0;
+    await adoptUserId('new-id', async () => { cleared += 1; });
+    assert.equal(getUserId(), 'new-id');
+    assert.equal(cleared, 0);
+});
+
+void test('front_03 s1 (b): the same id changes nothing', async () => {
+    installMemoryStorage();
+    saveUserId('same-id');
+    saveNotificationToken('https://push.example/e', 'same-id');
+    let cleared = 0;
+    const warnings = captureConsole('warn');
+    try {
+        await adoptUserId('same-id', async () => { cleared += 1; });
+    } finally {
+        warnings.restore();
+    }
+    assert.equal(cleared, 0);
+    assert.equal(getUserId(), 'same-id');
+    assert.equal(loadNotificationToken(), 'https://push.example/e');
+    assert.deepEqual(warnings.lines, []);
+});
+
+void test('front_03 s1 (c): another id drops the local state of the saved user, saves the new id and warns once', async () => {
+    installMemoryStorage();
+    saveUserId('old-id');
+    saveNotificationToken('https://push.example/old', 'old-id');
+    let cleared = 0;
+    const warnings = captureConsole('warn');
+    try {
+        await adoptUserId('new-id', async () => { cleared += 1; });
+    } finally {
+        warnings.restore();
+    }
+    assert.equal(cleared, 1);
+    assert.equal(getUserId(), 'new-id');
+    assert.equal(loadNotificationToken(), null);
+    assert.equal(loadNotificationTokenUserId(), null);
+    assert.equal(warnings.lines.length, 1);
+    assert.match(warnings.lines[0] as string, /new-id/);
+    assert.match(warnings.lines[0] as string, /old-id/);
+});
+
+void test('front_03 s1 (d): a failure while emptying the database is logged and the new id is saved anyway', async () => {
+    installMemoryStorage();
+    saveUserId('old-id');
+    const errors = captureConsole('error');
+    const warnings = captureConsole('warn');
+    try {
+        await adoptUserId('new-id', async () => { throw new Error('idb down'); });
+    } finally {
+        errors.restore();
+        warnings.restore();
+    }
+    assert.equal(getUserId(), 'new-id');
+    assert.ok(errors.lines.some((line) => line.includes('idb down')), 'the failure is logged');
+});
+
+void test('front_03 s1: the chat adopts the user of the cm before it cleans rooms and users', () => {
+    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'collabMessages.ts'), 'utf8');
+    assert.match(source, /await adoptUserId\(this\.userPerfil\.userId\);\s*await cleanupThreads\(/);
+    assert.doesNotMatch(source, /\bsaveUserId\(/, 'the load no longer overwrites the saved id');
 });
