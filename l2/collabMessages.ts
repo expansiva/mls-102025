@@ -13,6 +13,7 @@ import {
     updateUsers,
     getThread,
     cleanupThreads,
+    cleanupUsers,
     listPoolings,
     getTask,
     getMessage,
@@ -435,6 +436,12 @@ export class CollabMessages extends CollabLitElement {
                 this.userPerfil = await this.getUser();
                 saveUserId(this.userPerfil.userId);
                 await cleanupThreads(this.userPerfil.threads);
+                try {
+                    await cleanupUsers([this.userPerfil.userId]);
+                } catch (cleanupError: unknown) {
+                    // a cache cleanup never keeps the chat from opening
+                    console.error('Could not clean the local copy of users.', cleanupError);
+                }
                 void initNotifications().then(() => {
                     if (getNotificationOffer() === 'offer') {
                         this.notificationAlertKind = 'offer';
