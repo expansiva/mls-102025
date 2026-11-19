@@ -34,6 +34,7 @@ import { getMessage, updateMessage } from '/_102025_/l2/collabMessagesIndexedDB.
 import { msgGetAttachmentUrl, msgUpdateMessage } from '/_102025_/l2/shared/api.js';
 import { hasTaskNotificationPending } from '/_102025_/l2/collabMessagesSyncNotifications.js';
 import { deserializeUserMentions, serializeUserMentions } from '/_102025_/l2/collabMessagesPrompt.js';
+import { mentionablePeople } from '/_102025_/l2/collabMessagesPromptMention.js';
 import { openContentInDetails } from '/_102025_/l2/collabMessagesContentDetail.js';
 import { openModuleScreenProgram } from '/_102025_/l2/collabMessagesTaskInfo.js';
 import { environment } from '/_102036_/l2/environmentContract.js';
@@ -2119,7 +2120,7 @@ export class CollabMessagesChatMessage102025 extends StateLitElement {
     }
 
     private onEditSaveClick(message: msg.Message) {
-        const content = serializeUserMentions(this.editContent.trim(), this.usersAvaliables);
+        const content = serializeUserMentions(this.editContent.trim(), mentionablePeople(this.usersAvaliables, this.actualThread?.thread.users.map((user) => user.userId)));
         if (!content || content === message.content) return;
         this.isEditingMessage = false;
         this.dispatchEvent(new CustomEvent('edit-message', {

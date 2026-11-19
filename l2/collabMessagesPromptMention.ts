@@ -7,6 +7,17 @@ export interface MentionUser {
     avatar_url?: string | undefined;
 }
 
+/**
+ * Who can be mentioned in a room: the people of the local copy that are in the room. The local copy keeps users of other times and other
+ * rooms (a person of an old cm with the same name as one of the room), and a mention written with such an id is stored outside the room.
+ * With no room (no `roomUserIds`) the list is whole, as before.
+ */
+export function mentionablePeople<T extends { userId: string }>(localUsers: readonly T[], roomUserIds: readonly string[] | undefined): T[] {
+    if (!roomUserIds) return [...localUsers];
+    const inRoom = new Set(roomUserIds);
+    return localUsers.filter((user) => inRoom.has(user.userId));
+}
+
 export interface UserSuggestion {
     userId: string;
     name: string;

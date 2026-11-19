@@ -10,7 +10,7 @@ import { emojiList } from '/_102025_/l2/collabMessagesEmojis.js'
 import { environment } from '/_102036_/l2/environmentContract.js';
 import * as msg from '/_102025_/l2/shared/interfaces.js';
 import { msgGetUsers } from '/_102025_/l2/shared/api.js';
-import { buildUserSuggestions } from '/_102025_/l2/collabMessagesPromptMention.js';
+import { buildUserSuggestions, mentionablePeople } from '/_102025_/l2/collabMessagesPromptMention.js';
 import type { MentionUser } from '/_102025_/l2/collabMessagesPromptMention.js';
 import { StateLitElement } from '/_102029_/l2/stateLitElement.js';
 
@@ -103,6 +103,9 @@ export class CollabMessagesPrompt extends StateLitElement {
     @state() mentionIndex: number = 0;
     @state() allUsers: msg.User[] = [];
     @state() allUsersValids: msg.User[] = [];
+    /** Who an `@` can name: the people of `allUsersValids` that are in the room (all of them when there is no room). */
+    @state() mentionPeople: msg.User[] = [];
+    private peopleListOpen = false;
     /** The virtual employees that can be called, asked each time the `@` list opens. */
     @state() callableAgents: MentionUser[] = [];
     private callableListOpen = false;
@@ -208,6 +211,8 @@ export class CollabMessagesPrompt extends StateLitElement {
         const users: msg.User[] = await listUsers();
         this.allUsers = users;
         this.allUsersValids = users.filter((user) => !user.kind);
+        const room = await getThread(this.threadId?.trim() || '');
+        this.mentionPeople = mentionablePeople(this.allUsersValids, room?.users.map((user) => user.userId));
     }
 
     private async getAgents() {
@@ -558,8 +563,10 @@ export class CollabMessagesPrompt extends StateLitElement {
             query = matchUser[1];
             suggestions = this.getUserSuggestions(query);
             this.askCallableAgentsOnOpen();
+            this.refreshPeopleOnOpen();
         } else {
             this.callableListOpen = false;
+            this.peopleListOpen = false;
         }
 
         const matchAgent = beforeCursor.match(/(?:^|\s)@@([a-zA-Z]*)$/);
@@ -710,7 +717,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private getUserSuggestions(query: string): IMentions[] {
-        return buildUserSuggestions(this.allUsersValids, this.callableAgents, query)
+        return buildUserSuggestions(this.mentionPeople, this.callableAgents, query)
             .map(user => ({
                 avatar_url: user.avatar_url,
                 text: user.name,
@@ -719,6 +726,13 @@ export class CollabMessagesPrompt extends StateLitElement {
                 type: 'user',
                 ...(user.callable ? { callable: true } : {})
             }));
+    }
+
+    /** Once per opening of the `@` list: who is in the room now (someone may have entered after the room was opened). A failure is logged and the list stays as it was. */
+    private refreshPeopleOnOpen() {
+        if (this.peopleListOpen || !this.acceptAutoCompleteUser) return;
+        this.peopleListOpen = true;
+        void this.getUsers().then(() => this.showUserSuggestionsIfStillMatching(), (error) => console.error('Could not refresh the people of the room:', error));
     }
 
     /** Once per opening of the `@` list (not at each key): who can be called now. A failure is logged and the list stays with the people. */
@@ -746,7 +760,7 @@ export class CollabMessagesPrompt extends StateLitElement {
     }
 
     private async showUserSuggestionsIfStillMatching() {
-        if (!this.textArea || !this.callableListOpen) return;
+        if (!this.textArea || !(this.callableListOpen || this.peopleListOpen)) return;
         const match = this.text.slice(0, this.textArea.selectionStart).match(/(?:^|\s)@([a-zA-Z]*)$/);
         if (!match) return;
         const suggestions = this.getUserSuggestions(match[1]);
@@ -964,7 +978,14 @@ export class CollabMessagesPrompt extends StateLitElement {
         let finalText = this.text.trim();
         let isSpecialMention = false;
         let agentName: string | undefined;
-        finalText = serializeUserMentions(finalText, [...this.allUsersValids, ...this.callableAgents]);
+        if (this.acceptAutoCompleteUser) {
+            try {
+                await this.getUsers();
+            } catch (error) {
+                console.error('Could not refresh the people of the room:', error);
+            }
+        }
+        finalText = serializeUserMentions(finalText, [...this.mentionPeople, ...this.callableAgents]);
 
         if (finalText.startsWith('@@')) {
             await this.ensureAgentsLoaded();
